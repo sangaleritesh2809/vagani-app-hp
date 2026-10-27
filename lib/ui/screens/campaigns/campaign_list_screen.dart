@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/campaign_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import 'campaign_config_dialog.dart';
 
@@ -14,9 +14,8 @@ class CampaignListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
-    final dateFormat = DateFormat('dd MMM yyyy');
 
     return Scaffold(
       body: ListView.separated(
@@ -33,7 +32,9 @@ class CampaignListScreen extends StatelessWidget {
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: isSelected ? AppColors.primary : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                color: isSelected
+                    ? AppColors.primary
+                    : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected
@@ -53,28 +54,38 @@ class CampaignListScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         c.varganiType.displayName.split('(').first.trim(),
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11),
+                        style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11),
                       ),
                     ),
                     if (isSelected)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.statusPaid.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.check_circle_rounded, size: 12, color: AppColors.statusPaid),
+                            Icon(Icons.check_circle_rounded,
+                                size: 12, color: AppColors.statusPaid),
                             SizedBox(width: 4),
-                            Text('ACTIVE CAMPAIGN', style: TextStyle(color: AppColors.statusPaid, fontSize: 10, fontWeight: FontWeight.bold)),
+                            Text('ACTIVE CAMPAIGN',
+                                style: TextStyle(
+                                    color: AppColors.statusPaid,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -83,7 +94,8 @@ class CampaignListScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   c.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 17),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -97,30 +109,40 @@ class CampaignListScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Rate per Person (SRS 5.1)', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        Text(langTheme.tr('perPersonRate'),
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.grey)),
                         Text(
-                          '₹${c.perPersonRate.toStringAsFixed(0)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
+                          langTheme.formatCurrency(c.perPersonRate),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppColors.primary),
                         ),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Target Amount', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        Text(langTheme.tr('targetAmount'),
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.grey)),
                         Text(
-                          currencyFormat.format(c.targetAmount),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          langTheme.formatCurrency(c.targetAmount),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15),
                         ),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Duration', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        const Text('कालावधी / Duration',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
                         Text(
-                          '${dateFormat.format(c.startDate)} - ${dateFormat.format(c.endDate)}',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                          '${langTheme.formatDate(c.startDate)} - ${langTheme.formatDate(c.endDate)}',
+                          style: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -154,7 +176,8 @@ class CampaignListScreen extends StatelessWidget {
                             ),
                           );
                         },
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary),
                         child: const Text('Select Campaign'),
                       ),
                   ],

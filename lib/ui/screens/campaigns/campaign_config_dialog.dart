@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/mandatory_label.dart';
 
 class CampaignConfigDialog extends StatefulWidget {
   const CampaignConfigDialog({super.key});
@@ -53,7 +54,8 @@ class _CampaignConfigDialogState extends State<CampaignConfigDialog> {
                   children: [
                     const Text(
                       'Configure Vargani Rate (SRS 5.1)',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
@@ -72,7 +74,7 @@ class _CampaignConfigDialogState extends State<CampaignConfigDialog> {
                   controller: _rateController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Per-Person Vargani Amount (₹) *',
+                    label: MandatoryLabel('Per-Person Vargani Amount (₹)'),
                     hintText: 'e.g. 100',
                     prefixIcon: Icon(Icons.currency_rupee_rounded),
                   ),
@@ -95,7 +97,8 @@ class _CampaignConfigDialogState extends State<CampaignConfigDialog> {
                   child: const Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline_rounded, size: 16, color: Colors.amber),
+                      Icon(Icons.info_outline_rounded,
+                          size: 16, color: Colors.amber),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -112,12 +115,15 @@ class _CampaignConfigDialogState extends State<CampaignConfigDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel')),
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
-                          final newRate = double.parse(_rateController.text.trim());
+                          final newRate =
+                              double.parse(_rateController.text.trim());
                           data.updateCampaignPerPersonRate(
                             newRate: newRate,
                             currentUser: auth.currentUser,
@@ -125,7 +131,8 @@ class _CampaignConfigDialogState extends State<CampaignConfigDialog> {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Campaign rate updated to ₹${newRate.toStringAsFixed(0)} / person!'),
+                              content: Text(
+                                  'Campaign rate updated to ₹${newRate.toStringAsFixed(0)} / person!'),
                               backgroundColor: AppColors.statusPaid,
                             ),
                           );

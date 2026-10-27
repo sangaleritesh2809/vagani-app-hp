@@ -9,13 +9,13 @@ extension ComplaintTypeExtension on ComplaintType {
   String get displayName {
     switch (this) {
       case ComplaintType.collectionDiscrepancy:
-        return 'Collection Discrepancy (वर्गणी तफावत)';
+        return 'Collection Discrepancy';
       case ComplaintType.receiptIssue:
-        return 'Receipt Issue (पावती तक्रार)';
+        return 'Receipt Issue';
       case ComplaintType.expenseAudit:
-        return 'Expense Question / Audit (खर्च आक्षेप)';
+        return 'Expense Question / Audit';
       case ComplaintType.generalInquiry:
-        return 'General Feedback / Inquiry (सामान्य विचारणा)';
+        return 'General Feedback / Inquiry';
     }
   }
 }
@@ -128,5 +128,79 @@ class ComplaintModel {
       resolvedDate: resolvedDate ?? this.resolvedDate,
       isEscalated: isEscalated ?? this.isEscalated,
     );
+  }
+
+  factory ComplaintModel.fromJson(Map<String, dynamic> json) {
+    ComplaintType cType = ComplaintType.generalInquiry;
+    final typeStr = (json['type'] ?? '').toString().toLowerCase();
+    for (final t in ComplaintType.values) {
+      if (t.name.toLowerCase() == typeStr) {
+        cType = t;
+        break;
+      }
+    }
+
+    ComplaintStatus cStatus = ComplaintStatus.submitted;
+    final sStr = (json['status'] ?? 'submitted').toString().toLowerCase();
+    for (final s in ComplaintStatus.values) {
+      if (s.name.toLowerCase() == sStr) {
+        cStatus = s;
+        break;
+      }
+    }
+
+    return ComplaintModel(
+      id: json['id'] as String? ?? '',
+      organizationId: json['organization_id'] as String? ??
+          json['organizationId'] as String? ??
+          'org_001',
+      campaignId: json['campaign_id'] as String? ??
+          json['campaignId'] as String? ??
+          'cmp_ganesh_2026',
+      campaignName: json['campaign_name'] as String? ??
+          json['campaignName'] as String? ??
+          'Ganeshotsav 2026',
+      relatedRecordId: json['related_record_id'] as String? ??
+          json['relatedRecordId'] as String?,
+      type: cType,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      submittedById: json['submitted_by_id'] as String? ??
+          json['submittedById'] as String? ??
+          'usr_citizen',
+      submittedByName: json['submitted_by_name'] as String? ??
+          json['submittedByName'] as String? ??
+          '',
+      submittedByPhone: json['submitted_by_phone'] as String? ??
+          json['submittedByPhone'] as String? ??
+          '',
+      submittedDate: json['submitted_date'] != null
+          ? DateTime.tryParse(json['submitted_date'].toString()) ??
+              DateTime.now()
+          : DateTime.now(),
+      status: cStatus,
+      adminResponse:
+          json['admin_response'] as String? ?? json['adminResponse'] as String?,
+      resolutionNotes: json['resolution_notes'] as String? ??
+          json['resolutionNotes'] as String?,
+      resolvedDate: json['resolved_date'] != null
+          ? DateTime.tryParse(json['resolved_date'].toString())
+          : null,
+      isEscalated: json['is_escalated'] == true || json['isEscalated'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'campaign_id': campaignId,
+      'type': type.name,
+      'title': title,
+      'description': description,
+      'submitted_by_name': submittedByName,
+      'submitted_by_phone': submittedByPhone,
+      'status': status.name,
+      'admin_response': adminResponse,
+    };
   }
 }

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/models/receipt_model.dart';
 import '../../../core/models/payment_model.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import 'receipt_detail_dialog.dart';
 import 'new_collection_dialog.dart';
@@ -21,9 +20,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
   @override
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
-    final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
     final receipts = data.receipts.where((r) {
       if (_search.isNotEmpty) {
@@ -42,14 +40,20 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+              border: Border(
+                  bottom: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder)),
             ),
             child: TextField(
               onChanged: (val) => setState(() => _search = val),
               decoration: const InputDecoration(
-                hintText: 'Search by receipt number (e.g. VRG-2026-0001) or head name...',
+                hintText:
+                    'Search by receipt number (e.g. VRG-2026-0001) or head name...',
                 prefixIcon: Icon(Icons.search_rounded),
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),
@@ -73,10 +77,16 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+                            color: isDark
+                                ? AppColors.darkCardBg
+                                : AppColors.lightCardBg,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: r.isCancelled ? Colors.red.withOpacity(0.5) : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                              color: r.isCancelled
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (isDark
+                                      ? AppColors.darkBorder
+                                      : AppColors.lightBorder),
                             ),
                           ),
                           child: Row(
@@ -84,12 +94,18 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: r.isCancelled ? Colors.red.withOpacity(0.12) : AppColors.statusPaid.withOpacity(0.12),
+                                  color: r.isCancelled
+                                      ? Colors.red.withOpacity(0.12)
+                                      : AppColors.statusPaid.withOpacity(0.12),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  r.isCancelled ? Icons.cancel_outlined : Icons.receipt_rounded,
-                                  color: r.isCancelled ? Colors.red : AppColors.statusPaid,
+                                  r.isCancelled
+                                      ? Icons.cancel_outlined
+                                      : Icons.receipt_rounded,
+                                  color: r.isCancelled
+                                      ? Colors.red
+                                      : AppColors.statusPaid,
                                   size: 22,
                                 ),
                               ),
@@ -105,15 +121,27 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
-                                            color: r.isCancelled ? Colors.red : AppColors.primary,
+                                            color: r.isCancelled
+                                                ? Colors.red
+                                                : AppColors.primary,
                                           ),
                                         ),
                                         if (r.isCancelled) ...[
                                           const SizedBox(width: 6),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                            decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
-                                            child: const Text('CANCELLED', style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold)),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 1),
+                                            decoration: BoxDecoration(
+                                                color: Colors.red
+                                                    .withOpacity(0.15),
+                                                borderRadius:
+                                                    BorderRadius.circular(4)),
+                                            child: const Text('CANCELLED',
+                                                style: TextStyle(
+                                                    color: Colors.red,
+                                                    fontSize: 9,
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                           ),
                                         ],
                                       ],
@@ -121,11 +149,14 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       r.householdHeadName,
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13),
                                     ),
                                     Text(
-                                      '${r.paymentType.displayName} • By ${r.collectedByName} • ${dateFormat.format(r.issuedAt)}',
-                                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                      '${r.paymentType.displayName} • By ${r.collectedByName} • ${langTheme.formatDate(r.issuedAt)}',
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey),
                                     ),
                                   ],
                                 ),
@@ -134,16 +165,21 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    currencyFormat.format(r.amountReceived),
+                                    langTheme.formatCurrency(r.amountReceived),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
-                                      color: r.isCancelled ? Colors.grey : AppColors.statusPaid,
-                                      decoration: r.isCancelled ? TextDecoration.lineThrough : null,
+                                      color: r.isCancelled
+                                          ? Colors.grey
+                                          : AppColors.statusPaid,
+                                      decoration: r.isCancelled
+                                          ? TextDecoration.lineThrough
+                                          : null,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+                                  const Icon(Icons.arrow_forward_ios_rounded,
+                                      size: 12, color: Colors.grey),
                                 ],
                               ),
                             ],

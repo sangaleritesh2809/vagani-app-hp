@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/expense_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/mandatory_label.dart';
 
 class AddExpenseDialog extends StatefulWidget {
   const AddExpenseDialog({super.key});
@@ -39,7 +40,6 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -59,7 +59,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     children: [
                       const Text(
                         'Record Event Expense (SRS 8)',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -72,7 +73,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   // Category Selector
                   DropdownButtonFormField<ExpenseCategory>(
                     value: _selectedCategory,
-                    decoration: const InputDecoration(labelText: 'Expense Category (खर्चाचा प्रकार) *'),
+                    decoration: const InputDecoration(
+                        label: MandatoryLabel('Expense Category')),
                     items: ExpenseCategory.values.map((cat) {
                       return DropdownMenuItem<ExpenseCategory>(
                         value: cat,
@@ -83,35 +85,37 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       if (cat != null) setState(() => _selectedCategory = cat);
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 18),
 
                   // Title
                   TextFormField(
                     controller: _titleController,
                     decoration: const InputDecoration(
-                      labelText: 'Expense Title / Description *',
-                      hintText: 'e.g. Mandap and Stage Setup',
+                      label: MandatoryLabel('Expense Title / Description'),
                       prefixIcon: Icon(Icons.title_rounded),
                     ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter title' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter title'
+                        : null,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 18),
 
                   // Amount
                   TextFormField(
                     controller: _amountController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Amount (₹) *',
+                      label: MandatoryLabel('Amount (₹)'),
                       prefixIcon: Icon(Icons.currency_rupee_rounded),
                     ),
                     validator: (v) {
                       final parsed = double.tryParse(v ?? '');
-                      if (parsed == null || parsed <= 0) return 'Enter valid amount';
+                      if (parsed == null || parsed <= 0)
+                        return 'Enter valid amount';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 18),
 
                   // Vendor & Bill
                   Row(
@@ -120,10 +124,11 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                         child: TextFormField(
                           controller: _vendorController,
                           decoration: const InputDecoration(
-                            labelText: 'Vendor / Payee *',
-                            hintText: 'e.g. Sai Decors',
+                            label: MandatoryLabel('Vendor / Payee'),
                           ),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter vendor' : null,
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Enter vendor'
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -132,7 +137,6 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                           controller: _billController,
                           decoration: const InputDecoration(
                             labelText: 'Bill / Invoice No',
-                            hintText: 'e.g. INV-904',
                           ),
                         ),
                       ),
@@ -143,9 +147,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   // Payment Mode
                   DropdownButtonFormField<String>(
                     value: _paymentMode,
-                    decoration: const InputDecoration(labelText: 'Payment Mode'),
-                    items: ['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map((mode) {
-                      return DropdownMenuItem<String>(value: mode, child: Text(mode));
+                    decoration:
+                        const InputDecoration(labelText: 'Payment Mode'),
+                    items:
+                        ['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map((mode) {
+                      return DropdownMenuItem<String>(
+                          value: mode, child: Text(mode));
                     }).toList(),
                     onChanged: (mode) {
                       if (mode != null) setState(() => _paymentMode = mode);
@@ -155,9 +162,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
 
                   // Has Proof Toggle (SRS 8 requirement: Display Proof Not Uploaded if false)
                   SwitchListTile(
-                    title: const Text('Proof / Bill Uploaded?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    title: const Text('Proof / Bill Uploaded?',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold)),
                     subtitle: Text(
-                      _hasProof ? 'Bill attached' : 'Proof Not Uploaded indicator will be shown (SRS 8)',
+                      _hasProof
+                          ? 'Bill attached'
+                          : 'Proof Not Uploaded indicator will be shown (SRS 8)',
                       style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                     value: _hasProof,
@@ -168,8 +179,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
 
                   // Public Visibility Toggle (SRS 8 & 9)
                   SwitchListTile(
-                    title: const Text('Publicly Visible on Dashboard?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Allow citizens to view this approved expense', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    title: const Text('Publicly Visible on Dashboard?',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold)),
+                    subtitle: const Text(
+                        'Allow citizens to view this approved expense',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
                     value: _isPublicVisible,
                     activeColor: AppColors.primary,
                     contentPadding: EdgeInsets.zero,
@@ -181,7 +196,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel')),
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: () {
@@ -190,10 +207,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                               category: _selectedCategory,
                               title: _titleController.text.trim(),
                               description: _descController.text.trim(),
-                              amount: double.parse(_amountController.text.trim()),
+                              amount:
+                                  double.parse(_amountController.text.trim()),
                               vendorPayee: _vendorController.text.trim(),
                               paymentMode: _paymentMode,
-                              billNumber: _billController.text.trim().isEmpty ? 'N/A' : _billController.text.trim(),
+                              billNumber: _billController.text.trim().isEmpty
+                                  ? 'N/A'
+                                  : _billController.text.trim(),
                               hasProof: _hasProof,
                               currentUser: auth.currentUser,
                               isPublicVisible: _isPublicVisible,

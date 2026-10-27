@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/complaint_model.dart';
-import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/mandatory_label.dart';
 import 'new_complaint_dialog.dart';
 
 class ComplaintListScreen extends StatelessWidget {
@@ -15,11 +15,14 @@ class ComplaintListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // If citizen, filter their own complaints (SRS 10: "Citizens can track their own complaints")
     final complaints = auth.isCitizen
-        ? data.complaints.where((c) => c.submittedById == auth.currentUser.id).toList()
+        ? data.complaints
+            .where((c) => c.submittedById == auth.currentUser.id)
+            .toList()
         : data.complaints;
 
     return Scaffold(
@@ -28,13 +31,16 @@ class ComplaintListScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.grey),
+                  const Icon(Icons.check_circle_outline_rounded,
+                      size: 48, color: Colors.grey),
                   const SizedBox(height: 12),
                   const Text('No active complaints or inquiries found'),
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: () {
-                      showDialog(context: context, builder: (_) => const NewComplaintDialog());
+                      showDialog(
+                          context: context,
+                          builder: (_) => const NewComplaintDialog());
                     },
                     child: const Text('File an Inquiry'),
                   ),
@@ -47,7 +53,8 @@ class ComplaintListScreen extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final c = complaints[index];
-                return _buildComplaintCard(context, c, auth, data, isDark);
+                return _buildComplaintCard(
+                    context, c, auth, data, langTheme, isDark);
               },
             ),
       floatingActionButton: FloatingActionButton.extended(
@@ -58,7 +65,7 @@ class ComplaintListScreen extends StatelessWidget {
           );
         },
         icon: const Icon(Icons.add_comment_rounded),
-        label: const Text('New Grievance'),
+        label: Text(langTheme.tr('submitComplaint')),
         backgroundColor: AppColors.secondary,
         foregroundColor: Colors.white,
       ),
@@ -70,10 +77,9 @@ class ComplaintListScreen extends StatelessWidget {
     ComplaintModel complaint,
     AuthProvider auth,
     VarganiDataProvider data,
+    LanguageThemeProvider langTheme,
     bool isDark,
   ) {
-    final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -97,7 +103,10 @@ class ComplaintListScreen extends StatelessWidget {
             children: [
               Text(
                 'Ticket: ${complaint.id.toUpperCase()}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.grey),
               ),
               _buildComplaintStatusBadge(complaint.status),
             ],
@@ -112,20 +121,24 @@ class ComplaintListScreen extends StatelessWidget {
             complaint.description,
             style: TextStyle(
               fontSize: 13,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.person_pin_rounded, size: 14, color: Colors.grey),
+              const Icon(Icons.person_pin_rounded,
+                  size: 14, color: Colors.grey),
               const SizedBox(width: 4),
               Text(
-                'By ${complaint.submittedByName} (${auth.isCitizen ? complaint.submittedByPhone : '••••••' + complaint.submittedByPhone.substring(complaint.submittedByPhone.length - 4)})',
+                'By ${complaint.submittedByName} (${auth.isCitizen ? complaint.submittedByPhone : '••••••${complaint.submittedByPhone.substring(complaint.submittedByPhone.length - 4)}'})',
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
               const Spacer(),
-              Text(dateFormat.format(complaint.submittedDate), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(langTheme.formatDate(complaint.submittedDate),
+                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           ),
 
@@ -135,7 +148,8 @@ class ComplaintListScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.primary.withOpacity(0.3)),
               ),
@@ -144,16 +158,25 @@ class ComplaintListScreen extends StatelessWidget {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.reply_rounded, size: 14, color: AppColors.primary),
+                      Icon(Icons.reply_rounded,
+                          size: 14, color: AppColors.primary),
                       SizedBox(width: 6),
-                      Text('Official Committee Response:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.primary)),
+                      Text('Official Committee Response:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              color: AppColors.primary)),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(complaint.adminResponse!, style: const TextStyle(fontSize: 12)),
+                  Text(complaint.adminResponse!,
+                      style: const TextStyle(fontSize: 12)),
                   if (complaint.resolvedDate != null) ...[
                     const SizedBox(height: 4),
-                    Text('Resolved at: ${dateFormat.format(complaint.resolvedDate!)}', style: const TextStyle(fontSize: 10, color: AppColors.statusPaid)),
+                    Text(
+                        'Resolved at: ${langTheme.formatDate(complaint.resolvedDate!)}',
+                        style: const TextStyle(
+                            fontSize: 10, color: AppColors.statusPaid)),
                   ],
                 ],
               ),
@@ -166,7 +189,8 @@ class ComplaintListScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               // Escalation Button (SRS 10)
-              if (!complaint.isEscalated && complaint.status != ComplaintStatus.resolved)
+              if (!complaint.isEscalated &&
+                  complaint.status != ComplaintStatus.resolved)
                 TextButton.icon(
                   onPressed: () {
                     data.escalateComplaintToSuperAdmin(
@@ -175,25 +199,32 @@ class ComplaintListScreen extends StatelessWidget {
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Complaint escalated to Super Admin review.'),
+                        content:
+                            Text('Complaint escalated to Super Admin review.'),
                         backgroundColor: Colors.purple,
                       ),
                     );
                   },
-                  icon: const Icon(Icons.arrow_upward_rounded, size: 14, color: Colors.purple),
-                  label: const Text('Escalate to Super Admin', style: TextStyle(fontSize: 11, color: Colors.purple)),
+                  icon: const Icon(Icons.arrow_upward_rounded,
+                      size: 14, color: Colors.purple),
+                  label: const Text('Escalate to Super Admin',
+                      style: TextStyle(fontSize: 11, color: Colors.purple)),
                 ),
 
               // Admin Reply / Resolve Action
-              if (auth.canManageCampaigns && complaint.status != ComplaintStatus.resolved) ...[
+              if (auth.canManageCampaigns &&
+                  complaint.status != ComplaintStatus.resolved) ...[
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () => _showAdminReplyDialog(context, complaint, data, auth),
+                  onPressed: () =>
+                      _showAdminReplyDialog(context, complaint, data, auth),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  child: const Text('Reply & Resolve', style: TextStyle(fontSize: 11)),
+                  child: const Text('Reply & Resolve',
+                      style: TextStyle(fontSize: 11)),
                 ),
               ],
             ],
@@ -224,10 +255,13 @@ class ComplaintListScreen extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12)),
       child: Text(
         status.displayName,
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+        style:
+            TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -254,20 +288,24 @@ class ComplaintListScreen extends StatelessWidget {
                 controller: responseController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  labelText: 'Committee Response *',
+                  label: MandatoryLabel('Committee Response'),
                   hintText: 'Provide explanation or correction details...',
                 ),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<ComplaintStatus>(
                 value: newStatus,
-                decoration: const InputDecoration(labelText: 'Status after response'),
+                decoration:
+                    const InputDecoration(labelText: 'Status after response'),
                 items: [
                   ComplaintStatus.underReview,
                   ComplaintStatus.actionTaken,
                   ComplaintStatus.resolved,
                   ComplaintStatus.rejectedWithReason,
-                ].map((s) => DropdownMenuItem(value: s, child: Text(s.displayName))).toList(),
+                ]
+                    .map((s) =>
+                        DropdownMenuItem(value: s, child: Text(s.displayName)))
+                    .toList(),
                 onChanged: (s) {
                   if (s != null) setDialogState(() => newStatus = s);
                 },
@@ -275,7 +313,9 @@ class ComplaintListScreen extends StatelessWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () {
                 if (responseController.text.trim().isNotEmpty) {

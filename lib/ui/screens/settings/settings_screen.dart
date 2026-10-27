@@ -5,7 +5,12 @@ import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../auth/group_selection_screen.dart';
 import '../campaigns/campaign_config_dialog.dart';
+import '../profile/user_profile_dialog.dart';
+import '../management/organization_management_screen.dart';
+import '../management/role_management_screen.dart';
+import '../management/user_management_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -21,92 +26,270 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // User Card with Role Badge
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.primary.withOpacity(0.15),
-                  child: Text(
-                    auth.currentUser.name.substring(0, 1),
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary),
+          // User Card with Role Badge & Profile Details
+          InkWell(
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (_) => const UserProfileDialog(),
+              );
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                    child: Text(
+                      auth.currentUser.name.isNotEmpty
+                          ? auth.currentUser.name.substring(0, 1).toUpperCase()
+                          : 'U',
+                      style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        auth.currentUser.name,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        auth.currentUser.phone,
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          auth.currentUser.name,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        child: Text(
-                          auth.currentRole.nameString,
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        Text(
+                          '${auth.currentUser.phone} • ${auth.selectedGroup?.name ?? "Central Division"}',
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                auth.currentRole.nameString,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: auth.currentUser.isActive
+                                    ? Colors.green.withValues(alpha: 0.12)
+                                    : Colors.red.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                auth.currentUser.isActive
+                                    ? 'Active'
+                                    : 'Inactive',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: auth.currentUser.isActive
+                                      ? Colors.green
+                                      : Colors.redAccent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const Icon(Icons.arrow_forward_ios_rounded,
+                      size: 14, color: Colors.grey),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
 
-          // Role Switcher Section (SRS 3)
-          const Text('Switch Demo Role (SRS 3)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
+          // Administration & PBAC Management (Rules 1, 2, 3, 4, 5)
+          if (!auth.isCitizen) ...[
+            const Text(
+              'Administration & Access Control (RBAC)',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Material(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder),
+                ),
+                child: Column(
+                  children: [
+                    // User Management (Rule 5)
+                    if (auth.canViewUsers || auth.canManageUsers)
+                      ListTile(
+                        leading: const Icon(Icons.manage_accounts_rounded,
+                            color: AppColors.primary),
+                        title: const Text('User Management'),
+                        subtitle: const Text(
+                            'Manage users, roles and active/inactive status'),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 14),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const UserManagementScreen()),
+                          );
+                        },
+                      ),
+
+                    // Role Management (Rule 3 & 4)
+                    if (auth.canManageRoles) ...[
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.security_rounded,
+                            color: Colors.indigo),
+                        title: const Text('Roles & Dynamic PBAC'),
+                        subtitle: const Text(
+                            'Create roles and assign granular permissions'),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 14),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const RoleManagementScreen()),
+                          );
+                        },
+                      ),
+                    ],
+
+                    // Organization Management (Rule 1 & 2 - Super Admin)
+                    if (auth.isSuperAdmin) ...[
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.business_rounded,
+                            color: Colors.purple),
+                        title: const Text('Organization Management'),
+                        subtitle: const Text(
+                            'Super Admin: Manage organizations and divisions'),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 14),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const OrganizationManagementScreen()),
+                          );
+                        },
+                      ),
+                    ],
+
+                    // Change Group Jurisdiction (Rule 6)
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.group_work_rounded,
+                          color: Colors.teal),
+                      title: const Text('Switch Active Group'),
+                      subtitle: Text(
+                        'Current: ${auth.selectedGroup?.name ?? "Central Division"}',
+                      ),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const GroupSelectionScreen()),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: Column(
-              children: auth.availableUsers.map((user) {
-                final isSelected = auth.currentUser.id == user.id;
-                return ListTile(
-                  leading: Icon(
-                    isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-                    color: isSelected ? AppColors.primary : Colors.grey,
-                  ),
-                  title: Text(user.name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                  subtitle: Text('${user.role.nameString} • ${user.phone}'),
-                  onTap: () => auth.switchUser(user),
-                );
-              }).toList(),
+            const SizedBox(height: 20),
+          ],
+
+          // Quick Role Switcher for Testing (SRS 3 & Requirement 9)
+          const Text('Switch Demo Role (Testing RBAC)',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Material(
+            color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              ),
+              child: Column(
+                children: auth.availableUsers.map((user) {
+                  final isSelected = auth.currentUser.id == user.id;
+                  return ListTile(
+                    leading: Icon(
+                      isSelected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_off_rounded,
+                      color: isSelected ? AppColors.primary : Colors.grey,
+                    ),
+                    title: Text(user.name,
+                        style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal)),
+                    subtitle: Text(
+                        '${user.role.nameString} • ${user.phone} • ${user.isActive ? "Active" : "Inactive"}'),
+                    onTap: () => auth.switchUser(user),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           const SizedBox(height: 20),
 
           // Citizen Phone OTP Login Simulator (SRS 9 & 12 FR-01)
-          const Text('Citizen Phone OTP Login (FR-01)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const Text('Citizen Phone OTP Login (FR-01)',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +303,8 @@ class SettingsScreen extends StatelessWidget {
                   onPressed: () => _showCitizenOtpDialog(context, auth),
                   icon: const Icon(Icons.sms_rounded, size: 16),
                   label: const Text('Log In with Phone OTP'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondary),
                 ),
               ],
             ),
@@ -128,77 +312,163 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // App Settings & Preferences
-          const Text('Preferences & Localization', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const Text('Preferences & Localization',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.language_rounded, color: AppColors.primary),
-                  title: const Text('Language (इंग्रजी / मराठी)'),
-                  subtitle: Text(langTheme.languageCode == 'en' ? 'English (इंग्रजी)' : 'मराठी (Marathi)'),
-                  trailing: Switch(
-                    value: langTheme.languageCode == 'mr',
-                    activeColor: AppColors.primary,
-                    onChanged: (val) => langTheme.setLanguage(val ? 'mr' : 'en'),
+          Material(
+            color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.language_rounded,
+                        color: AppColors.primary),
+                    title: Text(langTheme.tr('language')),
+                    subtitle: Text(
+                      langTheme.languageCode == 'mr'
+                          ? 'मराठी (Marathi - Primary)'
+                          : (langTheme.languageCode == 'hi'
+                              ? 'हिंदी (Hindi)'
+                              : 'English'),
+                    ),
+                    trailing:
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                    onTap: () =>
+                        _showLanguageSelectionSheet(context, langTheme),
                   ),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: Icon(
-                    langTheme.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                    color: Colors.amber,
-                  ),
-                  title: const Text('Theme Mode'),
-                  subtitle: Text(langTheme.isDarkMode ? 'Dark Mode' : 'Light Mode'),
-                  trailing: Switch(
-                    value: langTheme.isDarkMode,
-                    activeColor: AppColors.primary,
-                    onChanged: (val) => langTheme.toggleTheme(),
-                  ),
-                ),
-                if (auth.canManageCampaigns) ...[
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.price_change_rounded, color: AppColors.statusPaid),
-                    title: const Text('Configure Vargani Rate (SRS 5.1)'),
-                    subtitle: Text('Current Rate: ₹${data.currentCampaign.perPersonRate.toStringAsFixed(0)} / person'),
-                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                    onTap: () {
-                      showDialog(context: context, builder: (_) => const CampaignConfigDialog());
-                    },
+                    leading: const Icon(Icons.pin_rounded,
+                        color: AppColors.secondary),
+                    title: Text(langTheme.tr('marathiNumerals')),
+                    subtitle: Text(
+                      langTheme.useMarathiNumerals
+                          ? langTheme.tr('marathiNumeralsSubtitle')
+                          : langTheme.tr('englishNumeralsSubtitle'),
+                    ),
+                    trailing: Switch(
+                      value: langTheme.useMarathiNumerals,
+                      activeColor: AppColors.primary,
+                      onChanged: (val) => langTheme.setUseMarathiNumerals(val),
+                    ),
                   ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(
+                      langTheme.isDarkMode
+                          ? Icons.dark_mode_rounded
+                          : Icons.light_mode_rounded,
+                      color: Colors.amber,
+                    ),
+                    title: Text(langTheme.tr('themeMode')),
+                    subtitle: Text(langTheme.isDarkMode
+                        ? langTheme.tr('darkMode')
+                        : langTheme.tr('lightMode')),
+                    trailing: Switch(
+                      value: langTheme.isDarkMode,
+                      activeColor: AppColors.primary,
+                      onChanged: (val) => langTheme.toggleTheme(),
+                    ),
+                  ),
+                  if (auth.canManageCampaigns) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.price_change_rounded,
+                          color: AppColors.statusPaid),
+                      title: const Text('Configure Vargani Rate (SRS 5.1)'),
+                      subtitle: Text(
+                          'Current Rate: ₹${data.currentCampaign.perPersonRate.toStringAsFixed(0)} / person'),
+                      trailing:
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                      onTap: () {
+                        showDialog(
+                            context: context,
+                            builder: (_) => const CampaignConfigDialog());
+                      },
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
 
           // Organization Info (SRS 4)
-          const Text('Organization Information (SRS 4)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const Text('Organization Information (SRS 4)',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(data.organization.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(data.organization.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 4),
-                Text('Registration: ${data.organization.registrationNumber}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                Text('President / Contact: ${data.organization.contactPerson}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                Text('Address: ${data.organization.address}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                Text('Location: ${data.organization.village}, ${data.organization.taluka}, ${data.organization.district}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('Registration: ${data.organization.registrationNumber}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('President / Contact: ${data.organization.contactPerson}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('Address: ${data.organization.address}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(
+                    'Location: ${data.organization.village}, ${data.organization.taluka}, ${data.organization.district}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Log Out Button Card
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.redAccent.withValues(alpha: 0.3),
+              ),
+            ),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.logout_rounded,
+                    color: Colors.redAccent, size: 22),
+              ),
+              title: const Text(
+                'Log Out',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.redAccent),
+              ),
+              subtitle: const Text(
+                'Return to Login Screen',
+                style: TextStyle(fontSize: 12),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                  size: 16, color: Colors.redAccent),
+              onTap: () {
+                auth.logout();
+              },
             ),
           ),
           const SizedBox(height: 24),
@@ -208,8 +478,8 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showCitizenOtpDialog(BuildContext context, AuthProvider auth) {
-    final phoneController = TextEditingController(text: '+91 98234 01122');
-    final otpController = TextEditingController(text: '123456');
+    final phoneController = TextEditingController();
+    final otpController = TextEditingController();
 
     showDialog(
       context: context,
@@ -219,22 +489,30 @@ class SettingsScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Enter mobile number to receive OTP: (Demo: 123456)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const Text('Enter mobile number and OTP received:',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 12),
-            TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Mobile Number')),
+            TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Mobile Number')),
             const SizedBox(height: 12),
-            TextField(controller: otpController, decoration: const InputDecoration(labelText: 'OTP (Default: 123456)')),
+            TextField(
+                controller: otpController,
+                decoration: const InputDecoration(labelText: 'OTP')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
-              auth.simulateCitizenOtpLogin(phoneController.text.trim(), otpController.text.trim());
+              auth.simulateCitizenOtpLogin(
+                  phoneController.text.trim(), otpController.text.trim());
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Logged in as Citizen (Rahul Patil)! Switched to Public Transparency view.'),
+                  content: Text(
+                      'Logged in as Citizen! Switched to Public Transparency view.'),
                   backgroundColor: AppColors.statusPaid,
                 ),
               );
@@ -243,6 +521,81 @@ class SettingsScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showLanguageSelectionSheet(
+      BuildContext context, LanguageThemeProvider langTheme) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    langTheme.tr('chooseLanguage'),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Text('🚩', style: TextStyle(fontSize: 24)),
+                  title: const Text('मराठी (Marathi)',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('प्राथमिक भाषा (Default Primary)'),
+                  trailing: langTheme.languageCode == 'mr'
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    langTheme.setLanguage('mr');
+                    Navigator.pop(ctx);
+                  },
+                ),
+                ListTile(
+                  leading: const Text('🌐', style: TextStyle(fontSize: 24)),
+                  title: const Text('English',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Standard English'),
+                  trailing: langTheme.languageCode == 'en'
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    langTheme.setLanguage('en');
+                    Navigator.pop(ctx);
+                  },
+                ),
+                ListTile(
+                  leading: const Text('🇮🇳', style: TextStyle(fontSize: 24)),
+                  title: const Text('हिंदी (Hindi)',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('राष्ट्रभाषा हिंदी'),
+                  trailing: langTheme.languageCode == 'hi'
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    langTheme.setLanguage('hi');
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

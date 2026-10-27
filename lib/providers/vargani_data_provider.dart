@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../core/models/organization_model.dart';
 import '../core/models/campaign_model.dart';
@@ -11,22 +10,41 @@ import '../core/models/expense_model.dart';
 import '../core/models/complaint_model.dart';
 import '../core/models/audit_log_model.dart';
 import '../core/models/user_model.dart';
+import '../core/services/api_service.dart';
 import '../core/services/mock_data_service.dart';
 
 class VarganiDataProvider extends ChangeNotifier {
   final _uuid = const Uuid();
 
   OrganizationModel _organization = MockDataService.organization;
-  List<CampaignModel> _campaigns = List.from(MockDataService.campaigns);
+  List<CampaignModel> _campaigns =
+      kDebugMode ? List.from(MockDataService.campaigns) : <CampaignModel>[];
   late String _selectedCampaignId;
 
-  List<HouseholdModel> _households = List.from(MockDataService.getInitialHouseholds());
-  List<PaymentModel> _payments = List.from(MockDataService.getInitialPayments());
-  List<ReceiptModel> _receipts = List.from(MockDataService.getInitialReceipts());
-  List<CashHandoverModel> _handovers = List.from(MockDataService.getInitialHandovers());
-  List<ExpenseModel> _expenses = List.from(MockDataService.getInitialExpenses());
-  List<ComplaintModel> _complaints = List.from(MockDataService.getInitialComplaints());
-  List<AuditLogModel> _auditLogs = List.from(MockDataService.getInitialAuditLogs());
+  List<HouseholdModel> _households = kDebugMode
+      ? List.from(MockDataService.getInitialHouseholds())
+      : <HouseholdModel>[];
+  List<PaymentModel> _payments = kDebugMode
+      ? List.from(MockDataService.getInitialPayments())
+      : <PaymentModel>[];
+  List<ReceiptModel> _receipts = kDebugMode
+      ? List.from(MockDataService.getInitialReceipts())
+      : <ReceiptModel>[];
+  List<CashHandoverModel> _handovers = kDebugMode
+      ? List.from(MockDataService.getInitialHandovers())
+      : <CashHandoverModel>[];
+  List<ExpenseModel> _expenses = kDebugMode
+      ? List.from(MockDataService.getInitialExpenses())
+      : <ExpenseModel>[];
+  List<ComplaintModel> _complaints = kDebugMode
+      ? List.from(MockDataService.getInitialComplaints())
+      : <ComplaintModel>[];
+  List<AuditLogModel> _auditLogs = kDebugMode
+      ? List.from(MockDataService.getInitialAuditLogs())
+      : <AuditLogModel>[];
+
+  bool _isLoading = false;
+  String? _errorMessage;
 
   // Search & Filters
   String _householdSearchQuery = '';
@@ -34,30 +52,138 @@ class VarganiDataProvider extends ChangeNotifier {
   PaymentStatus? _selectedStatusFilter;
 
   VarganiDataProvider() {
-    _selectedCampaignId = _campaigns.first.id;
+    _selectedCampaignId = _campaigns.isNotEmpty ? _campaigns.first.id : '';
+    // Load live data from backend immediately
+    initDataFromBackend();
   }
 
   // Getters
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get hasError => _errorMessage != null;
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   OrganizationModel get organization => _organization;
   List<CampaignModel> get campaigns => _campaigns;
   String get selectedCampaignId => _selectedCampaignId;
 
   CampaignModel get currentCampaign =>
-      _campaigns.firstWhere((c) => c.id == _selectedCampaignId, orElse: () => _campaigns.first);
+      _campaigns.firstWhere((c) => c.id == _selectedCampaignId,
+          orElse: () => _campaigns.isNotEmpty
+              ? _campaigns.first
+              : CampaignModel(
+                  id: '',
+                  organizationId: _organization.id,
+                  name: 'Vargani Campaign',
+                  varganiType: VarganiType.ganeshotsav,
+                  description: '',
+                  startDate: DateTime.now(),
+                  endDate: DateTime.now().add(const Duration(days: 30)),
+                  targetAmount: 0,
+                  perPersonRate: 100,
+                  rateEffectiveDate: DateTime.now(),
+                ));
 
   void selectCampaign(String id) {
     _selectedCampaignId = id;
     notifyListeners();
+    refreshCampaignData(id);
+  }
+
+  /// Initial fetch from backend API
+  Future<void> initDataFromBackend() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // 1. Fetch organization
+      final org = await ApiService.fetchOrganization();
+      if (org != null) {
+        _organization = org;
+      }
+
+      // 2. Fetch campaigns
+      final camps = await ApiService.fetchCampaigns();
+      if (camps != null && camps.isNotEmpty) {
+        _campaigns = camps;
+        if (!_campaigns.any((c) => c.id == _selectedCampaignId)) {
+          _selectedCampaignId = _campaigns.first.id;
+        }
+      }
+
+      // 3. Fetch data for current campaign
+      await refreshCampaignData(_selectedCampaignId);
+    } catch (e) {
+      _errorMessage =
+          'सर्व्हरशी संपर्क होऊ शकला नाही. कृपया इंटरनेट कनेक्शन तपासा किंवा नंतर पुन्हा प्रयत्न करा. (Server Unreachable)';
+      debugPrint('Notice: Backend sync error ($e). Retaining local state.');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Refresh all campaign-specific collections and expenses from backend API
+  Future<void> refreshCampaignData(String campaignId) async {
+    try {
+      final results = await Future.wait([
+        ApiService.fetchHouseholds(campaignId),
+        ApiService.fetchCollections(campaignId),
+        ApiService.fetchReceipts(campaignId),
+        ApiService.fetchHandovers(campaignId),
+        ApiService.fetchExpenses(campaignId),
+        ApiService.fetchComplaints(campaignId),
+        ApiService.fetchAuditLogs(),
+      ]);
+
+      if (results[0] != null) {
+        _households = results[0] as List<HouseholdModel>;
+      }
+      if (results[1] != null) {
+        _payments = results[1] as List<PaymentModel>;
+      }
+      if (results[2] != null) {
+        _receipts = results[2] as List<ReceiptModel>;
+      }
+      if (results[3] != null) {
+        _handovers = results[3] as List<CashHandoverModel>;
+      }
+      if (results[4] != null) {
+        _expenses = results[4] as List<ExpenseModel>;
+      }
+      if (results[5] != null) {
+        _complaints = results[5] as List<ComplaintModel>;
+      }
+      if (results[6] != null) {
+        _auditLogs = results[6] as List<AuditLogModel>;
+      }
+      _errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage =
+          'सर्व्हरशी संपर्क होऊ शकला नाही. कृपया इंटरनेट कनेक्शन तपासा किंवा नंतर पुन्हा प्रयत्न करा. (Server Unreachable)';
+      debugPrint('Notice: Campaign refresh error ($e)');
+      notifyListeners();
+    }
   }
 
   // Filtered Households
   List<HouseholdModel> get households {
     return _households.where((h) {
       if (h.campaignId != _selectedCampaignId) return false;
-      if (_selectedAreaFilter != 'All' && !h.villageArea.toLowerCase().contains(_selectedAreaFilter.toLowerCase())) {
+      if (_selectedAreaFilter != 'All' &&
+          !h.villageArea
+              .toLowerCase()
+              .contains(_selectedAreaFilter.toLowerCase())) {
         return false;
       }
-      if (_selectedStatusFilter != null && h.paymentStatus != _selectedStatusFilter) {
+      if (_selectedStatusFilter != null &&
+          h.paymentStatus != _selectedStatusFilter) {
         return false;
       }
       if (_householdSearchQuery.isNotEmpty) {
@@ -172,7 +298,6 @@ class VarganiDataProvider extends ChangeNotifier {
   }
 
   // Person-wise Cash Balance Calculation (SRS 6.3)
-  // Cash in hand = cash collected by that person − cash handovers confirmed as received
   double getPersonCashBalance(String userId) {
     final totalCashCollected = _payments
         .where((p) =>
@@ -218,10 +343,11 @@ class VarganiDataProvider extends ChangeNotifier {
             e.paymentMode.toLowerCase().contains('cash'))
         .fold(0.0, (sum, e) => sum + e.amount);
 
-    return (confirmedHandoversReceived + directCashCollected) - cashExpensesPaid;
+    return (confirmedHandoversReceived + directCashCollected) -
+        cashExpensesPaid;
   }
 
-  // ACTIONS
+  // ACTIONS (With Backend API Integrations)
 
   // 1. Register Household (Option A - SRS 5.2)
   void registerHousehold({
@@ -239,7 +365,7 @@ class VarganiDataProvider extends ChangeNotifier {
       mobileNumber: mobileNumber,
       villageArea: villageArea,
       familyMemberCount: familyMemberCount,
-      perPersonRateSnapshot: currentCampaign.perPersonRate, // Preserves rate snapshot!
+      perPersonRateSnapshot: currentCampaign.perPersonRate,
       amountReceived: 0.0,
       createdAt: DateTime.now(),
     );
@@ -258,11 +384,28 @@ class VarganiDataProvider extends ChangeNotifier {
         performedByName: currentUser.name,
         timestamp: DateTime.now(),
         details:
-            'Registered ${newHousehold.headOfFamilyName} (${familyMemberCount} members @ Rs. ${currentCampaign.perPersonRate})',
+            'Registered ${newHousehold.headOfFamilyName} ($familyMemberCount members @ Rs. ${currentCampaign.perPersonRate})',
       ),
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.registerHousehold(
+      campaignId: _selectedCampaignId,
+      headOfFamilyName: headOfFamilyName,
+      mobileNumber: mobileNumber,
+      villageArea: villageArea,
+      familyMemberCount: familyMemberCount,
+    ).then((created) {
+      if (created != null) {
+        final idx = _households.indexWhere((h) => h.id == newHousehold.id);
+        if (idx != -1) {
+          _households[idx] = created;
+          notifyListeners();
+        }
+      }
+    }).ignore();
   }
 
   // 2. Record Payment & Issue Receipt (SRS 6 & 7)
@@ -279,7 +422,8 @@ class VarganiDataProvider extends ChangeNotifier {
     if (householdIndex == -1) throw Exception('Household not found');
 
     final household = _households[householdIndex];
-    final receiptNumber = 'VRG-${DateTime.now().year}-${(_receipts.length + 1).toString().padLeft(4, '0')}';
+    final receiptNumber =
+        'VRG-${DateTime.now().year}-${(_receipts.length + 1).toString().padLeft(4, '0')}';
     final now = DateTime.now();
 
     final payment = PaymentModel(
@@ -294,7 +438,7 @@ class VarganiDataProvider extends ChangeNotifier {
       paymentType: paymentType,
       referenceId: referenceId,
       collectedById: currentUser.id,
-      collectedByName: currentUser.name, // Derived automatically from auth!
+      collectedByName: currentUser.name,
       receivedById: receivedByUser.id,
       receivedByName: receivedByUser.name,
       verificationStatus: VerificationStatus.verified,
@@ -345,10 +489,31 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.recordPayment(
+      householdId: householdId,
+      campaignId: _selectedCampaignId,
+      amount: amount,
+      paymentType: paymentType.name,
+      referenceId: referenceId,
+      collectedByName: currentUser.name,
+      receivedByName: receivedByUser.name,
+      remarks: remarks,
+    ).then((createdReceipt) {
+      if (createdReceipt != null) {
+        final rIdx = _receipts.indexWhere((r) => r.id == receipt.id);
+        if (rIdx != -1) {
+          _receipts[rIdx] = createdReceipt;
+          notifyListeners();
+        }
+      }
+    }).ignore();
+
     return receipt;
   }
 
-  // 3. Cancel / Reverse Receipt (SRS 7: No hard-delete, audit history required)
+  // 3. Cancel / Reverse Receipt (SRS 7)
   void cancelReceipt({
     required String receiptId,
     required String reason,
@@ -373,7 +538,8 @@ class VarganiDataProvider extends ChangeNotifier {
     if (hIndex != -1) {
       final hh = _households[hIndex];
       final newAmt = hh.amountReceived - receipt.amountReceived;
-      _households[hIndex] = hh.copyWith(amountReceived: newAmt > 0 ? newAmt : 0.0);
+      _households[hIndex] =
+          hh.copyWith(amountReceived: newAmt > 0 ? newAmt : 0.0);
     }
 
     _auditLogs.insert(
@@ -387,11 +553,19 @@ class VarganiDataProvider extends ChangeNotifier {
         performedById: currentUser.id,
         performedByName: currentUser.name,
         timestamp: DateTime.now(),
-        details: 'Cancelled receipt ${receipt.receiptNo} of Rs. ${receipt.amountReceived}. Reason: $reason',
+        details:
+            'Cancelled receipt ${receipt.receiptNo} of Rs. ${receipt.amountReceived}. Reason: $reason',
       ),
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.cancelReceipt(
+      receiptId: receiptId,
+      reason: reason,
+      cancelledByName: currentUser.name,
+    ).ignore();
   }
 
   // 4. Submit Cash Handover (SRS 6.3)
@@ -433,6 +607,23 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.submitHandover(
+      campaignId: _selectedCampaignId,
+      handoverFromName: fromUser.name,
+      handoverToName: toUser.name,
+      amount: amount,
+      remarks: remarks,
+    ).then((created) {
+      if (created != null) {
+        final idx = _handovers.indexWhere((h) => h.id == handover.id);
+        if (idx != -1) {
+          _handovers[idx] = created;
+          notifyListeners();
+        }
+      }
+    }).ignore();
   }
 
   // 5. Confirm or Reject Handover (SRS 6.3)
@@ -463,11 +654,19 @@ class VarganiDataProvider extends ChangeNotifier {
         performedById: confirmedByUser.id,
         performedByName: confirmedByUser.name,
         timestamp: DateTime.now(),
-        details: '${approve ? "Confirmed" : "Rejected"} handover of Rs. ${handover.amount} from ${handover.handoverFromName}',
+        details:
+            '${approve ? "Confirmed" : "Rejected"} handover of Rs. ${handover.amount} from ${handover.handoverFromName}',
       ),
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.processHandover(
+      handoverId: handoverId,
+      approve: approve,
+      confirmedByName: confirmedByUser.name,
+    ).ignore();
   }
 
   // 6. Expense Management (SRS 8)
@@ -516,11 +715,35 @@ class VarganiDataProvider extends ChangeNotifier {
         performedById: currentUser.id,
         performedByName: currentUser.name,
         timestamp: DateTime.now(),
-        details: 'Entered expense "${expense.title}" of Rs. $amount (${category.displayName})',
+        details:
+            'Entered expense "${expense.title}" of Rs. $amount (${category.displayName})',
       ),
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.addExpense(
+      campaignId: _selectedCampaignId,
+      category: category.name,
+      title: title,
+      description: description,
+      amount: amount,
+      vendorPayee: vendorPayee,
+      paymentMode: paymentMode,
+      billNumber: billNumber,
+      hasProof: hasProof,
+      enteredByName: currentUser.name,
+      isPublicVisible: isPublicVisible,
+    ).then((created) {
+      if (created != null) {
+        final idx = _expenses.indexWhere((e) => e.id == expense.id);
+        if (idx != -1) {
+          _expenses[idx] = created;
+          notifyListeners();
+        }
+      }
+    }).ignore();
   }
 
   void updateExpenseApproval({
@@ -545,11 +768,19 @@ class VarganiDataProvider extends ChangeNotifier {
         performedById: currentUser.id,
         performedByName: currentUser.name,
         timestamp: DateTime.now(),
-        details: 'Updated expense "${expense.title}" status to ${status.name.toUpperCase()}',
+        details:
+            'Updated expense "${expense.title}" status to ${status.name.toUpperCase()}',
       ),
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.approveExpense(
+      expenseId: expenseId,
+      status: status.name,
+      performedByName: currentUser.name,
+    ).ignore();
   }
 
   // 7. Complaint Management (SRS 10)
@@ -594,6 +825,24 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.submitComplaint(
+      campaignId: _selectedCampaignId,
+      type: type.name,
+      title: title,
+      description: description,
+      submittedByName: citizenUser.name,
+      submittedByPhone: citizenUser.phone,
+    ).then((created) {
+      if (created != null) {
+        final idx = _complaints.indexWhere((c) => c.id == complaint.id);
+        if (idx != -1) {
+          _complaints[idx] = created;
+          notifyListeners();
+        }
+      }
+    }).ignore();
   }
 
   void respondToComplaint({
@@ -625,11 +874,20 @@ class VarganiDataProvider extends ChangeNotifier {
         performedById: currentUser.id,
         performedByName: currentUser.name,
         timestamp: DateTime.now(),
-        details: 'Admin response added to complaint "${complaint.title}". Status: ${status.name}',
+        details:
+            'Admin response added to complaint "${complaint.title}". Status: ${status.name}',
       ),
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.respondComplaint(
+      complaintId: complaintId,
+      response: response,
+      status: status.name,
+      performedByName: currentUser.name,
+    ).ignore();
   }
 
   void escalateComplaintToSuperAdmin({
@@ -661,9 +919,17 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+
+    // Call Backend API to update complaint status
+    ApiService.respondComplaint(
+      complaintId: complaintId,
+      response: 'Escalated to Super Admin for grievance review',
+      status: 'escalated',
+      performedByName: currentUser.name,
+    ).ignore();
   }
 
-  // 8. Update Campaign Rate (SRS 5.1 & 13 BR-10: Preserves historical household rate)
+  // 8. Update Campaign Rate (SRS 5.1 & 13 BR-10)
   void updateCampaignPerPersonRate({
     required double newRate,
     required UserModel currentUser,
@@ -694,13 +960,22 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+
+    // Call Backend API
+    ApiService.updateCampaignRate(
+      campaignId: _selectedCampaignId,
+      newRate: newRate,
+      performedByName: currentUser.name,
+    ).ignore();
   }
 
   // CSV Export String (SRS 11)
   String generateHouseholdsCsv() {
     final buffer = StringBuffer();
-    buffer.writeln('Household ID,Head of Family,Mobile,Area,Members,Rate Snapshot,Expected Total,Received,Remaining,Status');
-    for (var h in _households.where((h) => h.campaignId == _selectedCampaignId)) {
+    buffer.writeln(
+        'Household ID,Head of Family,Mobile,Area,Members,Rate Snapshot,Expected Total,Received,Remaining,Status');
+    for (var h
+        in _households.where((h) => h.campaignId == _selectedCampaignId)) {
       buffer.writeln(
         '${h.id},"${h.headOfFamilyName}",${h.mobileNumber},"${h.villageArea}",${h.familyMemberCount},${h.perPersonRateSnapshot},${h.expectedTotalVargani},${h.amountReceived},${h.remainingAmount},${h.paymentStatus.displayName}',
       );

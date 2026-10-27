@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/payment_model.dart';
 import '../../../core/models/expense_model.dart';
-import '../../../providers/auth_provider.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import '../../widgets/stat_card.dart';
 import '../complaints/new_complaint_dialog.dart';
@@ -15,13 +15,14 @@ class PublicTransparencyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
-    final auth = context.watch<AuthProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
-    final dateFormat = DateFormat('dd MMMM yyyy');
+    final currencyFormat =
+        NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     // Only publicly visible expenses (SRS 9)
-    final publicExpenses = data.expenses.where((e) => e.isPublicVisible).toList();
+    final publicExpenses =
+        data.expenses.where((e) => e.isPublicVisible).toList();
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -58,7 +59,8 @@ class PublicTransparencyView extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.verified_user_rounded, color: Colors.white, size: 20),
+                        child: const Icon(Icons.verified_user_rounded,
+                            color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 10),
                       const Expanded(
@@ -67,11 +69,15 @@ class PublicTransparencyView extends StatelessWidget {
                           children: [
                             Text(
                               'PUBLIC FINANCIAL TRANSPARENCY',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13),
                             ),
                             Text(
                               'Verified Citizen & Donor Portal (SRS 9)',
-                              style: TextStyle(color: Colors.white70, fontSize: 11),
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 11),
                             ),
                           ],
                         ),
@@ -81,7 +87,10 @@ class PublicTransparencyView extends StatelessWidget {
                   const SizedBox(height: 14),
                   Text(
                     data.organization.name,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                   Text(
                     'Reg: ${data.organization.registrationNumber} • ${data.organization.village}, Pune',
@@ -93,11 +102,15 @@ class PublicTransparencyView extends StatelessWidget {
                     children: [
                       Text(
                         'Campaign: ${data.currentCampaign.name}',
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        'As on: ${dateFormat.format(DateTime.now())}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        'As on: ${langTheme.formatDate(DateTime.now())}',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 11),
                       ),
                     ],
                   ),
@@ -118,8 +131,8 @@ class PublicTransparencyView extends StatelessWidget {
               children: [
                 Expanded(
                   child: StatCard(
-                    title: '1. Expected Collection',
-                    value: currencyFormat.format(data.totalExpectedVargani),
+                    title: '1. ${langTheme.tr('expectedTotal')}',
+                    value: langTheme.formatCurrency(data.totalExpectedVargani),
                     subtitle: 'Total budgeted dues',
                     icon: Icons.track_changes_rounded,
                     accentColor: AppColors.secondaryLight,
@@ -128,8 +141,8 @@ class PublicTransparencyView extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: StatCard(
-                    title: '2. Verified Received',
-                    value: currencyFormat.format(data.totalVerifiedReceived),
+                    title: '2. ${langTheme.tr('verifiedReceived')}',
+                    value: langTheme.formatCurrency(data.totalVerifiedReceived),
                     subtitle: 'Total verified in bank/cash',
                     icon: Icons.check_circle_rounded,
                     accentColor: AppColors.statusPaid,
@@ -142,8 +155,8 @@ class PublicTransparencyView extends StatelessWidget {
               children: [
                 Expanded(
                   child: StatCard(
-                    title: '3. Approved Expense',
-                    value: currencyFormat.format(data.totalApprovedExpenses),
+                    title: '3. ${langTheme.tr('approvedExpenses')}',
+                    value: langTheme.formatCurrency(data.totalApprovedExpenses),
                     subtitle: 'Sanctioned committee costs',
                     icon: Icons.rule_rounded,
                     accentColor: Colors.amber,
@@ -152,8 +165,9 @@ class PublicTransparencyView extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: StatCard(
-                    title: '4. Actual Paid Expense',
-                    value: currencyFormat.format(data.totalActualPaidExpenses),
+                    title: '4. ${langTheme.tr('paidExpenses')}',
+                    value:
+                        langTheme.formatCurrency(data.totalActualPaidExpenses),
                     subtitle: 'Disbursed vendor bills',
                     icon: Icons.receipt_long_rounded,
                     accentColor: AppColors.statusPending,
@@ -163,9 +177,10 @@ class PublicTransparencyView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             StatCard(
-              title: '5. Calculated Available Net Balance (SRS 9)',
-              value: currencyFormat.format(data.availableNetBalance),
-              subtitle: 'Verified Money Received (₹${data.totalVerifiedReceived.toStringAsFixed(0)}) − Actual Paid Expense (₹${data.totalActualPaidExpenses.toStringAsFixed(0)})',
+              title: '5. ${langTheme.tr('availableBalance')}',
+              value: langTheme.formatCurrency(data.availableNetBalance),
+              subtitle:
+                  '${langTheme.tr('verifiedReceived')} − ${langTheme.tr('paidExpenses')}',
               icon: Icons.account_balance_rounded,
               accentColor: AppColors.primary,
             ),
@@ -178,7 +193,9 @@ class PublicTransparencyView extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,9 +208,22 @@ class PublicTransparencyView extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildMiniBadge('Cash', data.paymentBreakdown[PaymentType.cash] ?? 0.0, AppColors.primary, currencyFormat),
-                      _buildMiniBadge('UPI / QR', data.paymentBreakdown[PaymentType.upi] ?? 0.0, AppColors.statusPaid, currencyFormat),
-                      _buildMiniBadge('Bank Transfer', data.paymentBreakdown[PaymentType.bankTransfer] ?? 0.0, AppColors.secondaryLight, currencyFormat),
+                      _buildMiniBadge(
+                          'Cash',
+                          data.paymentBreakdown[PaymentType.cash] ?? 0.0,
+                          AppColors.primary,
+                          currencyFormat),
+                      _buildMiniBadge(
+                          'UPI / QR',
+                          data.paymentBreakdown[PaymentType.upi] ?? 0.0,
+                          AppColors.statusPaid,
+                          currencyFormat),
+                      _buildMiniBadge(
+                          'Bank Transfer',
+                          data.paymentBreakdown[PaymentType.bankTransfer] ??
+                              0.0,
+                          AppColors.secondaryLight,
+                          currencyFormat),
                     ],
                   ),
                 ],
@@ -210,7 +240,8 @@ class PublicTransparencyView extends StatelessWidget {
                   'Published Approved Expenses',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                Text('${publicExpenses.length} Items', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('${publicExpenses.length} Items',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
             const SizedBox(height: 12),
@@ -224,9 +255,13 @@ class PublicTransparencyView extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+                    color:
+                        isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    border: Border.all(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder),
                   ),
                   child: Row(
                     children: [
@@ -236,15 +271,21 @@ class PublicTransparencyView extends StatelessWidget {
                           color: AppColors.primary.withOpacity(0.12),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.receipt_rounded, size: 18, color: AppColors.primary),
+                        child: const Icon(Icons.receipt_rounded,
+                            size: 18, color: AppColors.primary),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text('${e.category.displayName.split('(').first.trim()} • Vendor: ${e.vendorPayee}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text(e.title,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13)),
+                            Text(
+                                '${e.category.displayName.split('(').first.trim()} • Vendor: ${e.vendorPayee}',
+                                style: const TextStyle(
+                                    fontSize: 11, color: Colors.grey)),
                           ],
                         ),
                       ),
@@ -252,20 +293,28 @@ class PublicTransparencyView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            currencyFormat.format(e.amount),
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                            langTheme.formatCurrency(e.amount),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.primary),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: e.hasProof ? AppColors.statusPaid.withOpacity(0.12) : Colors.orange.withOpacity(0.12),
+                              color: e.hasProof
+                                  ? AppColors.statusPaid.withOpacity(0.12)
+                                  : Colors.orange.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               e.hasProof ? 'Proof Verified' : 'Proof Pending',
                               style: TextStyle(
                                 fontSize: 9,
-                                color: e.hasProof ? AppColors.statusPaid : Colors.orange.shade800,
+                                color: e.hasProof
+                                    ? AppColors.statusPaid
+                                    : Colors.orange.shade800,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -284,20 +333,27 @@ class PublicTransparencyView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                color:
+                    isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.secondaryLight.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.secondaryLight.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.help_outline_rounded, color: AppColors.secondaryLight, size: 28),
+                  const Icon(Icons.help_outline_rounded,
+                      color: AppColors.secondaryLight, size: 28),
                   const SizedBox(width: 14),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Have a Question or Discrepancy?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        Text('File a tracked inquiry or grievance directly with the committee.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        Text('Have a Question or Discrepancy?',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13)),
+                        Text(
+                            'File a tracked inquiry or grievance directly with the committee.',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -308,8 +364,10 @@ class PublicTransparencyView extends StatelessWidget {
                         builder: (_) => const NewComplaintDialog(),
                       );
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-                    child: const Text('Inquire / Grievance', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary),
+                    child: const Text('Inquire / Grievance',
+                        style: TextStyle(fontSize: 12)),
                   ),
                 ],
               ),
@@ -320,14 +378,16 @@ class PublicTransparencyView extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniBadge(String label, double amount, Color color, NumberFormat currencyFormat) {
+  Widget _buildMiniBadge(
+      String label, double amount, Color color, NumberFormat currencyFormat) {
     return Column(
       children: [
         Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         const SizedBox(height: 2),
         Text(
           currencyFormat.format(amount),
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+          style: TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 13, color: color),
         ),
       ],
     );

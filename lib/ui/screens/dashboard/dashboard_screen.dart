@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/models/payment_model.dart';
-import '../../../core/models/household_model.dart';
 import '../../../core/models/cash_handover_model.dart';
 import '../../../core/models/campaign_model.dart';
 import '../../../providers/auth_provider.dart';
@@ -25,9 +23,11 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final data = context.watch<VarganiDataProvider>();
-    final lang = context.watch<LanguageThemeProvider>().localizations;
+    final langTheme = context.watch<LanguageThemeProvider>();
+    final lang = langTheme.localizations;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+    final currencyFormat =
+        NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -41,11 +41,14 @@ class DashboardScreen extends StatelessWidget {
 
             // Role-Specific Action Banner
             if (auth.currentRole == UserRole.collector)
-              _buildCollectorHighlight(context, auth, data, currencyFormat, lang, isDark)
+              _buildCollectorHighlight(
+                  context, auth, data, currencyFormat, lang, isDark)
             else if (auth.currentRole == UserRole.treasurer)
-              _buildTreasurerHighlight(context, auth, data, currencyFormat, lang, isDark)
+              _buildTreasurerHighlight(
+                  context, auth, data, currencyFormat, lang, isDark)
             else if (auth.currentRole == UserRole.citizen)
-              _buildCitizenHighlight(context, auth, data, currencyFormat, lang, isDark),
+              _buildCitizenHighlight(
+                  context, auth, data, currencyFormat, lang, isDark),
 
             const SizedBox(height: 16),
 
@@ -66,7 +69,8 @@ class DashboardScreen extends StatelessWidget {
                   child: StatCard(
                     title: lang.tr('verifiedReceived'),
                     value: currencyFormat.format(data.totalVerifiedReceived),
-                    subtitle: '${data.totalExpectedVargani > 0 ? ((data.totalVerifiedReceived / data.totalExpectedVargani) * 100).toStringAsFixed(1) : 0}% Collected',
+                    subtitle:
+                        '${data.totalExpectedVargani > 0 ? ((data.totalVerifiedReceived / data.totalExpectedVargani) * 100).toStringAsFixed(1) : 0}% Collected',
                     icon: Icons.account_balance_wallet_rounded,
                     accentColor: AppColors.statusPaid,
                   ),
@@ -107,7 +111,9 @@ class DashboardScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -120,7 +126,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Recent Collections Feed
-            _buildRecentCollections(context, data, currencyFormat, isDark),
+            _buildRecentCollections(context, data, langTheme, isDark),
           ],
         ),
       ),
@@ -159,7 +165,8 @@ class DashboardScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -167,25 +174,34 @@ class DashboardScreen extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.festival_rounded, size: 14, color: Colors.white),
+                    const Icon(Icons.festival_rounded,
+                        size: 14, color: Colors.white),
                     const SizedBox(width: 6),
                     Text(
                       campaign.varganiType.displayName.split('(').first.trim(),
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
               ),
               // Campaign Selector Dropdown
               PopupMenuButton<String>(
-                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white),
                 tooltip: 'Select Campaign',
                 onSelected: (id) => data.selectCampaign(id),
                 itemBuilder: (context) {
                   return data.campaigns.map((c) {
                     return PopupMenuItem<String>(
                       value: c.id,
-                      child: Text(c.name, style: TextStyle(fontWeight: c.id == campaign.id ? FontWeight.bold : FontWeight.normal)),
+                      child: Text(c.name,
+                          style: TextStyle(
+                              fontWeight: c.id == campaign.id
+                                  ? FontWeight.bold
+                                  : FontWeight.normal)),
                     );
                   }).toList();
                 },
@@ -218,11 +234,17 @@ class DashboardScreen extends StatelessWidget {
             children: [
               Text(
                 'Raised: ${currencyFormat.format(data.totalVerifiedReceived)}',
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600),
               ),
               Text(
                 '${(progress * 100).toStringAsFixed(1)}% of Target',
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -266,7 +288,8 @@ class DashboardScreen extends StatelessWidget {
               color: AppColors.secondaryLight.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.wallet_rounded, color: AppColors.secondaryLight, size: 24),
+            child: const Icon(Icons.wallet_rounded,
+                color: AppColors.secondaryLight, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -275,14 +298,19 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 const Text(
                   'Your Cash in Hand (SRS 6.3)',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.secondaryLight),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.secondaryLight),
                 ),
                 Text(
                   currencyFormat.format(cashBalance),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                 ),
                 const Text(
@@ -319,7 +347,9 @@ class DashboardScreen extends StatelessWidget {
     dynamic lang,
     bool isDark,
   ) {
-    final pendingHandovers = data.handovers.where((h) => h.status == HandoverStatus.pending).toList();
+    final pendingHandovers = data.handovers
+        .where((h) => h.status == HandoverStatus.pending)
+        .toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -336,7 +366,8 @@ class DashboardScreen extends StatelessWidget {
               color: Colors.amber.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.pending_actions_rounded, color: Colors.amber, size: 24),
+            child: const Icon(Icons.pending_actions_rounded,
+                color: Colors.amber, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -345,7 +376,8 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Text(
                   '${pendingHandovers.length} Pending Cash Handover(s)',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'Total pending: ${currencyFormat.format(pendingHandovers.fold(0.0, (s, h) => s + h.amount))}',
@@ -381,7 +413,9 @@ class DashboardScreen extends StatelessWidget {
     bool isDark,
   ) {
     final citizenHousehold = data.households.firstWhere(
-      (h) => h.mobileNumber.contains('9823401122') || h.headOfFamilyName.contains('Rahul Patil'),
+      (h) =>
+          h.mobileNumber.contains('9823401122') ||
+          h.headOfFamilyName.contains('Rahul Patil'),
       orElse: () => data.households.first,
     );
 
@@ -413,7 +447,10 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Paid: ${currencyFormat.format(citizenHousehold.amountReceived)} | Remaining: ${currencyFormat.format(citizenHousehold.remainingAmount)}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary),
           ),
         ],
       ),
@@ -548,7 +585,8 @@ class DashboardScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,22 +599,32 @@ class DashboardScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
               ),
               Text(
                 currencyFormat.format(total),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.statusPaid),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: AppColors.statusPaid),
               ),
             ],
           ),
           const SizedBox(height: 16),
           // Progress breakdown bars
-          _buildBreakdownItem('Cash', breakdown[PaymentType.cash] ?? 0.0, total, AppColors.primary, currencyFormat),
+          _buildBreakdownItem('Cash', breakdown[PaymentType.cash] ?? 0.0, total,
+              AppColors.primary, currencyFormat),
           const SizedBox(height: 10),
-          _buildBreakdownItem('UPI / QR', breakdown[PaymentType.upi] ?? 0.0, total, AppColors.accentEmerald, currencyFormat),
+          _buildBreakdownItem('UPI / QR', breakdown[PaymentType.upi] ?? 0.0,
+              total, AppColors.accentEmerald, currencyFormat),
           const SizedBox(height: 10),
-          _buildBreakdownItem('Bank Transfer', breakdown[PaymentType.bankTransfer] ?? 0.0, total, AppColors.secondaryLight, currencyFormat),
+          _buildBreakdownItem(
+              'Bank Transfer',
+              breakdown[PaymentType.bankTransfer] ?? 0.0,
+              total,
+              AppColors.secondaryLight,
+              currencyFormat),
         ],
       ),
     );
@@ -597,7 +645,9 @@ class DashboardScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            Text(label,
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
             Text(
               '${currencyFormat.format(amount)} (${(percentage * 100).toStringAsFixed(1)}%)',
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -621,11 +671,10 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildRecentCollections(
     BuildContext context,
     VarganiDataProvider data,
-    NumberFormat currencyFormat,
+    LanguageThemeProvider langTheme,
     bool isDark,
   ) {
     final recentPayments = data.payments.take(4).toList();
-    final dateFormat = DateFormat('dd MMM, hh:mm a');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,7 +687,9 @@ class DashboardScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
               ),
             ),
             Text(
@@ -660,7 +711,9 @@ class DashboardScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
               ),
               child: Row(
                 children: [
@@ -676,7 +729,9 @@ class DashboardScreen extends StatelessWidget {
                       p.paymentType == PaymentType.cash
                           ? Icons.money_rounded
                           : Icons.qr_code_2_rounded,
-                      color: p.paymentType == PaymentType.cash ? AppColors.primary : AppColors.statusPaid,
+                      color: p.paymentType == PaymentType.cash
+                          ? AppColors.primary
+                          : AppColors.statusPaid,
                       size: 20,
                     ),
                   ),
@@ -687,11 +742,13 @@ class DashboardScreen extends StatelessWidget {
                       children: [
                         Text(
                           p.householdHeadName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         Text(
                           '${p.receiptNo} • ${p.paymentType.displayName} • By ${p.collectedByName}',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style:
+                              const TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -700,12 +757,16 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        currencyFormat.format(p.amount),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.statusPaid),
+                        langTheme.formatCurrency(p.amount),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.statusPaid),
                       ),
                       Text(
-                        dateFormat.format(p.collectionDateTime),
-                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        langTheme.formatDate(p.collectionDateTime),
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                     ],
                   ),

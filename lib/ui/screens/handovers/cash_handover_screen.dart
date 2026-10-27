@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/cash_handover_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/mandatory_label.dart';
 import '../../widgets/stat_card.dart';
 
 class CashHandoverScreen extends StatefulWidget {
@@ -15,7 +16,8 @@ class CashHandoverScreen extends StatefulWidget {
   State<CashHandoverScreen> createState() => _CashHandoverScreenState();
 }
 
-class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTickerProviderStateMixin {
+class _CashHandoverScreenState extends State<CashHandoverScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -34,12 +36,16 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     final userCashBalance = data.getPersonCashBalance(auth.currentUser.id);
-    final pendingHandovers = data.handovers.where((h) => h.status == HandoverStatus.pending).toList();
-    final confirmedHandovers = data.handovers.where((h) => h.status != HandoverStatus.pending).toList();
+    final pendingHandovers = data.handovers
+        .where((h) => h.status == HandoverStatus.pending)
+        .toList();
+    final confirmedHandovers = data.handovers
+        .where((h) => h.status != HandoverStatus.pending)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -61,14 +67,18 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+              border: Border(
+                  bottom: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder)),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: StatCard(
                     title: 'Your Cash In Hand (SRS 6.3)',
-                    value: currencyFormat.format(userCashBalance),
+                    value: langTheme.formatCurrency(userCashBalance),
                     subtitle: 'Cash Collected − Confirmed Handovers',
                     icon: Icons.account_balance_wallet_rounded,
                     accentColor: AppColors.primary,
@@ -79,7 +89,8 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
                   Expanded(
                     child: StatCard(
                       title: 'Treasurer Vault Cash',
-                      value: currencyFormat.format(data.getTreasurerCashInHand(auth.currentUser.id)),
+                      value: langTheme.formatCurrency(
+                          data.getTreasurerCashInHand(auth.currentUser.id)),
                       subtitle: 'Handovers In − Cash Paid Out',
                       icon: Icons.savings_rounded,
                       accentColor: AppColors.statusPaid,
@@ -97,7 +108,8 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
               children: [
                 // Pending Tab
                 pendingHandovers.isEmpty
-                    ? const Center(child: Text('No pending handovers to confirm'))
+                    ? const Center(
+                        child: Text('No pending handovers to confirm'))
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: pendingHandovers.length,
@@ -108,7 +120,7 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
                             handover: pendingHandovers[index],
                             auth: auth,
                             data: data,
-                            currencyFormat: currencyFormat,
+                            langTheme: langTheme,
                             isDark: isDark,
                           );
                         },
@@ -127,7 +139,7 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
                             handover: confirmedHandovers[index],
                             auth: auth,
                             data: data,
-                            currencyFormat: currencyFormat,
+                            langTheme: langTheme,
                             isDark: isDark,
                           );
                         },
@@ -138,7 +150,8 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showInitiateHandoverDialog(context, auth, data, userCashBalance),
+        onPressed: () =>
+            _showInitiateHandoverDialog(context, auth, data, userCashBalance),
         icon: const Icon(Icons.arrow_upward_rounded),
         label: const Text('Initiate Handover'),
         backgroundColor: AppColors.secondary,
@@ -152,11 +165,11 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
     required CashHandoverModel handover,
     required AuthProvider auth,
     required VarganiDataProvider data,
-    required NumberFormat currencyFormat,
+    required LanguageThemeProvider langTheme,
     required bool isDark,
   }) {
-    final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
-    final isReceiver = auth.currentUser.id == handover.handoverToId || auth.canConfirmHandover;
+    final isReceiver =
+        auth.currentUser.id == handover.handoverToId || auth.canConfirmHandover;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -178,8 +191,11 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Handover ${handover.id}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                '${langTheme.tr('handover')} ${handover.id}',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.grey),
               ),
               _buildHandoverStatusBadge(handover.status),
             ],
@@ -188,19 +204,27 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
           Row(
             children: [
               Text(
-                currencyFormat.format(handover.amount),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
+                langTheme.formatCurrency(handover.amount),
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary),
               ),
               const Spacer(),
-              Text(dateFormat.format(handover.dateTime), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              Text(langTheme.formatDate(handover.dateTime),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
             ],
           ),
           const SizedBox(height: 8),
-          Text('From: ${handover.handoverFromName}', style: const TextStyle(fontSize: 13)),
-          Text('To: ${handover.handoverToName}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text('${langTheme.tr('handoverFrom')}: ${handover.handoverFromName}',
+              style: const TextStyle(fontSize: 13)),
+          Text('${langTheme.tr('handoverTo')}: ${handover.handoverToName}',
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           if (handover.remarks.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text('Note: ${handover.remarks}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text('Note: ${handover.remarks}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
 
           // Confirmation Action Buttons (SRS 6.3: "The receiver must confirm actual receipt before status becomes Confirmed")
@@ -230,21 +254,23 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Confirmed receipt of ${currencyFormat.format(handover.amount)}!'),
+                        content: Text(
+                            'Confirmed receipt of ${langTheme.formatCurrency(handover.amount)}!'),
                         backgroundColor: AppColors.statusPaid,
                       ),
                     );
                   },
                   icon: const Icon(Icons.check_circle_rounded, size: 16),
                   label: const Text('Confirm Cash Received'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusPaid),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.statusPaid),
                 ),
               ],
             ),
           ] else if (handover.status == HandoverStatus.confirmed) ...[
             const SizedBox(height: 6),
             Text(
-              'Confirmed by ${handover.confirmedByName ?? 'Treasurer'} at ${handover.confirmedAt != null ? dateFormat.format(handover.confirmedAt!) : ''}',
+              'Confirmed by ${handover.confirmedByName ?? 'Treasurer'} at ${handover.confirmedAt != null ? langTheme.formatDate(handover.confirmedAt!) : ''}',
               style: const TextStyle(fontSize: 11, color: AppColors.statusPaid),
             ),
           ],
@@ -258,20 +284,38 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
       case HandoverStatus.confirmed:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: AppColors.statusPaid.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-          child: const Text('Confirmed', style: TextStyle(color: AppColors.statusPaid, fontSize: 11, fontWeight: FontWeight.bold)),
+          decoration: BoxDecoration(
+              color: AppColors.statusPaid.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12)),
+          child: const Text('Confirmed',
+              style: TextStyle(
+                  color: AppColors.statusPaid,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold)),
         );
       case HandoverStatus.rejected:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-          child: const Text('Rejected', style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold)),
+          decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12)),
+          child: const Text('Rejected',
+              style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold)),
         );
       case HandoverStatus.pending:
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: Colors.amber.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-          child: const Text('Pending Confirmation', style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+          decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12)),
+          child: const Text('Pending Confirmation',
+              style: TextStyle(
+                  color: Colors.amber,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold)),
         );
     }
   }
@@ -283,10 +327,14 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
     double userCashBalance,
   ) {
     final formKey = GlobalKey<FormState>();
-    final amountController = TextEditingController(text: userCashBalance > 0 ? userCashBalance.toStringAsFixed(0) : '');
+    final amountController = TextEditingController(
+        text: userCashBalance > 0 ? userCashBalance.toStringAsFixed(0) : '');
     final remarksController = TextEditingController();
 
-    final orgTreasurers = auth.availableUsers.where((u) => u.role == UserRole.treasurer || u.role == UserRole.orgAdmin).toList();
+    final orgTreasurers = auth.availableUsers
+        .where(
+            (u) => u.role == UserRole.treasurer || u.role == UserRole.orgAdmin)
+        .toList();
     UserModel selectedToUser = orgTreasurers.first;
 
     showDialog(
@@ -300,11 +348,13 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Handover From: ${auth.currentUser.name} (Current User)', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text('Handover From: ${auth.currentUser.name} (Current User)',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<UserModel>(
                   value: selectedToUser,
-                  decoration: const InputDecoration(labelText: 'Handover To (Receiver) *'),
+                  decoration: const InputDecoration(
+                      label: MandatoryLabel('Handover To (Receiver)')),
                   items: orgTreasurers.map((u) {
                     return DropdownMenuItem<UserModel>(
                       value: u,
@@ -320,12 +370,13 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
                   controller: amountController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Amount (₹) *',
+                    label: MandatoryLabel('Amount (₹)'),
                     prefixIcon: Icon(Icons.currency_rupee_rounded),
                   ),
                   validator: (v) {
                     final parsed = double.tryParse(v ?? '');
-                    if (parsed == null || parsed <= 0) return 'Enter valid amount';
+                    if (parsed == null || parsed <= 0)
+                      return 'Enter valid amount';
                     return null;
                   },
                 ),
@@ -341,7 +392,9 @@ class _CashHandoverScreenState extends State<CashHandoverScreen> with SingleTick
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {

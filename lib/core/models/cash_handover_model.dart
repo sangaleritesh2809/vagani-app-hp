@@ -83,4 +83,62 @@ class CashHandoverModel {
       confirmedAt: confirmedAt ?? this.confirmedAt,
     );
   }
+
+  factory CashHandoverModel.fromJson(Map<String, dynamic> json) {
+    HandoverStatus hStatus = HandoverStatus.pending;
+    final statusStr = (json['status'] ?? 'pending').toString().toLowerCase();
+    for (final s in HandoverStatus.values) {
+      if (s.name.toLowerCase() == statusStr) {
+        hStatus = s;
+        break;
+      }
+    }
+
+    return CashHandoverModel(
+      id: json['id'] as String? ?? '',
+      organizationId: json['organization_id'] as String? ??
+          json['organizationId'] as String? ??
+          'org_001',
+      campaignId: json['campaign_id'] as String? ??
+          json['campaignId'] as String? ??
+          'cmp_ganesh_2026',
+      handoverFromId: json['handover_from_id'] as String? ??
+          json['handoverFromId'] as String? ??
+          'usr_collector',
+      handoverFromName: json['handover_from_name'] as String? ??
+          json['handoverFromName'] as String? ??
+          '',
+      handoverToId: json['handover_to_id'] as String? ??
+          json['handoverToId'] as String? ??
+          'usr_treasurer',
+      handoverToName: json['handover_to_name'] as String? ??
+          json['handoverToName'] as String? ??
+          '',
+      amount: ((json['amount'] ?? 0.0) as num).toDouble(),
+      dateTime: json['date_time'] != null
+          ? DateTime.tryParse(json['date_time'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      remarks: json['remarks'] as String? ?? '',
+      status: hStatus,
+      confirmedById: json['confirmed_by_id'] as String? ??
+          json['confirmedById'] as String?,
+      confirmedByName: json['confirmed_by_name'] as String? ??
+          json['confirmedByName'] as String?,
+      confirmedAt: json['confirmed_at'] != null
+          ? DateTime.tryParse(json['confirmed_at'].toString())
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'campaign_id': campaignId,
+      'handover_from_name': handoverFromName,
+      'handover_to_name': handoverToName,
+      'amount': amount,
+      'remarks': remarks,
+      'status': status.name,
+    };
+  }
 }

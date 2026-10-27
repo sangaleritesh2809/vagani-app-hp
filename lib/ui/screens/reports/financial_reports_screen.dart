@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/payment_model.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import '../../widgets/stat_card.dart';
 
@@ -14,8 +15,10 @@ class FinancialReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+    final currencyFormat =
+        NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -27,33 +30,41 @@ class FinancialReportsScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Financial Audit & Reports (SRS 11)',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Campaign: ${data.currentCampaign.name}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Financial Audit & Reports (SRS 11)',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Campaign: ${data.currentCampaign.name}',
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () {
                     final csvData = data.generateHouseholdsCsv();
                     Clipboard.setData(ClipboardData(text: csvData));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Household & Collection CSV data copied to clipboard! (SRS 11)'),
+                        content: Text(
+                            'Household & Collection CSV data copied to clipboard! (SRS 11)'),
                         backgroundColor: AppColors.statusPaid,
                       ),
                     );
                   },
                   icon: const Icon(Icons.download_rounded, size: 16),
                   label: const Text('Export CSV'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondary),
                 ),
               ],
             ),
@@ -116,7 +127,9 @@ class FinancialReportsScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,25 +150,43 @@ class FinancialReportsScreen extends StatelessWidget {
                               centerSpaceRadius: 40,
                               sections: [
                                 PieChartSectionData(
-                                  value: (data.paymentBreakdown[PaymentType.cash] ?? 1.0) + 0.1,
+                                  value: (data.paymentBreakdown[
+                                              PaymentType.cash] ??
+                                          1.0) +
+                                      0.1,
                                   title: 'Cash',
                                   color: AppColors.primary,
                                   radius: 40,
-                                  titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                  titleStyle: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
                                 ),
                                 PieChartSectionData(
-                                  value: (data.paymentBreakdown[PaymentType.upi] ?? 1.0) + 0.1,
+                                  value:
+                                      (data.paymentBreakdown[PaymentType.upi] ??
+                                              1.0) +
+                                          0.1,
                                   title: 'UPI',
                                   color: AppColors.statusPaid,
                                   radius: 40,
-                                  titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                  titleStyle: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
                                 ),
                                 PieChartSectionData(
-                                  value: (data.paymentBreakdown[PaymentType.bankTransfer] ?? 1.0) + 0.1,
+                                  value: (data.paymentBreakdown[
+                                              PaymentType.bankTransfer] ??
+                                          1.0) +
+                                      0.1,
                                   title: 'Bank',
                                   color: AppColors.secondaryLight,
                                   radius: 40,
-                                  titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                  titleStyle: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
                                 ),
                               ],
                             ),
@@ -166,11 +197,25 @@ class FinancialReportsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildLegendItem('Cash', AppColors.primary, data.paymentBreakdown[PaymentType.cash] ?? 0.0, currencyFormat),
+                            _buildLegendItem(
+                                'Cash',
+                                AppColors.primary,
+                                data.paymentBreakdown[PaymentType.cash] ?? 0.0,
+                                currencyFormat),
                             const SizedBox(height: 8),
-                            _buildLegendItem('UPI / QR', AppColors.statusPaid, data.paymentBreakdown[PaymentType.upi] ?? 0.0, currencyFormat),
+                            _buildLegendItem(
+                                'UPI / QR',
+                                AppColors.statusPaid,
+                                data.paymentBreakdown[PaymentType.upi] ?? 0.0,
+                                currencyFormat),
                             const SizedBox(height: 8),
-                            _buildLegendItem('Bank Transfer', AppColors.secondaryLight, data.paymentBreakdown[PaymentType.bankTransfer] ?? 0.0, currencyFormat),
+                            _buildLegendItem(
+                                'Bank Transfer',
+                                AppColors.secondaryLight,
+                                data.paymentBreakdown[
+                                        PaymentType.bankTransfer] ??
+                                    0.0,
+                                currencyFormat),
                           ],
                         ),
                       ],
@@ -188,7 +233,9 @@ class FinancialReportsScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +260,9 @@ class FinancialReportsScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -227,29 +276,37 @@ class FinancialReportsScreen extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+                    color:
+                        isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    border: Border.all(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.12),
+                          color: AppColors.primary.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.history_rounded, size: 16, color: AppColors.primary),
+                        child: const Icon(Icons.history_rounded,
+                            size: 16, color: AppColors.primary),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(log.details, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            Text(log.details,
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w600)),
                             Text(
-                              'Action: ${log.action} • By ${log.performedByName} • ${DateFormat('dd MMM, hh:mm a').format(log.timestamp)}',
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                              'Action: ${log.action} • By ${log.performedByName} • ${langTheme.formatDate(log.timestamp)}',
+                              style: const TextStyle(
+                                  fontSize: 10, color: Colors.grey),
                             ),
                           ],
                         ),
@@ -265,36 +322,50 @@ class FinancialReportsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLegendItem(String label, Color color, double amount, NumberFormat currencyFormat) {
+  Widget _buildLegendItem(
+      String label, Color color, double amount, NumberFormat currencyFormat) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            Text(currencyFormat.format(amount), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(label,
+                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            Text(currencyFormat.format(amount),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildCollectorRow(String name, int records, double amount, NumberFormat currencyFormat) {
+  Widget _buildCollectorRow(
+      String name, int records, double amount, NumberFormat currencyFormat) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            Text('$records Collections Recorded', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            Text(name,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text('$records Collections Recorded',
+                style: const TextStyle(fontSize: 11, color: Colors.grey)),
           ],
         ),
         Text(
           currencyFormat.format(amount),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.statusPaid),
+          style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: AppColors.statusPaid),
         ),
       ],
     );

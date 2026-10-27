@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/complaint_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/mandatory_label.dart';
 
 class NewComplaintDialog extends StatefulWidget {
   const NewComplaintDialog({super.key});
@@ -48,7 +49,8 @@ class _NewComplaintDialogState extends State<NewComplaintDialog> {
                     children: [
                       const Text(
                         'Submit Inquiry / Complaint (SRS 10)',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -57,10 +59,10 @@ class _NewComplaintDialogState extends State<NewComplaintDialog> {
                     ],
                   ),
                   const SizedBox(height: 14),
-
                   DropdownButtonFormField<ComplaintType>(
                     value: _selectedType,
-                    decoration: const InputDecoration(labelText: 'Grievance / Inquiry Type *'),
+                    decoration: const InputDecoration(
+                        label: MandatoryLabel('Grievance / Inquiry Type')),
                     items: ComplaintType.values.map((type) {
                       return DropdownMenuItem<ComplaintType>(
                         value: type,
@@ -72,32 +74,36 @@ class _NewComplaintDialogState extends State<NewComplaintDialog> {
                     },
                   ),
                   const SizedBox(height: 12),
-
                   TextFormField(
                     controller: _titleController,
                     decoration: const InputDecoration(
-                      labelText: 'Subject / Title *',
+                      label: MandatoryLabel('Subject / Title'),
                       hintText: 'e.g. Discrepancy in Remaining Dues',
                     ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter subject' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter subject'
+                        : null,
                   ),
                   const SizedBox(height: 12),
-
                   TextFormField(
                     controller: _descController,
                     maxLines: 4,
                     decoration: const InputDecoration(
-                      labelText: 'Detailed Explanation *',
-                      hintText: 'Please describe your query with payment date/receipt details...',
+                      label: MandatoryLabel('Detailed Explanation'),
+                      hintText:
+                          'Please describe your query with payment date/receipt details...',
                     ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Please provide explanation' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please provide explanation'
+                        : null,
                   ),
                   const SizedBox(height: 20),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel')),
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: () {
@@ -111,7 +117,8 @@ class _NewComplaintDialogState extends State<NewComplaintDialog> {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Inquiry submitted! Committee notified with tracking ID.'),
+                                content: Text(
+                                    'Inquiry submitted! Committee notified with tracking ID.'),
                                 backgroundColor: AppColors.statusPaid,
                               ),
                             );

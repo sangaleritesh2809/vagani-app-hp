@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -15,9 +16,35 @@ class PdfInvoiceService {
     final pdf = pw.Document();
     final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
+    // Load Devanagari font asset for crisp Marathi & Hindi rendering
+    pw.Font? ttfRegular;
+    pw.Font? ttfBold;
+    try {
+      final regularData =
+          await rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf');
+      final boldData =
+          await rootBundle.load('assets/fonts/NotoSansDevanagari-Bold.ttf');
+      ttfRegular = pw.Font.ttf(regularData);
+      ttfBold = pw.Font.ttf(boldData);
+    } catch (_) {
+      try {
+        ttfRegular = await PdfGoogleFonts.notoSansDevanagariRegular();
+        ttfBold = await PdfGoogleFonts.notoSansDevanagariBold();
+      } catch (_) {
+        ttfRegular = null;
+        ttfBold = null;
+      }
+    }
+
+    final pageTheme = pw.ThemeData.withFont(
+      base: ttfRegular,
+      bold: ttfBold,
+    );
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a5,
+        theme: pageTheme,
         build: (pw.Context context) {
           return pw.Container(
             padding: const pw.EdgeInsets.all(16),
@@ -43,11 +70,13 @@ class PdfInvoiceService {
                       pw.SizedBox(height: 2),
                       pw.Text(
                         '${org.village}, Taluka: ${org.taluka}, Dist: ${org.district}',
-                        style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+                        style: const pw.TextStyle(
+                            fontSize: 9, color: PdfColors.grey700),
                       ),
                       pw.Text(
                         'Reg. No: ${org.registrationNumber} | Phone: ${org.phone}',
-                        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+                        style: const pw.TextStyle(
+                            fontSize: 8, color: PdfColors.grey600),
                       ),
                       pw.Divider(color: PdfColors.amber700, thickness: 1),
                     ],
@@ -72,23 +101,31 @@ class PdfInvoiceService {
                         ),
                         pw.Text(
                           'Campaign: ${receipt.campaignName}',
-                          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                          style: const pw.TextStyle(
+                              fontSize: 10, color: PdfColors.grey800),
                         ),
                       ],
                     ),
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: pw.BoxDecoration(
-                        color: receipt.isCancelled ? PdfColors.red50 : PdfColors.green50,
+                        color: receipt.isCancelled
+                            ? PdfColors.red50
+                            : PdfColors.green50,
                         border: pw.Border.all(
-                          color: receipt.isCancelled ? PdfColors.red : PdfColors.green,
+                          color: receipt.isCancelled
+                              ? PdfColors.red
+                              : PdfColors.green,
                         ),
                         borderRadius: pw.BorderRadius.circular(6),
                       ),
                       child: pw.Text(
                         receipt.isCancelled ? 'CANCELLED' : 'OFFICIAL RECEIPT',
                         style: pw.TextStyle(
-                          color: receipt.isCancelled ? PdfColors.red : PdfColors.green800,
+                          color: receipt.isCancelled
+                              ? PdfColors.red
+                              : PdfColors.green800,
                           fontWeight: pw.FontWeight.bold,
                           fontSize: 9,
                         ),
@@ -110,7 +147,8 @@ class PdfInvoiceService {
                     children: [
                       pw.Text(
                         'Receipt No: ${receipt.receiptNo}',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold, fontSize: 10),
                       ),
                       pw.Text(
                         'Date: ${dateFormat.format(receipt.issuedAt)}',
@@ -123,18 +161,24 @@ class PdfInvoiceService {
 
                 // Contributor Table
                 pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                  border:
+                      pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                   children: [
                     pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                      decoration:
+                          const pw.BoxDecoration(color: PdfColors.grey200),
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text('Particulars', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                          child: pw.Text('Particulars',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold, fontSize: 9)),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text('Details / Calculation', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                          child: pw.Text('Details / Calculation',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold, fontSize: 9)),
                         ),
                       ],
                     ),
@@ -142,11 +186,14 @@ class PdfInvoiceService {
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text('Head of Household', style: const pw.TextStyle(fontSize: 9)),
+                          child: pw.Text('Head of Household',
+                              style: const pw.TextStyle(fontSize: 9)),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text(receipt.householdHeadName, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                          child: pw.Text(receipt.householdHeadName,
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold, fontSize: 9)),
                         ),
                       ],
                     ),
@@ -154,7 +201,8 @@ class PdfInvoiceService {
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text('Family Members & Rate', style: const pw.TextStyle(fontSize: 9)),
+                          child: pw.Text('Family Members & Rate',
+                              style: const pw.TextStyle(fontSize: 9)),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
@@ -169,7 +217,8 @@ class PdfInvoiceService {
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text('Total Expected Contribution', style: const pw.TextStyle(fontSize: 9)),
+                          child: pw.Text('Total Expected Contribution',
+                              style: const pw.TextStyle(fontSize: 9)),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
@@ -184,7 +233,8 @@ class PdfInvoiceService {
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
-                          child: pw.Text('Payment Mode & Reference', style: const pw.TextStyle(fontSize: 9)),
+                          child: pw.Text('Payment Mode & Reference',
+                              style: const pw.TextStyle(fontSize: 9)),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(6),
@@ -201,7 +251,8 @@ class PdfInvoiceService {
 
                 // Amount Highlight Box
                 pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.amber50,
                     borderRadius: pw.BorderRadius.circular(8),
@@ -212,7 +263,10 @@ class PdfInvoiceService {
                     children: [
                       pw.Text(
                         'AMOUNT RECEIVED:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.amber900),
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,
+                            color: PdfColors.amber900),
                       ),
                       pw.Text(
                         'INR ${receipt.amountReceived.toStringAsFixed(2)}',
@@ -229,7 +283,8 @@ class PdfInvoiceService {
                   pw.SizedBox(height: 6),
                   pw.Text(
                     'Cancelled by: ${receipt.cancelledByName} | Reason: ${receipt.cancellationReason ?? 'Reversal'}',
-                    style: const pw.TextStyle(fontSize: 8, color: PdfColors.red),
+                    style:
+                        const pw.TextStyle(fontSize: 8, color: PdfColors.red),
                   ),
                 ],
                 pw.Spacer(),
@@ -242,10 +297,15 @@ class PdfInvoiceService {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('Collected By: ${receipt.collectedByName}', style: const pw.TextStyle(fontSize: 8)),
-                        pw.Text('Received By: ${receipt.receivedByName}', style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text('Collected By: ${receipt.collectedByName}',
+                            style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text('Received By: ${receipt.receivedByName}',
+                            style: const pw.TextStyle(fontSize: 8)),
                         pw.SizedBox(height: 4),
-                        pw.Text('* This is a computer generated verifiable digital receipt.', style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600)),
+                        pw.Text(
+                            '* This is a computer generated verifiable digital receipt.',
+                            style: const pw.TextStyle(
+                                fontSize: 7, color: PdfColors.grey600)),
                       ],
                     ),
                     pw.Column(
@@ -256,8 +316,11 @@ class PdfInvoiceService {
                           color: PdfColors.grey700,
                         ),
                         pw.SizedBox(height: 2),
-                        pw.Text('Authorized Signatory', style: const pw.TextStyle(fontSize: 8)),
-                        pw.Text(org.name, style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600)),
+                        pw.Text('Authorized Signatory',
+                            style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(org.name,
+                            style: const pw.TextStyle(
+                                fontSize: 7, color: PdfColors.grey600)),
                       ],
                     ),
                   ],

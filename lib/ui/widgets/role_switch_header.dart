@@ -17,7 +17,7 @@ class RoleSwitchHeader extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131B2E) : const Color(0xFFFFFBEB),
         border: Border(
@@ -31,14 +31,14 @@ class RoleSwitchHeader extends StatelessWidget {
         children: [
           // Current Role Pill with Icon
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             decoration: BoxDecoration(
               gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3),
-                  blurRadius: 6,
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -46,20 +46,25 @@ class RoleSwitchHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.shield_rounded, size: 14, color: Colors.white),
-                const SizedBox(width: 6),
-                Text(
-                  auth.currentRole.nameString,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                const Icon(Icons.shield_rounded, size: 13, color: Colors.white),
+                const SizedBox(width: 4),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 110),
+                  child: Text(
+                    auth.currentRole.nameString,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
 
           // User Name & Org
           Expanded(
@@ -72,7 +77,9 @@ class RoleSwitchHeader extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -81,7 +88,9 @@ class RoleSwitchHeader extends StatelessWidget {
                   data.organization.name,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -91,8 +100,8 @@ class RoleSwitchHeader extends StatelessWidget {
           ),
 
           // Quick Role Switch Dropdown / Popup
-          PopupMenuButton<UserRole>(
-            tooltip: 'Switch Demo Role',
+          PopupMenuButton<UserRole?>(
+            tooltip: 'Switch Demo Role / Logout',
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
@@ -102,41 +111,69 @@ class RoleSwitchHeader extends StatelessWidget {
                   color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                 ),
               ),
-              child: const Icon(Icons.swap_horiz_rounded, size: 18, color: AppColors.primary),
+              child: const Icon(Icons.swap_horiz_rounded,
+                  size: 18, color: AppColors.primary),
             ),
             onSelected: (role) {
-              auth.switchRole(role);
+              if (role == null) {
+                auth.logout();
+              } else {
+                auth.switchRole(role);
+              }
             },
             itemBuilder: (context) {
-              return UserRole.values.map((role) {
-                final isSelected = auth.currentRole == role;
-                return PopupMenuItem<UserRole>(
-                  value: role,
+              return [
+                ...UserRole.values.map((role) {
+                  final isSelected = auth.currentRole == role;
+                  return PopupMenuItem<UserRole?>(
+                    value: role,
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
+                          size: 16,
+                          color: isSelected ? AppColors.primary : Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          role.nameString,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isSelected ? AppColors.primary : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const PopupMenuDivider(),
+                const PopupMenuItem<UserRole?>(
+                  value: null,
                   child: Row(
                     children: [
-                      Icon(
-                        isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                        size: 16,
-                        color: isSelected ? AppColors.primary : Colors.grey,
-                      ),
-                      const SizedBox(width: 8),
+                      Icon(Icons.logout_rounded,
+                          size: 16, color: Colors.redAccent),
+                      SizedBox(width: 8),
                       Text(
-                        role.nameString,
+                        'Log Out',
                         style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          color: isSelected ? AppColors.primary : null,
-                        ),
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
-                );
-              }).toList();
+                ),
+              ];
             },
           ),
 
           const SizedBox(width: 4),
 
-          // Language Toggle (English / Marathi)
+          // Language Toggle (English)
           InkWell(
             onTap: () => langTheme.toggleLanguage(),
             borderRadius: BorderRadius.circular(8),
@@ -150,7 +187,7 @@ class RoleSwitchHeader extends StatelessWidget {
                 ),
               ),
               child: Text(
-                langTheme.languageCode == 'en' ? 'मराठी' : 'English',
+                langTheme.languageCode.toUpperCase(),
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -165,7 +202,9 @@ class RoleSwitchHeader extends StatelessWidget {
           // Theme Mode Toggle
           IconButton(
             icon: Icon(
-              langTheme.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              langTheme.isDarkMode
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
               size: 20,
               color: isDark ? Colors.amber : AppColors.lightTextSecondary,
             ),

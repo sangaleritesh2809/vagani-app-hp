@@ -18,7 +18,8 @@ class HouseholdListScreen extends StatelessWidget {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+    final currencyFormat =
+        NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     return Scaffold(
       body: Column(
@@ -28,7 +29,11 @@ class HouseholdListScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+              border: Border(
+                  bottom: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder)),
             ),
             child: Column(
               children: [
@@ -37,7 +42,8 @@ class HouseholdListScreen extends StatelessWidget {
                   decoration: const InputDecoration(
                     hintText: 'Search by family head, area, or phone...',
                     prefixIcon: Icon(Icons.search_rounded),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -56,23 +62,25 @@ class HouseholdListScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       _buildFilterChip(
                         context,
-                        label: 'Pending (बाकी)',
+                        label: 'Pending',
                         isSelected: false,
                         color: AppColors.statusPending,
-                        onTap: () => data.setStatusFilter(PaymentStatus.pending),
+                        onTap: () =>
+                            data.setStatusFilter(PaymentStatus.pending),
                       ),
                       const SizedBox(width: 8),
                       _buildFilterChip(
                         context,
-                        label: 'Partially Paid (अंशतः)',
+                        label: 'Partially Paid',
                         isSelected: false,
                         color: AppColors.statusPartiallyPaid,
-                        onTap: () => data.setStatusFilter(PaymentStatus.partiallyPaid),
+                        onTap: () =>
+                            data.setStatusFilter(PaymentStatus.partiallyPaid),
                       ),
                       const SizedBox(width: 8),
                       _buildFilterChip(
                         context,
-                        label: 'Paid (पूर्ण जमा)',
+                        label: 'Paid',
                         isSelected: false,
                         color: AppColors.statusPaid,
                         onTap: () => data.setStatusFilter(PaymentStatus.paid),
@@ -140,7 +148,8 @@ class HouseholdListScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: (color ?? AppColors.primary).withOpacity(0.12),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: (color ?? AppColors.primary).withOpacity(0.3)),
+          border:
+              Border.all(color: (color ?? AppColors.primary).withOpacity(0.3)),
         ),
         child: Text(
           label,
@@ -166,7 +175,8 @@ class HouseholdListScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -184,7 +194,8 @@ class HouseholdListScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   household.headOfFamilyName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
               StatusBadge.fromPaymentStatus(household.paymentStatus),
@@ -193,7 +204,8 @@ class HouseholdListScreen extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+              const Icon(Icons.location_on_outlined,
+                  size: 14, color: Colors.grey),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -224,10 +236,12 @@ class HouseholdListScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Expected Total', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const Text('Expected Total',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                   Text(
                     currencyFormat.format(household.expectedTotalVargani),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   Text(
                     '${household.familyMemberCount} × ₹${household.perPersonRateSnapshot.toStringAsFixed(0)}',
@@ -238,7 +252,8 @@ class HouseholdListScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Received', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const Text('Received',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                   Text(
                     currencyFormat.format(household.amountReceived),
                     style: const TextStyle(
@@ -252,13 +267,16 @@ class HouseholdListScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Remaining', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  const Text('Remaining',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                   Text(
                     currencyFormat.format(household.remainingAmount),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: household.remainingAmount > 0 ? AppColors.statusPending : AppColors.statusPaid,
+                      color: household.remainingAmount > 0
+                          ? AppColors.statusPending
+                          : AppColors.statusPaid,
                     ),
                   ),
                 ],
@@ -268,12 +286,14 @@ class HouseholdListScreen extends StatelessWidget {
                   onPressed: () {
                     showDialog(
                       context: context,
-                      builder: (_) => NewCollectionDialog(preselectedHousehold: household),
+                      builder: (_) =>
+                          NewCollectionDialog(preselectedHousehold: household),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   ),
                   child: const Text('Collect', style: TextStyle(fontSize: 12)),
                 ),

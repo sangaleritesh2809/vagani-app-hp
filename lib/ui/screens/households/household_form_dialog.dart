@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/mandatory_label.dart';
 
 class HouseholdFormDialog extends StatefulWidget {
   const HouseholdFormDialog({super.key});
@@ -56,7 +57,8 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                     children: [
                       const Text(
                         'Register Household (Option A)',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -75,46 +77,48 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
-                      labelText: 'Head of Family Name (कुटुंबप्रमुख) *',
-                      hintText: 'e.g. Rahul Patil',
+                      label: MandatoryLabel('Head of Family Name'),
                       prefixIcon: Icon(Icons.person_rounded),
                     ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter head of family name' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter head of family name'
+                        : null,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
 
                   // Mobile Number
                   TextFormField(
                     controller: _mobileController,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
-                      labelText: 'Mobile Number *',
-                      hintText: 'e.g. 9823401122',
+                      label: MandatoryLabel('Mobile Number'),
                       prefixIcon: Icon(Icons.phone_rounded),
                     ),
-                    validator: (v) => (v == null || v.length < 10) ? 'Enter valid 10-digit mobile' : null,
+                    validator: (v) => (v == null || v.length < 10)
+                        ? 'Enter valid 10-digit mobile'
+                        : null,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
 
                   // Village / Area / Ward
                   TextFormField(
                     controller: _areaController,
                     decoration: const InputDecoration(
-                      labelText: 'Village / Ward / Area *',
-                      hintText: 'e.g. Shivaji Chowk, Lane 3',
+                      label: MandatoryLabel('Village / Ward / Area'),
                       prefixIcon: Icon(Icons.location_on_rounded),
                     ),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter area or lane' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Enter area or lane'
+                        : null,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
 
                   // Family Member Count (Reactive auto-calculation SRS 5.3)
                   TextFormField(
                     controller: _membersController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Family Member Count (एकूण सदस्य) *',
-                      hintText: 'e.g. 4',
+                      label: MandatoryLabel('Family Member Count'),
                       prefixIcon: Icon(Icons.group_rounded),
                     ),
                     onChanged: (val) {
@@ -125,7 +129,8 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                     },
                     validator: (v) {
                       final val = int.tryParse(v ?? '');
-                      if (val == null || val <= 0) return 'Must be positive whole number (BR-02)';
+                      if (val == null || val <= 0)
+                        return 'Must be positive whole number (BR-02)';
                       return null;
                     },
                   ),
@@ -135,20 +140,27 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFF7ED),
+                      color: isDark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFFFF7ED),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                      border:
+                          Border.all(color: AppColors.primary.withOpacity(0.4)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.calculate_rounded, color: AppColors.primary, size: 18),
+                            Icon(Icons.calculate_rounded,
+                                color: AppColors.primary, size: 18),
                             SizedBox(width: 8),
                             Text(
                               'Auto Expected Vargani Calculation (SRS 5.3)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: AppColors.primary),
                             ),
                           ],
                         ),

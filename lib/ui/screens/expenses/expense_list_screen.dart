@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/expense_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import 'add_expense_dialog.dart';
 
@@ -15,8 +15,8 @@ class ExpenseListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     return Scaffold(
       body: Column(
@@ -26,7 +26,11 @@ class ExpenseListScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+              border: Border(
+                  bottom: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder)),
             ),
             child: Row(
               children: [
@@ -41,10 +45,14 @@ class ExpenseListScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Approved Expenses', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        const Text('Approved Expenses',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
                         Text(
-                          currencyFormat.format(data.totalApprovedExpenses),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.amber),
+                          langTheme.formatCurrency(data.totalApprovedExpenses),
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber),
                         ),
                       ],
                     ),
@@ -57,15 +65,21 @@ class ExpenseListScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.statusPending.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.statusPending.withOpacity(0.3)),
+                      border: Border.all(
+                          color: AppColors.statusPending.withOpacity(0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Actual Paid Expenses', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        const Text('Actual Paid Expenses',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
                         Text(
-                          currencyFormat.format(data.totalActualPaidExpenses),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.statusPending),
+                          langTheme
+                              .formatCurrency(data.totalActualPaidExpenses),
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.statusPending),
                         ),
                       ],
                     ),
@@ -78,14 +92,16 @@ class ExpenseListScreen extends StatelessWidget {
           // Expense Items List
           Expanded(
             child: data.expenses.isEmpty
-                ? const Center(child: Text('No expenses recorded for this campaign'))
+                ? const Center(
+                    child: Text('No expenses recorded for this campaign'))
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: data.expenses.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final exp = data.expenses[index];
-                      return _buildExpenseCard(context, exp, auth, data, currencyFormat, isDark);
+                      return _buildExpenseCard(
+                          context, exp, auth, data, langTheme, isDark);
                     },
                   ),
           ),
@@ -100,7 +116,7 @@ class ExpenseListScreen extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Add Expense'),
+              label: Text(langTheme.tr('addExpense')),
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             )
@@ -113,17 +129,16 @@ class ExpenseListScreen extends StatelessWidget {
     ExpenseModel exp,
     AuthProvider auth,
     VarganiDataProvider data,
-    NumberFormat currencyFormat,
+    LanguageThemeProvider langTheme,
     bool isDark,
   ) {
-    final dateFormat = DateFormat('dd MMM yyyy');
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,12 +149,16 @@ class ExpenseListScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   exp.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
               Text(
-                currencyFormat.format(exp.amount),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
+                langTheme.formatCurrency(exp.amount),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.primary),
               ),
             ],
           ),
@@ -154,16 +173,22 @@ class ExpenseListScreen extends StatelessWidget {
                 ),
                 child: Text(
                   exp.category.displayName.split('(').first.trim(),
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                '${exp.vendorPayee} • Bill: ${exp.billNumber}',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              Expanded(
+                child: Text(
+                  '${exp.vendorPayee} • Bill: ${exp.billNumber}',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
-              Text(dateFormat.format(exp.date), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(langTheme.formatDate(exp.date),
+                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
             ],
           ),
           const SizedBox(height: 10),
@@ -175,25 +200,36 @@ class ExpenseListScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: exp.hasProof ? AppColors.statusPaid.withOpacity(0.12) : Colors.orange.withOpacity(0.15),
+                  color: exp.hasProof
+                      ? AppColors.statusPaid.withOpacity(0.12)
+                      : Colors.orange.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: exp.hasProof ? AppColors.statusPaid : Colors.orange),
+                  border: Border.all(
+                      color:
+                          exp.hasProof ? AppColors.statusPaid : Colors.orange),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      exp.hasProof ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                      exp.hasProof
+                          ? Icons.check_circle_rounded
+                          : Icons.warning_amber_rounded,
                       size: 11,
-                      color: exp.hasProof ? AppColors.statusPaid : Colors.orange,
+                      color:
+                          exp.hasProof ? AppColors.statusPaid : Colors.orange,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      exp.hasProof ? 'Proof Uploaded' : 'Proof Not Uploaded (SRS 8)',
+                      exp.hasProof
+                          ? 'Proof Uploaded'
+                          : 'Proof Not Uploaded (SRS 8)',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: exp.hasProof ? AppColors.statusPaid : Colors.orange.shade800,
+                        color: exp.hasProof
+                            ? AppColors.statusPaid
+                            : Colors.orange.shade800,
                       ),
                     ),
                   ],
@@ -229,7 +265,8 @@ class ExpenseListScreen extends StatelessWidget {
           ),
 
           // Review Actions for Treasurer or Admin
-          if (exp.approvalStatus == ExpenseApprovalStatus.pending && auth.canApproveExpenses) ...[
+          if (exp.approvalStatus == ExpenseApprovalStatus.pending &&
+              auth.canApproveExpenses) ...[
             const Divider(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -260,7 +297,8 @@ class ExpenseListScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusPaid),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.statusPaid),
                   child: const Text('Approve Expense'),
                 ),
               ],

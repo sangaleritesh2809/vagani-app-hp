@@ -36,7 +36,8 @@ class HouseholdModel {
   final String mobileNumber;
   final String villageArea;
   final int familyMemberCount;
-  final double perPersonRateSnapshot; // Preserved snapshot of rate at registration
+  final double
+      perPersonRateSnapshot; // Preserved snapshot of rate at registration
   final double amountReceived;
   final DateTime createdAt;
 
@@ -93,9 +94,59 @@ class HouseholdModel {
       mobileNumber: mobileNumber ?? this.mobileNumber,
       villageArea: villageArea ?? this.villageArea,
       familyMemberCount: familyMemberCount ?? this.familyMemberCount,
-      perPersonRateSnapshot: perPersonRateSnapshot ?? this.perPersonRateSnapshot,
+      perPersonRateSnapshot:
+          perPersonRateSnapshot ?? this.perPersonRateSnapshot,
       amountReceived: amountReceived ?? this.amountReceived,
       createdAt: createdAt ?? this.createdAt,
     );
+  }
+
+  factory HouseholdModel.fromJson(Map<String, dynamic> json) {
+    return HouseholdModel(
+      id: json['id'] as String? ?? '',
+      campaignId: json['campaign_id'] as String? ??
+          json['campaignId'] as String? ??
+          'cmp_ganesh_2026',
+      organizationId: json['organization_id'] as String? ??
+          json['organizationId'] as String? ??
+          'org_001',
+      headOfFamilyName: json['head_of_family_name'] as String? ??
+          json['headOfFamilyName'] as String? ??
+          '',
+      mobileNumber: json['mobile_number'] as String? ??
+          json['mobileNumber'] as String? ??
+          '',
+      villageArea: json['village_area'] as String? ??
+          json['villageArea'] as String? ??
+          '',
+      familyMemberCount: (json['family_member_count'] ??
+          json['familyMemberCount'] ??
+          1) as int,
+      perPersonRateSnapshot: ((json['per_person_rate_snapshot'] ??
+              json['perPersonRateSnapshot'] ??
+              100.0) as num)
+          .toDouble(),
+      amountReceived:
+          ((json['amount_received'] ?? json['amountReceived'] ?? 0.0) as num)
+              .toDouble(),
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'campaign_id': campaignId,
+      'organization_id': organizationId,
+      'head_of_family_name': headOfFamilyName,
+      'mobile_number': mobileNumber,
+      'village_area': villageArea,
+      'family_member_count': familyMemberCount,
+      'per_person_rate_snapshot': perPersonRateSnapshot,
+      'amount_received': amountReceived,
+      'created_at': createdAt.toIso8601String(),
+    };
   }
 }

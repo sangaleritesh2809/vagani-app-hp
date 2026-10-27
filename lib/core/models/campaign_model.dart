@@ -14,23 +14,23 @@ extension VarganiTypeExtension on VarganiType {
   String get displayName {
     switch (this) {
       case VarganiType.ganeshotsav:
-        return 'Ganeshotsav (गणेशोत्सव)';
+        return 'Ganeshotsav';
       case VarganiType.shivjayanti:
-        return 'Shivjayanti (शिवजयंती)';
+        return 'Shiv Jayanti';
       case VarganiType.navratri:
-        return 'Navratri (नवरात्री उत्सव)';
+        return 'Navratri Festival';
       case VarganiType.villageFair:
-        return 'Village Fair / Yatra (ग्राम यात्रा / जत्रा)';
+        return 'Village Fair / Yatra';
       case VarganiType.templeProgram:
-        return 'Temple Program (मंदिर उत्सव)';
+        return 'Temple Festival';
       case VarganiType.sportsEvent:
-        return 'Sports Event (क्रीडा स्पर्धा)';
+        return 'Sports Event';
       case VarganiType.villageDevelopment:
-        return 'Village Development (ग्राम विकास निधी)';
+        return 'Village Development Fund';
       case VarganiType.socialProgram:
-        return 'Social Program (सामाजिक उपक्रम)';
+        return 'Social Initiative';
       case VarganiType.custom:
-        return 'Custom Festival / Event (इतर)';
+        return 'Custom Festival / Other';
     }
   }
 }
@@ -96,5 +96,70 @@ class CampaignModel {
       status: status ?? this.status,
       rateEffectiveDate: rateEffectiveDate ?? this.rateEffectiveDate,
     );
+  }
+
+  factory CampaignModel.fromJson(Map<String, dynamic> json) {
+    VarganiType type = VarganiType.ganeshotsav;
+    final typeStr = (json['vargani_type'] ?? json['varganiType'] ?? '')
+        .toString()
+        .toLowerCase();
+    for (final t in VarganiType.values) {
+      if (typeStr.contains(t.name.toLowerCase())) {
+        type = t;
+        break;
+      }
+    }
+
+    return CampaignModel(
+      id: json['id'] as String? ?? 'cmp_ganesh_2026',
+      organizationId: json['organization_id'] as String? ??
+          json['organizationId'] as String? ??
+          'org_001',
+      name: json['name'] as String? ?? 'Ganeshotsav 2026',
+      varganiType: type,
+      description: json['description'] as String? ?? '',
+      startDate: json['start_date'] != null
+          ? DateTime.tryParse(json['start_date'].toString()) ??
+              DateTime(2026, 9, 1)
+          : DateTime(2026, 9, 1),
+      endDate: json['end_date'] != null
+          ? DateTime.tryParse(json['end_date'].toString()) ??
+              DateTime(2026, 9, 11)
+          : DateTime(2026, 9, 11),
+      targetAmount:
+          ((json['target_amount'] ?? json['targetAmount'] ?? 500000.0) as num)
+              .toDouble(),
+      perPersonRate:
+          ((json['per_person_rate'] ?? json['perPersonRate'] ?? 100.0) as num)
+              .toDouble(),
+      suggestedAmount:
+          ((json['suggested_amount'] ?? json['suggestedAmount'] ?? 0.0) as num)
+              .toDouble(),
+      allowPartialPayment:
+          json['allow_partial_payment'] ?? json['allowPartialPayment'] ?? true,
+      status: json['status'] as String? ?? 'Active',
+      rateEffectiveDate: json['rate_effective_date'] != null
+          ? DateTime.tryParse(json['rate_effective_date'].toString()) ??
+              DateTime.now()
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'organization_id': organizationId,
+      'name': name,
+      'vargani_type': varganiType.name,
+      'description': description,
+      'start_date': startDate.toIso8601String(),
+      'end_date': endDate.toIso8601String(),
+      'target_amount': targetAmount,
+      'per_person_rate': perPersonRate,
+      'suggested_amount': suggestedAmount,
+      'allow_partial_payment': allowPartialPayment,
+      'status': status,
+      'rate_effective_date': rateEffectiveDate.toIso8601String(),
+    };
   }
 }

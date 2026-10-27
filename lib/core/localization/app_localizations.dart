@@ -1,33 +1,152 @@
+import 'package:flutter/material.dart';
+
 class AppLocalizations {
   final String languageCode;
+  final bool useMarathiNumerals;
 
-  AppLocalizations(this.languageCode);
+  AppLocalizations(this.languageCode, {this.useMarathiNumerals = false});
 
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        AppLocalizations('mr');
+  }
+
+  // --- Devanagari Digit Conversion ---
+  static const Map<String, String> _devanagariDigits = {
+    '0': '०',
+    '1': '१',
+    '2': '२',
+    '3': '३',
+    '4': '४',
+    '5': '५',
+    '6': '६',
+    '7': '७',
+    '8': '८',
+    '9': '९',
+  };
+
+  String toDevanagariDigits(String input) {
+    String res = input;
+    _devanagariDigits.forEach((key, value) {
+      res = res.replaceAll(key, value);
+    });
+    return res;
+  }
+
+  // --- Date Formatting ---
+  static const List<String> _marathiMonths = [
+    '',
+    'जानेवारी',
+    'फेब्रुवारी',
+    'मार्च',
+    'एप्रिल',
+    'मे',
+    'जून',
+    'जुलै',
+    'ऑगस्ट',
+    'सप्टेंबर',
+    'ऑक्टोबर',
+    'नोव्हेंबर',
+    'डिसेंबर'
+  ];
+
+  static const List<String> _hindiMonths = [
+    '',
+    'जनवरी',
+    'फ़रवरी',
+    'मार्च',
+    'अप्रैल',
+    'मई',
+    'जून',
+    'जुलाई',
+    'अगस्त',
+    'सितंबर',
+    'अक्टूबर',
+    'नवंबर',
+    'दिसंबर'
+  ];
+
+  static const List<String> _englishMonths = [
+    '',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
+
+  String formatDate(DateTime date) {
+    final dayStr = date.day.toString();
+    final yearStr = date.year.toString();
+
+    if (languageCode == 'mr') {
+      final month = _marathiMonths[date.month];
+      final day = useMarathiNumerals ? toDevanagariDigits(dayStr) : dayStr;
+      final year = useMarathiNumerals ? toDevanagariDigits(yearStr) : yearStr;
+      return '$day $month $year';
+    } else if (languageCode == 'hi') {
+      final month = _hindiMonths[date.month];
+      final day = useMarathiNumerals ? toDevanagariDigits(dayStr) : dayStr;
+      final year = useMarathiNumerals ? toDevanagariDigits(yearStr) : yearStr;
+      return '$day $month $year';
+    } else {
+      final month = _englishMonths[date.month];
+      return '$dayStr $month $yearStr';
+    }
+  }
+
+  String formatNumber(dynamic number) {
+    final str = number.toString();
+    if ((languageCode == 'mr' || languageCode == 'hi') && useMarathiNumerals) {
+      return toDevanagariDigits(str);
+    }
+    return str;
+  }
+
+  String formatCurrency(num amount) {
+    final formatted = amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2);
+    if ((languageCode == 'mr' || languageCode == 'hi') && useMarathiNumerals) {
+      return '₹${toDevanagariDigits(formatted)}';
+    }
+    return '₹$formatted';
+  }
+
+  // --- Dictionaries ---
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'appName': 'Vargani Pro',
-      'appSubtitle': 'Household Contribution & Financial Transparency',
+      'appSubtitle': 'Mandal Contribution & Financial Transparency',
       'dashboard': 'Dashboard',
       'households': 'Households',
       'campaigns': 'Campaigns',
       'collections': 'Collections',
       'receipts': 'Receipts',
       'handovers': 'Cash Handovers',
+      'handover': 'Handover',
       'expenses': 'Expenses',
       'complaints': 'Complaints',
       'reports': 'Reports & Analytics',
+      'reportsShort': 'Reports',
       'transparency': 'Public Transparency',
       'settings': 'Settings',
-      
+
       // Roles
       'superAdmin': 'Super Admin',
       'orgAdmin': 'Organization Admin',
       'treasurer': 'Treasurer',
       'collector': 'Collection Agent',
       'citizen': 'Citizen / Public',
+      'viewer': 'Viewer',
       'roleSwitch': 'Switch Role',
       'currentRole': 'Current Role',
-      
+
       // Stats
       'expectedTotal': 'Expected Total',
       'verifiedReceived': 'Verified Received',
@@ -37,7 +156,8 @@ class AppLocalizations {
       'availableBalance': 'Available Balance',
       'cashInHand': 'Cash in Hand',
       'completionRate': 'Collection Progress',
-      
+      'totalCollected': 'Total Collected',
+
       // Household
       'headOfFamily': 'Head of Family Name',
       'memberCount': 'Family Members',
@@ -45,10 +165,17 @@ class AppLocalizations {
       'villageArea': 'Village / Area / Ward',
       'perPersonRate': 'Rate per Person',
       'registerHousehold': 'Register Household',
+      'editHousehold': 'Edit Household',
       'pending': 'Pending',
       'partiallyPaid': 'Partially Paid',
       'paid': 'Paid',
-      
+      'householdDetails': 'Household Details',
+      'targetAmount': 'Target Amount',
+      'totalPaid': 'Total Paid',
+      'dueAmount': 'Due Amount',
+      'addMember': 'Add Member',
+      'address': 'Address / Lane',
+
       // Payment & Receipt
       'recordPayment': 'Record Contribution',
       'paymentMode': 'Payment Mode',
@@ -56,14 +183,21 @@ class AppLocalizations {
       'upi': 'UPI (QR / App)',
       'bankTransfer': 'Bank Transfer / NEFT',
       'other': 'Other Mode',
-      'collectedBy': 'Collected By (Read-only)',
+      'collectedBy': 'Collected By',
       'receivedBy': 'Authorized Received By',
       'referenceId': 'UTR / Ref ID',
       'receiptNo': 'Receipt Number',
       'downloadPdf': 'Download PDF',
       'shareWhatsApp': 'Share on WhatsApp',
+      'shareReceipt': 'Share Receipt',
       'cancelReceipt': 'Cancel Receipt',
-      
+      'receiptCancelled': 'Receipt Cancelled',
+      'cancelReason': 'Reason for Cancellation',
+      'confirmCancelReceipt': 'Are you sure you want to cancel this receipt?',
+      'receiptHistory': 'Receipt History',
+      'contributionAmount': 'Contribution Amount',
+      'paymentDate': 'Payment Date',
+
       // Handover
       'initiateHandover': 'Submit Cash Handover',
       'handoverFrom': 'Handover From',
@@ -72,7 +206,9 @@ class AppLocalizations {
       'confirmed': 'Confirmed',
       'rejected': 'Rejected',
       'handoverStatus': 'Handover Status',
-      
+      'handoverAmount': 'Handover Amount',
+      'handoverNotes': 'Notes / Remarks',
+
       // Expenses
       'addExpense': 'Add Expense',
       'expenseCategory': 'Category',
@@ -83,7 +219,11 @@ class AppLocalizations {
       'approve': 'Approve',
       'reject': 'Reject',
       'publicVisible': 'Publicly Visible',
-      
+      'expenseAmount': 'Expense Amount',
+      'expenseDate': 'Expense Date',
+      'expenseDescription': 'Description',
+      'uploadReceipt': 'Upload Bill Photo',
+
       // Complaints
       'submitComplaint': 'File Complaint / Inquiry',
       'complaintType': 'Complaint Type',
@@ -91,7 +231,9 @@ class AppLocalizations {
       'escalateSuperAdmin': 'Escalate to Super Admin',
       'resolve': 'Resolve',
       'resolutionNotes': 'Resolution Notes',
-      
+      'complaintDetails': 'Complaint Details',
+      'submittedBy': 'Submitted By',
+
       // Actions
       'save': 'Save',
       'cancel': 'Cancel',
@@ -99,7 +241,84 @@ class AppLocalizations {
       'search': 'Search by name, area or ID...',
       'filter': 'Filter',
       'exportCsv': 'Export Excel / CSV',
+      'exportPdf': 'Export PDF Report',
       'language': 'Language / भाषा',
+      'themeMode': 'Theme Mode',
+      'lightMode': 'Light Mode',
+      'darkMode': 'Dark Mode',
+      'marathiNumerals': 'Marathi Numerals (१, २, ३)',
+      'marathiNumeralsSubtitle': 'Display numbers in Devanagari script',
+      'englishNumerals': 'English Numerals (1, 2, 3)',
+      'englishNumeralsSubtitle': 'Display numbers in standard digits',
+      'preferences': 'Preferences & Localization',
+      'userManagement': 'User Management',
+      'roleManagement': 'Roles & Permissions',
+      'orgManagement': 'Organization Management',
+      'switchGroup': 'Switch Active Group',
+      'close': 'Close',
+      'confirm': 'Confirm',
+      'delete': 'Delete',
+      'edit': 'Edit',
+      'back': 'Back',
+      'refresh': 'Refresh',
+      'viewAll': 'View All',
+
+      // Auth & Login
+      'login': 'Login',
+      'loginSubtitle': 'Sign in to access your Vargani account',
+      'phoneNumber': 'Mobile Number',
+      'enterPhone': 'Enter 10-digit mobile number',
+      'email': 'Email Address',
+      'enterEmail': 'Enter registered email address',
+      'password': 'Password',
+      'enterPassword': 'Enter password',
+      'forgotPassword': 'Forgot Password?',
+      'resetPassword': 'Reset Password',
+      'resetPasswordSubtitle': 'Enter your registered details and set a new password',
+      'newPassword': 'New Password',
+      'confirmPassword': 'Confirm Password',
+      'enterOtp': 'Enter 6-digit OTP',
+      'otpSentMsg': 'OTP sent to your email / phone.',
+      'otpSentSuccess': 'OTP sent successfully! Please check your inbox / messages.',
+      'verifyAndLogin': 'Verify OTP & Login',
+      'loginWithOtp': 'Login with OTP',
+      'loginWithPassword': 'Login with Password',
+      'sendOtp': 'Get OTP',
+      'resendOtp': 'Resend OTP',
+      'register': 'Register',
+      'registerAccount': 'New Registration',
+      'registerSubtitle': 'Create an account to track contributions & transparency',
+      'fullName': 'Full Name',
+      'enterFullName': 'Enter your full name',
+      'dontHaveAccount': "Don't have an account?",
+      'alreadyHaveAccount': 'Already have an account?',
+      'signIn': 'Sign In',
+      'signUp': 'Sign Up',
+      'guestPublicView': 'Continue as Guest / Public View',
+      'logout': 'Logout',
+      'confirmLogout': 'Are you sure you want to log out?',
+      'invalidOtp': 'Invalid OTP. Please enter the OTP received.',
+      'invalidPhone': 'Please enter a valid 10-digit mobile number.',
+      'invalidEmail': 'Please enter a valid email address.',
+      'passwordMismatch': 'Passwords do not match.',
+      'passwordResetSuccess': 'Password reset successfully! Please login.',
+      'registrationSuccess': 'Registration successful! You are now logged in.',
+      'firstName': 'First Name',
+      'lastName': 'Last Name',
+      'enterFirstName': 'Enter first name',
+      'enterLastName': 'Enter last name',
+      'enterConfirmPassword': 'Re-enter your password',
+      'phoneAlreadyRegistered': 'This mobile number is already registered. Please login.',
+      'phoneNotRegistered': 'This mobile number is not registered. Please register first.',
+      'incorrectPassword': 'Incorrect password! Please try again.',
+      'enterPasswordError': 'Please enter password.',
+      'passwordMinLength': 'Password must be at least 6 characters.',
+      'firstNameRequired': 'Please enter first name (min 2 characters).',
+      'lastNameRequired': 'Please enter last name (min 2 characters).',
+      'validPhoneRequired': 'Please enter a valid 10-digit mobile number.',
+      'loginWithOtpButton': 'Login with OTP',
+      'loginWithPasswordButton': 'Login with Password',
+      'chooseLanguage': 'Select Language',
     },
     'mr': {
       'appName': 'वर्गणी प्रो (Vargani)',
@@ -110,21 +329,24 @@ class AppLocalizations {
       'collections': 'वर्गणी संकलन',
       'receipts': 'पावत्या',
       'handovers': 'रक्कम सुपूर्द (हँडओव्हर)',
+      'handover': 'हँडओव्हर',
       'expenses': 'खर्च व्यवस्थापन',
       'complaints': 'तक्रार निवारण',
       'reports': 'अहवाल व आकडेवारी',
+      'reportsShort': 'अहवाल',
       'transparency': 'सार्वजनिक पारदर्शकता',
       'settings': 'सेटिंग्ज',
-      
+
       // Roles
       'superAdmin': 'सुपर ॲडमिन',
       'orgAdmin': 'संस्थापक / मंडळ प्रमुख',
       'treasurer': 'खजिनदार / हिशोबनीस',
       'collector': 'वर्गणी संकलन प्रतिनिधी',
       'citizen': 'नागरिक / देणगीदार',
+      'viewer': 'निरीक्षक / वाचक',
       'roleSwitch': 'भूमिका बदला',
       'currentRole': 'सध्याची भूमिका',
-      
+
       // Stats
       'expectedTotal': 'अपेक्षित वर्गणी',
       'verifiedReceived': 'एकूण जमा रक्कम',
@@ -134,7 +356,8 @@ class AppLocalizations {
       'availableBalance': 'शिल्लक रोकड निधी',
       'cashInHand': 'स्वतःकडील रोकड',
       'completionRate': 'संकलन प्रगती',
-      
+      'totalCollected': 'एकूण जमा वर्गणी',
+
       // Household
       'headOfFamily': 'कुटुंबप्रमुखाचे नाव',
       'memberCount': 'कुटुंबातील एकूण सदस्य',
@@ -142,25 +365,39 @@ class AppLocalizations {
       'villageArea': 'गाव / गल्ली / वॉर्ड',
       'perPersonRate': 'प्रति व्यक्ती दर',
       'registerHousehold': 'नवीन कुटुंब नोंदणी',
+      'editHousehold': 'कुटुंब माहिती बदला',
       'pending': 'प्रलंबित (बाकी)',
       'partiallyPaid': 'अंशतः जमा',
       'paid': 'पूर्ण जमा',
-      
+      'householdDetails': 'कुटुंब तपशील',
+      'targetAmount': 'अपेक्षित रक्कम',
+      'totalPaid': 'एकूण जमा',
+      'dueAmount': 'बाकी रक्कम',
+      'addMember': 'सदस्य जोडा',
+      'address': 'पत्ता / गल्ली क्र.',
+
       // Payment & Receipt
       'recordPayment': 'वर्गणी जमा करा',
       'paymentMode': 'पेमेंट पद्धत',
       'cash': 'रोख (Cash)',
       'upi': 'युपीआय (UPI / QR)',
-      'bankTransfer': 'बँक ट्रान्सफर',
-      'other': 'इतर',
-      'collectedBy': 'संकलनकर्ता (ऑटो)',
+      'bankTransfer': 'बँक ट्रान्सफर / RTGS',
+      'other': 'इतर पद्धत',
+      'collectedBy': 'संकलनकर्ता',
       'receivedBy': 'अधिकृत प्राप्तकर्ता',
       'referenceId': 'युटीआर / संदर्भ क्रमांक',
       'receiptNo': 'पावती क्रमांक',
-      'downloadPdf': 'पीडीएफ डाउनलोड',
+      'downloadPdf': 'पीडीएफ डाउनलोड करा',
       'shareWhatsApp': 'व्हॉट्सॲपवर पाठवा',
+      'shareReceipt': 'पावती शेअर करा',
       'cancelReceipt': 'पावती रद्द करा',
-      
+      'receiptCancelled': 'पावती रद्द केली',
+      'cancelReason': 'पावती रद्द करण्याचे कारण',
+      'confirmCancelReceipt': 'तुम्हाला खात्री आहे का की ही पावती रद्द करायची आहे?',
+      'receiptHistory': 'पावती इतिहास',
+      'contributionAmount': 'जमा रक्कम',
+      'paymentDate': 'जमा तारीख',
+
       // Handover
       'initiateHandover': 'रोकड जमा करा (हँडओव्हर)',
       'handoverFrom': 'कोणाकडून',
@@ -169,7 +406,9 @@ class AppLocalizations {
       'confirmed': 'स्वीकृत',
       'rejected': 'नाकारले',
       'handoverStatus': 'हस्तांतरण स्थिती',
-      
+      'handoverAmount': 'हस्तांतरण रक्कम',
+      'handoverNotes': 'नोंद / टीप',
+
       // Expenses
       'addExpense': 'नवीन खर्च नोंदवा',
       'expenseCategory': 'खर्चाचा प्रकार',
@@ -180,7 +419,11 @@ class AppLocalizations {
       'approve': 'मंजूर करा',
       'reject': 'नाकारा',
       'publicVisible': 'सार्वजनिक दिसेल',
-      
+      'expenseAmount': 'खर्च रक्कम',
+      'expenseDate': 'खर्चाची तारीख',
+      'expenseDescription': 'खर्चाचा तपशील',
+      'uploadReceipt': 'बिलाचा फोटो जोडा',
+
       // Complaints
       'submitComplaint': 'तक्रार / विचारणा नोंदवा',
       'complaintType': 'तक्रारीचा प्रकार',
@@ -188,7 +431,9 @@ class AppLocalizations {
       'escalateSuperAdmin': 'सुपर ॲडमिनकडे पाठवा',
       'resolve': 'निवारण झाले',
       'resolutionNotes': 'निवारण तपशील',
-      
+      'complaintDetails': 'तक्रार माहिती',
+      'submittedBy': 'तक्रारदार',
+
       // Actions
       'save': 'जतन करा',
       'cancel': 'रद्द करा',
@@ -196,11 +441,291 @@ class AppLocalizations {
       'search': 'नाव, पत्ता किंवा आयडीने शोधा...',
       'filter': 'फिल्टर',
       'exportCsv': 'एक्सेल / सीएसव्ही निर्यात',
-      'language': 'भाषा / Language',
+      'exportPdf': 'पीडीएफ अहवाल डाऊनलोड',
+      'language': 'भाषा (Language)',
+      'themeMode': 'रंगसंगती (Theme)',
+      'lightMode': 'लाईट मोड',
+      'darkMode': 'डार्क मोड',
+      'marathiNumerals': 'मराठी आकडे (१, २, ३)',
+      'marathiNumeralsSubtitle': 'सर्व आकडे देवनागरी लिपीत दर्शवा',
+      'englishNumerals': 'इंग्रजी आकडे (1, 2, 3)',
+      'englishNumeralsSubtitle': 'हिशोबासाठी प्रमाणित इंग्रजी आकडे',
+      'preferences': 'प्राधान्ये आणि भाषा',
+      'userManagement': 'वापरकर्ता व्यवस्थापन',
+      'roleManagement': 'भूमिका व परवानग्या',
+      'orgManagement': 'मंडळ / संस्था व्यवस्थापन',
+      'switchGroup': 'सक्रिय गट बदला',
+      'close': 'बंद करा',
+      'confirm': 'नक्की करा',
+      'delete': 'हटवा',
+      'edit': 'बदला',
+      'back': 'मागे या',
+      'refresh': 'ताजे करा',
+      'viewAll': 'सर्व पहा',
+
+      // Auth & Login
+      'login': 'लॉगिन करा',
+      'loginSubtitle': 'तुमच्या वर्गणी खात्यात प्रवेश करा',
+      'phoneNumber': 'मोबाईल नंबर',
+      'enterPhone': '१० अंकी मोबाईल नंबर टाका',
+      'email': 'ईमेल पत्ता',
+      'enterEmail': 'नोंदणीकृत ईमेल टाका',
+      'password': 'पासवर्ड',
+      'enterPassword': 'पासवर्ड प्रविष्ट करा',
+      'forgotPassword': 'पासवर्ड विसरलात?',
+      'resetPassword': 'पासवर्ड रीसेट करा',
+      'resetPasswordSubtitle': 'नोंदणीकृत माहिती टाका आणि नवीन पासवर्ड सेट करा',
+      'newPassword': 'नवीन पासवर्ड',
+      'confirmPassword': 'पासवर्डची पुष्टी करा',
+      'enterOtp': '६ अंकी ओटीपी (OTP) टाका',
+      'otpSentMsg': 'तुमच्या ईमेल किंवा नंबरवर OTP पाठवला आहे.',
+      'otpSentSuccess': 'OTP यशस्वीरीत्या पाठवला आहे! कृपया संदेश किंवा ईमेल तपासा.',
+      'verifyAndLogin': 'OTP पडताळा व लॉगिन करा',
+      'loginWithOtp': 'OTP द्वारे लॉगिन',
+      'loginWithPassword': 'पासवर्डद्वारे लॉगिन',
+      'sendOtp': 'OTP मिळवा',
+      'resendOtp': 'पुन्हा OTP पाठवा',
+      'register': 'नवीन नोंदणी',
+      'registerAccount': 'नवीन खाते नोंदणी',
+      'registerSubtitle': 'वर्गणी व हिशोब पाहण्यासाठी खाते तयार करा',
+      'fullName': 'पूर्ण नाव',
+      'enterFullName': 'तुमचे पूर्ण नाव प्रविष्ट करा',
+      'dontHaveAccount': 'खाते नाहीये का?',
+      'alreadyHaveAccount': 'आधीच खाते आहे?',
+      'signIn': 'लॉगिन',
+      'signUp': 'नोंदणी करा',
+      'guestPublicView': 'सार्वजनिक अहवाल थेट पहा (अतिथी)',
+      'logout': 'लॉग आउट',
+      'confirmLogout': 'आपल्याला खात्री आहे की आपण लॉग आउट करू इच्छिता?',
+      'invalidOtp': 'अवैध OTP! कृपया आलेला OTP प्रविष्ट करा.',
+      'invalidPhone': 'कृपया वैध १० अंकी मोबाईल नंबर टाका.',
+      'invalidEmail': 'कृपया वैध ईमेल पत्ता टाका.',
+      'passwordMismatch': 'दोन्ही पासवर्ड जुळत नाहीत.',
+      'passwordResetSuccess': 'पासवर्ड यशस्वीरीत्या रीसेट झाला! आता लॉगिन करा.',
+      'registrationSuccess': 'नोंदणी यशस्वी झाली! आपण लॉगिन केले आहे.',
+      'firstName': 'पहिले नाव',
+      'lastName': 'आडनाव',
+      'enterFirstName': 'पहिले नाव टाका',
+      'enterLastName': 'आडनाव टाका',
+      'enterConfirmPassword': 'पासवर्ड पुन्हा टाका',
+      'phoneAlreadyRegistered': 'हा मोबाईल नंबर आधीच नोंदणीकृत आहे. कृपया लॉगिन करा.',
+      'phoneNotRegistered': 'हा मोबाईल नंबर नोंदणीकृत नाही. कृपया प्रथम नोंदणी करा.',
+      'incorrectPassword': 'चुकीचा पासवर्ड! कृपया पुन्हा तपासा.',
+      'enterPasswordError': 'कृपया पासवर्ड टाका.',
+      'passwordMinLength': 'पासवर्ड किमान ६ अक्षरांचा असावा.',
+      'firstNameRequired': 'कृपया पहिले नाव टाका (किमान २ अक्षरे).',
+      'lastNameRequired': 'कृपया आडनाव टाका (किमान २ अक्षरे).',
+      'validPhoneRequired': 'कृपया वैध १० अंकी मोबाईल नंबर टाका.',
+      'loginWithOtpButton': 'OTP द्वारे लॉगिन करा',
+      'loginWithPasswordButton': 'पासवर्डने लॉगिन करा',
+      'chooseLanguage': 'भाषा निवडा',
+    },
+    'hi': {
+      'appName': 'वर्गणी प्रो (Vargani)',
+      'appSubtitle': 'पारदर्शी वर्गणी संग्रह और वित्तीय प्रबंधन',
+      'dashboard': 'डैशबोर्ड',
+      'households': 'परिवार / घर',
+      'campaigns': 'उत्सव / अभियान',
+      'collections': 'वर्गणी संग्रह',
+      'receipts': 'रसीदें',
+      'handovers': 'रोकड़ सौंपना (हैंडओवर)',
+      'handover': 'हैंडओवर',
+      'expenses': 'खर्च प्रबंधन',
+      'complaints': 'शिकायत निवारण',
+      'reports': 'रिपोर्ट और विश्लेषण',
+      'reportsShort': 'रिपोर्ट्स',
+      'transparency': 'सार्वजनिक पारदर्शिता',
+      'settings': 'सेटिंग्स',
+
+      // Roles
+      'superAdmin': 'सुपर एडमिन',
+      'orgAdmin': 'मंडल प्रमुख / व्यवस्थापक',
+      'treasurer': 'कोषाध्यक्ष / खजांची',
+      'collector': 'संग्रह प्रतिनिधि',
+      'citizen': 'नागरिक / दानदाता',
+      'viewer': 'दर्शक',
+      'roleSwitch': 'भूमिका बदलें',
+      'currentRole': 'वर्तमान भूमिका',
+
+      // Stats
+      'expectedTotal': 'अपेक्षित कुल राशि',
+      'verifiedReceived': 'कुल प्राप्त राशि',
+      'remainingAmount': 'बकाया शेष राशि',
+      'approvedExpenses': 'स्वीकृत खर्च',
+      'paidExpenses': 'कुल किया गया खर्च',
+      'availableBalance': 'उपलब्ध शेष राशि',
+      'cashInHand': 'हाथ में नकद',
+      'completionRate': 'संग्रह प्रगति',
+      'totalCollected': 'कुल एकत्रित राशि',
+
+      // Household
+      'headOfFamily': 'परिवार के मुखिया का नाम',
+      'memberCount': 'परिवार के सदस्य',
+      'mobileNumber': 'मोबाइल नंबर',
+      'villageArea': 'गांव / क्षेत्र / वार्ड',
+      'perPersonRate': 'प्रति व्यक्ति दर',
+      'registerHousehold': 'नया परिवार पंजीकृत करें',
+      'editHousehold': 'परिवार विवरण बदलें',
+      'pending': 'लंबित (बकाया)',
+      'partiallyPaid': 'आंशिक भुगतान',
+      'paid': 'पूर्ण भुगतान',
+      'householdDetails': 'परिवार विवरण',
+      'targetAmount': 'अपेक्षित राशि',
+      'totalPaid': 'कुल भुगतान',
+      'dueAmount': 'बकाया राशि',
+      'addMember': 'सदस्य जोड़ें',
+      'address': 'पता / गली सं.',
+
+      // Payment & Receipt
+      'recordPayment': 'वर्गणी दर्ज करें',
+      'paymentMode': 'भुगतान विधि',
+      'cash': 'नकद (Cash)',
+      'upi': 'यूपीआई (UPI / QR)',
+      'bankTransfer': 'बैंक ट्रांसफर / RTGS',
+      'other': 'अन्य विधि',
+      'collectedBy': 'संग्रहकर्ता',
+      'receivedBy': 'अधिकृत प्राप्तकर्ता',
+      'referenceId': 'यूटीआर / संदर्भ संख्या',
+      'receiptNo': 'रसीद संख्या',
+      'downloadPdf': 'पीडीएफ डाउनलोड करें',
+      'shareWhatsApp': 'व्हाट्सएप पर साझा करें',
+      'shareReceipt': 'रसीद साझा करें',
+      'cancelReceipt': 'रसीद रद्द करें',
+      'receiptCancelled': 'रसीद रद्द कर दी गई',
+      'cancelReason': 'रसीद रद्द करने का कारण',
+      'confirmCancelReceipt': 'क्या आप वाकई इस रसीद को रद्द करना चाहते हैं?',
+      'receiptHistory': 'रसीद इतिहास',
+      'contributionAmount': 'योगदान राशि',
+      'paymentDate': 'भुगतान की तारीख',
+
+      // Handover
+      'initiateHandover': 'नकद सौंपें (हैंडओवर)',
+      'handoverFrom': 'किससे',
+      'handoverTo': 'किसको',
+      'confirmReceipt': 'प्राप्ति की पुष्टि करें',
+      'confirmed': 'स्वीकृत',
+      'rejected': 'अस्वीकृत',
+      'handoverStatus': 'हैंडओवर स्थिति',
+      'handoverAmount': 'हैंडओवर राशि',
+      'handoverNotes': 'टिप्पणी',
+
+      // Expenses
+      'addExpense': 'नया खर्च जोड़ें',
+      'expenseCategory': 'खर्च की श्रेणी',
+      'billNumber': 'बिल / इनवॉइस संख्या',
+      'vendorPayee': 'विक्रेता / प्राप्तकर्ता',
+      'proofUploaded': 'बिल संलग्न है',
+      'proofNotUploaded': 'बिल संलग्न नहीं है',
+      'approve': 'स्वीकृत करें',
+      'reject': 'अस्वीकृत करें',
+      'publicVisible': 'सार्वजनिक रूप से दृश्य',
+      'expenseAmount': 'खर्च राशि',
+      'expenseDate': 'खर्च की तारीख',
+      'expenseDescription': 'खर्च का विवरण',
+      'uploadReceipt': 'बिल की फोटो अपलोड करें',
+
+      // Complaints
+      'submitComplaint': 'शिकायत / पूछताछ दर्ज करें',
+      'complaintType': 'शिकायत का प्रकार',
+      'complaintStatus': 'स्थिति',
+      'escalateSuperAdmin': 'सुपर एडमिन को भेजें',
+      'resolve': 'समाधान हो गया',
+      'resolutionNotes': 'समाधान विवरण',
+      'complaintDetails': 'शिकायत विवरण',
+      'submittedBy': 'शिकायतकर्ता',
+
+      // Actions
+      'save': 'सहेजें',
+      'cancel': 'रद्द करें',
+      'submit': 'जमा करें',
+      'search': 'नाम, पता या आईडी से खोजें...',
+      'filter': 'फ़िल्टर',
+      'exportCsv': 'एक्सेल / सीएसवी निर्यात',
+      'exportPdf': 'पीडीएफ रिपोर्ट निर्यात करें',
+      'language': 'भाषा (Language)',
+      'themeMode': 'थीम मोड',
+      'lightMode': 'लाइट मोड',
+      'darkMode': 'डार्क मोड',
+      'marathiNumerals': 'देवनागरी अंक (१, २, ३)',
+      'marathiNumeralsSubtitle': 'सभी संख्याएं देवनागरी लिपि में दिखाएं',
+      'englishNumerals': 'अंग्रेजी अंक (1, 2, 3)',
+      'englishNumeralsSubtitle': 'लेखांकन के लिए मानक अंक',
+      'preferences': 'प्राथमिकताएं और भाषा',
+      'userManagement': 'उपयोगकर्ता प्रबंधन',
+      'roleManagement': 'भूमिकाएं और अनुमतियां',
+      'orgManagement': 'मंडल / संस्था प्रबंधन',
+      'switchGroup': 'सक्रिय समूह बदलें',
+      'close': 'बंद करें',
+      'confirm': 'पुष्टि करें',
+      'delete': 'हटाएं',
+      'edit': 'संपादित करें',
+      'back': 'वापस जाएं',
+      'refresh': 'ताज़ा करें',
+      'viewAll': 'सभी देखें',
+
+      // Auth & Login
+      'login': 'लॉगिन करें',
+      'loginSubtitle': 'अपने वर्गणी खाते में प्रवेश करें',
+      'phoneNumber': 'मोबाइल नंबर',
+      'enterPhone': '१० अंकों का मोबाइल नंबर दर्ज करें',
+      'email': 'ईमेल पता',
+      'enterEmail': 'पंजीकृत ईमेल दर्ज करें',
+      'password': 'पासवर्ड',
+      'enterPassword': 'पासवर्ड दर्ज करें',
+      'forgotPassword': 'पासवर्ड भूल गए?',
+      'resetPassword': 'पासवर्ड रीसेट करें',
+      'resetPasswordSubtitle': 'पंजीकृत विवरण दर्ज करें और नया पासवर्ड सेट करें',
+      'newPassword': 'नया पासवर्ड',
+      'confirmPassword': 'पासवर्ड की पुष्टि करें',
+      'enterOtp': '६ अंकों का ओटीपी (OTP) दर्ज करें',
+      'otpSentMsg': 'आपके ईमेल या मोबाइल पर OTP भेजा गया है।',
+      'otpSentSuccess': 'OTP सफलतापूर्वक भेजा गया! कृपया अपना संदेश या ईमेल जांचें।',
+      'verifyAndLogin': 'OTP सत्यापित करें और लॉगिन करें',
+      'loginWithOtp': 'OTP से लॉगिन करें',
+      'loginWithPassword': 'पासवर्ड से लॉगिन करें',
+      'sendOtp': 'OTP प्राप्त करें',
+      'resendOtp': 'पुनः OTP भेजें',
+      'register': 'नया पंजीकरण',
+      'registerAccount': 'नया खाता पंजीकरण',
+      'registerSubtitle': 'वर्गणी और हिसाब देखने के लिए खाता बनाएं',
+      'fullName': 'पूरा नाम',
+      'enterFullName': 'अपना पूरा नाम दर्ज करें',
+      'dontHaveAccount': 'खाता नहीं है?',
+      'alreadyHaveAccount': 'पहले से खाता है?',
+      'signIn': 'लॉगिन',
+      'signUp': 'पंजीकरण करें',
+      'guestPublicView': 'अतिथि के रूप में सार्वजनिक दृश्य देखें',
+      'logout': 'लॉग आउट',
+      'confirmLogout': 'क्या आप वाकई लॉग आउट करना चाहते हैं?',
+      'invalidOtp': 'अमान्य OTP! कृपया प्राप्त OTP दर्ज करें।',
+      'invalidPhone': 'कृपया वैध १० अंकों का मोबाइल नंबर दर्ज करें।',
+      'invalidEmail': 'कृपया एक मान्य ईमेल पता दर्ज करें।',
+      'passwordMismatch': 'दोनों पासवर्ड मेल नहीं खाते।',
+      'passwordResetSuccess': 'पासवर्ड सफलतापूर्वक रीसेट हो गया! अब लॉगिन करें।',
+      'registrationSuccess': 'पंजीकरण सफल! अब आप लॉगिन हैं।',
+      'firstName': 'पहला नाम',
+      'lastName': 'उपनाम',
+      'enterFirstName': 'पहला नाम दर्ज करें',
+      'enterLastName': 'उपनाम दर्ज करें',
+      'enterConfirmPassword': 'पासवर्ड दोबारा दर्ज करें',
+      'phoneAlreadyRegistered': 'यह मोबाइल नंबर पहले से पंजीकृत है। कृपया लॉगिन करें।',
+      'phoneNotRegistered': 'यह मोबाइल नंबर पंजीकृत नहीं है। कृपया पहले पंजीकरण करें।',
+      'incorrectPassword': 'गलत पासवर्ड! कृपया पुन: प्रयास करें।',
+      'enterPasswordError': 'कृपया पासवर्ड दर्ज करें।',
+      'passwordMinLength': 'पासवर्ड कम से कम ६ अक्षरों का होना चाहिए।',
+      'firstNameRequired': 'कृपया पहला नाम दर्ज करें (न्यूनतम २ अक्षर)।',
+      'lastNameRequired': 'कृपया उपनाम दर्ज करें (न्यूनतम २ अक्षर)।',
+      'validPhoneRequired': 'कृपया वैध १० अंकों का मोबाइल नंबर दर्ज करें।',
+      'loginWithOtpButton': 'OTP से लॉगिन करें',
+      'loginWithPasswordButton': 'पासवर्ड से लॉगिन करें',
+      'chooseLanguage': 'भाषा चुनें',
     }
   };
 
   String tr(String key) {
-    return _localizedValues[languageCode]?[key] ?? _localizedValues['en']?[key] ?? key;
+    return _localizedValues[languageCode]?[key] ??
+        _localizedValues['mr']?[key] ??
+        _localizedValues['en']?[key] ??
+        key;
   }
 }
