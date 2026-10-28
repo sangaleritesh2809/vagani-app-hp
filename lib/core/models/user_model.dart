@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import 'user_role_assignment_model.dart';
 
 enum UserRole {
@@ -98,6 +99,7 @@ class UserModel {
 
   final String? address;
   final String? notes;
+  final String? passwordHash;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -120,6 +122,7 @@ class UserModel {
     this.selectedGroupName,
     this.address,
     this.notes,
+    this.passwordHash,
     this.createdAt,
     this.updatedAt,
     this.roleAssignments = const [],
@@ -164,6 +167,7 @@ class UserModel {
     String? selectedGroupName,
     String? address,
     String? notes,
+    String? passwordHash,
     DateTime? createdAt,
     DateTime? updatedAt,
     List<UserRoleAssignmentModel>? roleAssignments,
@@ -185,6 +189,7 @@ class UserModel {
       selectedGroupName: selectedGroupName ?? this.selectedGroupName,
       address: address ?? this.address,
       notes: notes ?? this.notes,
+      passwordHash: passwordHash ?? this.passwordHash,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       roleAssignments: roleAssignments ?? this.roleAssignments,
@@ -213,6 +218,7 @@ class UserModel {
       'selected_group_name': selectedGroupName,
       'address': address,
       'notes': notes,
+      if (passwordHash != null) 'password_hash': passwordHash,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -274,8 +280,7 @@ class UserModel {
             : 'active');
 
     return UserModel(
-      id: json['id'] as String? ??
-          'usr_${DateTime.now().millisecondsSinceEpoch}',
+      id: json['id'] as String? ?? const Uuid().v4(),
       name: json['full_name'] as String? ?? json['name'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
@@ -293,6 +298,7 @@ class UserModel {
       selectedGroupName: json['selected_group_name'] as String?,
       address: json['address'] as String?,
       notes: json['notes'] as String?,
+      passwordHash: (json['password_hash'] ?? json['passwordHash']) as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,

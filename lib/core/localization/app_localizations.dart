@@ -8,7 +8,7 @@ class AppLocalizations {
 
   static AppLocalizations of(BuildContext context) {
     return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
-        AppLocalizations('mr');
+        AppLocalizations('en');
   }
 
   // --- Devanagari Digit Conversion ---
@@ -121,7 +121,7 @@ class AppLocalizations {
   // --- Dictionaries ---
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
-      'appName': 'Vargani Pro',
+      'appName': 'Vargani Collection',
       'appSubtitle': 'Mandal Contribution & Financial Transparency',
       'dashboard': 'Dashboard',
       'households': 'Households',
@@ -321,7 +321,7 @@ class AppLocalizations {
       'chooseLanguage': 'Select Language',
     },
     'mr': {
-      'appName': 'वर्गणी प्रो (Vargani)',
+      'appName': 'Vargani Collection',
       'appSubtitle': 'पारदर्शक वर्गणी संकलन आणि हिशोब व्यवस्थापन',
       'dashboard': 'डॅशबोर्ड',
       'households': 'कुटुंबे / घरे',
@@ -521,7 +521,7 @@ class AppLocalizations {
       'chooseLanguage': 'भाषा निवडा',
     },
     'hi': {
-      'appName': 'वर्गणी प्रो (Vargani)',
+      'appName': 'Vargani Collection',
       'appSubtitle': 'पारदर्शी वर्गणी संग्रह और वित्तीय प्रबंधन',
       'dashboard': 'डैशबोर्ड',
       'households': 'परिवार / घर',

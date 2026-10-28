@@ -137,7 +137,7 @@ class CampaignListScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('कालावधी / Duration',
+                        const Text('Duration',
                             style: TextStyle(fontSize: 11, color: Colors.grey)),
                         Text(
                           '${langTheme.formatDate(c.startDate)} - ${langTheme.formatDate(c.endDate)}',

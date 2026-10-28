@@ -1,0 +1,29 @@
+services:
+  # 1. Flutter Web Frontend (Docker + Nginx)
+  - type: web
+    name: vargani-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore
+    envVars:
+      - key: PORT
+        value: 80
+
+  # 2. FastAPI Backend
+  - type: web
+    name: vargani-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    region: singapore
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SUPABASE_URL
+        value: https://lqeohtminzfjhqclcnkm.supabase.co
+      - key: SUPABASE_KEY
+        value: sb_publishable_37wNhigxEZLq6Q4IX5yUgQ_skrYDc8i

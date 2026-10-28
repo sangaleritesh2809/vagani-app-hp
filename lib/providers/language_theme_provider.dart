@@ -7,8 +7,8 @@ class LanguageThemeProvider extends ChangeNotifier {
   static const String _prefNumeralsKey = 'vargani_marathi_numerals';
   static const String _prefThemeKey = 'vargani_theme_mode';
 
-  // Primary language is Marathi ('mr') by default
-  String _languageCode = 'mr';
+  // Primary language is English ('en') by default
+  String _languageCode = 'en';
   bool _useMarathiNumerals = false;
   ThemeMode _themeMode = ThemeMode.light;
   bool _isInitialized = false;
@@ -39,7 +39,7 @@ class LanguageThemeProvider extends ChangeNotifier {
           (savedLang == 'mr' || savedLang == 'en' || savedLang == 'hi')) {
         _languageCode = savedLang;
       } else {
-        _languageCode = 'mr'; // Marathi primary default
+        _languageCode = 'en'; // English primary default
       }
 
       _useMarathiNumerals = prefs.getBool(_prefNumeralsKey) ?? false;

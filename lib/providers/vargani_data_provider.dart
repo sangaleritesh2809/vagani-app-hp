@@ -120,7 +120,7 @@ class VarganiDataProvider extends ChangeNotifier {
       await refreshCampaignData(_selectedCampaignId);
     } catch (e) {
       _errorMessage =
-          'सर्व्हरशी संपर्क होऊ शकला नाही. कृपया इंटरनेट कनेक्शन तपासा किंवा नंतर पुन्हा प्रयत्न करा. (Server Unreachable)';
+          'Unable to connect to server. Please check your internet connection or try again later. (Server Unreachable)';
       debugPrint('Notice: Backend sync error ($e). Retaining local state.');
     } finally {
       _isLoading = false;
@@ -166,7 +166,7 @@ class VarganiDataProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _errorMessage =
-          'सर्व्हरशी संपर्क होऊ शकला नाही. कृपया इंटरनेट कनेक्शन तपासा किंवा नंतर पुन्हा प्रयत्न करा. (Server Unreachable)';
+          'Unable to connect to server. Please check your internet connection or try again later. (Server Unreachable)';
       debugPrint('Notice: Campaign refresh error ($e)');
       notifyListeners();
     }
@@ -838,7 +838,11 @@ class VarganiDataProvider extends ChangeNotifier {
       if (created != null) {
         final idx = _complaints.indexWhere((c) => c.id == complaint.id);
         if (idx != -1) {
-          _complaints[idx] = created;
+          _complaints[idx] = created.copyWith(
+            submittedById: citizenUser.id,
+            submittedByName: citizenUser.name,
+            submittedByPhone: citizenUser.phone,
+          );
           notifyListeners();
         }
       }

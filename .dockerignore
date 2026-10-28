@@ -1,0 +1,16 @@
+.git
+.github
+.idea
+.vscode
+.dart_tool
+build/
+android/
+ios/
+linux/
+macos/
+windows/
+test/
+*.apk
+*.log
+backend/__pycache__/
+backend/.env

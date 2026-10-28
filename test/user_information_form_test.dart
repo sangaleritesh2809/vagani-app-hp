@@ -147,7 +147,7 @@ void main() {
 
     test('6. User Create & Status Toggle Workflow', () async {
       final uniquePhone =
-          '98555${DateTime.now().millisecondsSinceEpoch % 100000}';
+          '98555${10000 + (DateTime.now().millisecondsSinceEpoch % 90000)}';
       final createRes = await ApiService.createUserByAdmin(
         name: 'अमित शिंदे',
         phone: uniquePhone,

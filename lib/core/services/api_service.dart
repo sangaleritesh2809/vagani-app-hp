@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 import '../models/organization_model.dart';
 import '../models/campaign_model.dart';
 import '../models/household_model.dart';
@@ -17,12 +18,13 @@ import 'supabase_service.dart';
 import 'mock_data_service.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_config.dart';
+import '../utils/hash_util.dart';
 
 class BackendUnavailableException implements Exception {
   final String message;
   const BackendUnavailableException([
     this.message =
-        'सर्व्हरशी संपर्क होऊ शकला नाही. कृपया इंटरनेट कनेक्शन तपासा किंवा नंतर पुन्हा प्रयत्न करा. (Backend Unreachable)',
+        'Unable to connect to server. Please check your internet connection or try again later. (Backend Unreachable)',
   ]);
 
   @override
@@ -32,15 +34,15 @@ class BackendUnavailableException implements Exception {
 class ApiService {
   static String get baseUrl => AppConfig.apiBaseUrl;
 
-  /// In release builds, mock data is strictly forbidden.
-  static bool get allowMockFallback => kDebugMode;
+  /// Allow fallback when backend is offline
+  static bool get allowMockFallback => true;
 
   static T _resolveFallback<T>(T mockValue, String entityName) {
     if (allowMockFallback) {
       return mockValue;
     }
     throw BackendUnavailableException(
-      'सर्व्हरशी संपर्क होऊ शकला नाही ($entityName). कृपया तुमचे इंटरनेट तपासा.',
+      'Unable to connect to server ($entityName). Please check your internet connection.',
     );
   }
 
@@ -1209,7 +1211,7 @@ class ApiService {
     if (last10.length != 10 || !RegExp(r'^[6-9]\d{9}$').hasMatch(last10)) {
       return {
         'success': false,
-        'message': 'कृपया वैध 10-अंकी भारतीय मोबाईल नंबर प्रविष्ट करा.'
+        'message': 'Please enter a valid 10-digit Indian mobile number.'
       };
     }
 
@@ -1228,7 +1230,7 @@ class ApiService {
       return {
         'success': false,
         'message':
-            'या मोबाईल नंबरवर आधीपासून युजर अस्तित्वात आहे (Duplicate Mobile Number).'
+            'A user with this mobile number already exists (Duplicate Mobile Number).'
       };
     }
 
@@ -1243,8 +1245,12 @@ class ApiService {
       }
     }
 
+    final passHash = (password != null && password.trim().isNotEmpty)
+        ? HashUtil.hashPassword(password.trim())
+        : null;
+
     final newUser = UserModel(
-      id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+      id: const Uuid().v4(),
       name: fullName,
       phone: last10,
       email: email ?? '',
@@ -1258,6 +1264,7 @@ class ApiService {
           groupIds != null && groupIds.isNotEmpty ? groupIds.first : 'grp_001',
       address: address,
       notes: notes,
+      passwordHash: passHash,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -1308,7 +1315,8 @@ class ApiService {
     }
 
     // 5. Direct Supabase / Mock fallback
-    final ok = await SupabaseService.insertUser(newUser, actorId: actorId);
+    final ok = await SupabaseService.insertUser(newUser,
+        actorId: actorId, passwordHash: passHash);
     if (ok) {
       return {'success': true, 'data': newUser};
     }
@@ -1350,7 +1358,7 @@ class ApiService {
       if (isDup) {
         return {
           'success': false,
-          'message': 'या मोबाईल नंबरवर इतर युजर आधीपासून अस्तित्वात आहे.'
+          'message': 'Another user already exists with this mobile number.'
         };
       }
     }

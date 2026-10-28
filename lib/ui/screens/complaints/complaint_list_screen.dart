@@ -18,11 +18,20 @@ class ComplaintListScreen extends StatelessWidget {
     final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // If citizen, filter their own complaints (SRS 10: "Citizens can track their own complaints")
+    // If citizen, filter their own complaints (matching ID, Phone, or Name)
     final complaints = auth.isCitizen
-        ? data.complaints
-            .where((c) => c.submittedById == auth.currentUser.id)
-            .toList()
+        ? data.complaints.where((c) {
+            final userPhoneClean = auth.currentUser.phone.replaceAll(RegExp(r'\D'), '');
+            final compPhoneClean = c.submittedByPhone.replaceAll(RegExp(r'\D'), '');
+            final matchesPhone = userPhoneClean.isNotEmpty &&
+                compPhoneClean.isNotEmpty &&
+                (userPhoneClean == compPhoneClean ||
+                 userPhoneClean.endsWith(compPhoneClean) ||
+                 compPhoneClean.endsWith(userPhoneClean));
+            final matchesId = c.submittedById.isNotEmpty && c.submittedById == auth.currentUser.id;
+            final matchesName = c.submittedByName.trim().toLowerCase() == auth.currentUser.name.trim().toLowerCase();
+            return matchesId || matchesPhone || matchesName;
+          }).toList()
         : data.complaints;
 
     return Scaffold(

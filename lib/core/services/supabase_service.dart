@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../models/organization_model.dart';
 import '../models/campaign_model.dart';
 import '../models/household_model.dart';
@@ -203,29 +204,54 @@ class SupabaseService {
   // ===========================================================================
   // 3. PROFILES & USERS
   // ===========================================================================
+  static bool _isValidUuid(String? val) {
+    if (val == null) return false;
+    return RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(val);
+  }
+
   static Future<List<UserModel>?> getUsers() async {
     final c = client;
     if (c == null) return kDebugMode ? MockDataService.users : null;
+
+    final Map<String, UserModel> userMap = {};
+
+    // 1. Fetch from users table
     try {
       final res =
           await c.from('users').select().order('name', ascending: true);
-      final list = (res as List)
-          .map((row) => UserModel.fromJson(Map<String, dynamic>.from(row)))
-          .toList();
-      if (list.isNotEmpty) return list;
+      for (final row in (res as List)) {
+        final u = UserModel.fromJson(Map<String, dynamic>.from(row));
+        userMap[u.id] = u;
+      }
     } catch (e) {
       debugPrint('Supabase getUsers users table query: $e');
     }
 
+    // 2. Fetch from profiles table and merge
     try {
       final res =
           await c.from('profiles').select().order('full_name', ascending: true);
-      final list = (res as List)
-          .map((row) => UserModel.fromJson(Map<String, dynamic>.from(row)))
-          .toList();
-      if (list.isNotEmpty) return list;
+      for (final row in (res as List)) {
+        final u = UserModel.fromJson(Map<String, dynamic>.from(row));
+        if (!userMap.containsKey(u.id)) {
+          userMap[u.id] = u;
+        } else {
+          final existing = userMap[u.id]!;
+          userMap[u.id] = existing.copyWith(
+            name: existing.name.isNotEmpty ? existing.name : u.name,
+            phone: existing.phone.isNotEmpty ? existing.phone : u.phone,
+            email: existing.email.isNotEmpty ? existing.email : u.email,
+            address: existing.address ?? u.address,
+            accountStatus: u.accountStatus,
+          );
+        }
+      }
     } catch (e) {
       debugPrint('Supabase getUsers profiles query: $e');
+    }
+
+    if (userMap.isNotEmpty) {
+      return userMap.values.toList();
     }
     return kDebugMode ? MockDataService.users : null;
   }
@@ -259,6 +285,12 @@ class SupabaseService {
         'account_status': status,
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', userId);
+
+      await c.from('users').update({
+        'is_active': status == 'active',
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
+
       return true;
     } catch (e) {
       debugPrint('Supabase updateProfileStatus error: $e');
@@ -266,106 +298,193 @@ class SupabaseService {
     }
   }
 
-  static Future<bool> insertUser(UserModel user, {String? actorId}) async {
+  static Future<bool> insertUser(UserModel user, {String? actorId, String? passwordHash}) async {
     MockDataService.addUser(user);
     final c = client;
     if (c == null) return true;
 
-    // Try saving in profiles table
+    // Ensure valid UUID for PostgreSQL
+    final effectiveUserId = _isValidUuid(user.id) ? user.id : const Uuid().v4();
+    final validOrgId = _isValidUuid(user.organizationId) ? user.organizationId : null;
+    final rawGrp = user.selectedGroupId ?? (user.groupIds.isNotEmpty ? user.groupIds.first : null);
+    final validGrpId = _isValidUuid(rawGrp) ? rawGrp : null;
+    final validActorId = _isValidUuid(actorId) ? actorId : null;
+
+    bool success = false;
+
+    // 1. Insert into users table
     try {
-      await c.from('profiles').upsert({
-        'id': user.id,
-        'full_name': user.name,
-        'email': user.email,
-        'phone': user.phone,
-        'address': user.address,
-        'notes': user.notes,
-        'account_status': user.accountStatus,
-        'created_by': actorId,
-        'created_at': user.createdAt?.toIso8601String() ??
-            DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-
-      // Also assign role if role exists
-      try {
-        final rolesRes = await c
-            .from('roles')
-            .select('id')
-            .eq('role_key', user.role.roleKey)
-            .maybeSingle();
-        final roleId = rolesRes?['id'];
-        if (roleId != null) {
-          await c.from('user_roles').insert({
-            'user_id': user.id,
-            'role_id': roleId,
-            'organization_id': user.organizationId,
-            'group_id': user.selectedGroupId ??
-                (user.groupIds.isNotEmpty ? user.groupIds.first : null),
-            'assigned_by': actorId,
-          });
-        }
-      } catch (err) {
-        debugPrint('Supabase insert user_roles error: $err');
-      }
-
-      if (user.selectedGroupId != null || user.groupIds.isNotEmpty) {
-        final grpId = user.selectedGroupId ?? user.groupIds.first;
-        try {
-          await c.from('group_members').upsert({
-            'group_id': grpId,
-            'user_id': user.id,
-            'membership_status': 'active',
-          });
-        } catch (err) {
-          debugPrint('Supabase insert group_members error: $err');
-        }
-      }
-
-      await insertAuditLog(
-        action: 'CREATE_USER',
-        resourceType: 'User',
-        resourceId: user.id,
-        organizationId: user.organizationId,
-        metadata: {
-          'name': user.name,
-          'phone': user.phone,
-          'role': user.role.roleKey,
-          'actor_id': actorId,
-        },
-      );
-    } catch (e) {
-      debugPrint('Supabase insert profile error: $e');
-    }
-
-    // Also fallback to users table
-    try {
-      await c.from('users').upsert({
-        'id': user.id,
+      final basePayload = {
+        'id': effectiveUserId,
         'name': user.name,
-        'full_name': user.name,
-        'email': user.email,
+        'email': user.email.isNotEmpty ? user.email : null,
         'phone': user.phone,
         'address': user.address,
         'notes': user.notes,
         'role': user.role.roleKey,
-        'organization_id': user.organizationId,
-        'group_id': user.selectedGroupId ??
-            (user.groupIds.isNotEmpty ? user.groupIds.first : null),
+        'organization_id': validOrgId,
+        'group_id': validGrpId,
         'is_active': user.isActive,
-        'account_status': user.accountStatus,
-      });
+        'created_by': validActorId,
+        if (passwordHash != null) 'password_hash': passwordHash,
+      };
+      await c.from('users').upsert(basePayload);
+      success = true;
     } catch (e) {
-      debugPrint('Supabase insert users fallback error: $e');
+      debugPrint('Supabase insert users with password_hash error: $e');
+      try {
+        final basePayload = {
+          'id': effectiveUserId,
+          'name': user.name,
+          'email': user.email.isNotEmpty ? user.email : null,
+          'phone': user.phone,
+          'address': user.address,
+          'notes': user.notes,
+          'role': user.role.roleKey,
+          'organization_id': validOrgId,
+          'group_id': validGrpId,
+          'is_active': user.isActive,
+          'created_by': validActorId,
+        };
+        await c.from('users').upsert(basePayload);
+        success = true;
+      } catch (err) {
+        debugPrint('Supabase insert users fallback error: $err');
+      }
     }
 
-    return true;
+    // 2. Also upsert in profiles table
+    try {
+      await c.from('profiles').upsert({
+        'id': effectiveUserId,
+        'full_name': user.name,
+        'email': user.email.isNotEmpty ? user.email : null,
+        'phone': user.phone,
+        'address': user.address,
+        'notes': user.notes,
+        'account_status': user.accountStatus,
+        'created_by': validActorId,
+        if (passwordHash != null) 'password_hash': passwordHash,
+        'created_at': user.createdAt?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      success = true;
+    } catch (e) {
+      try {
+        await c.from('profiles').upsert({
+          'id': effectiveUserId,
+          'full_name': user.name,
+          'email': user.email.isNotEmpty ? user.email : null,
+          'phone': user.phone,
+          'address': user.address,
+          'notes': user.notes,
+          'account_status': user.accountStatus,
+          'created_by': validActorId,
+          'created_at': user.createdAt?.toIso8601String() ??
+              DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        success = true;
+      } catch (err) {
+        debugPrint('Supabase insert profiles table error: $err');
+      }
+    }
+
+    // 3. User roles assignment
+    try {
+      final rolesRes = await c
+          .from('roles')
+          .select('id')
+          .eq('role_key', user.role.roleKey)
+          .maybeSingle();
+      final roleId = rolesRes?['id'];
+      if (roleId != null && _isValidUuid(roleId)) {
+        await c.from('user_roles').insert({
+          'user_id': effectiveUserId,
+          'role_id': roleId,
+          'organization_id': validOrgId,
+          'group_id': validGrpId,
+          'assigned_by': validActorId,
+        });
+      }
+    } catch (err) {
+      debugPrint('Supabase insert user_roles error: $err');
+    }
+
+    if (validGrpId != null) {
+      try {
+        await c.from('group_members').upsert({
+          'group_id': validGrpId,
+          'user_id': effectiveUserId,
+          'membership_status': 'active',
+        });
+      } catch (err) {
+        debugPrint('Supabase insert group_members error: $err');
+      }
+    }
+
+    await insertAuditLog(
+      action: 'CREATE_USER',
+      resourceType: 'User',
+      resourceId: effectiveUserId,
+      organizationId: validOrgId,
+      metadata: {
+        'name': user.name,
+        'phone': user.phone,
+        'role': user.role.roleKey,
+        'actor_id': actorId,
+      },
+    );
+
+    return success;
   }
 
-  static Future<bool> updateUser(UserModel user, {String? actorId}) async {
+  static Future<bool> updateUser(UserModel user, {String? actorId, String? passwordHash}) async {
     MockDataService.addUser(user);
     final c = client;
     if (c == null) return true;
+
+    final validOrgId = _isValidUuid(user.organizationId) ? user.organizationId : null;
+    final rawGrp = user.selectedGroupId ?? (user.groupIds.isNotEmpty ? user.groupIds.first : null);
+    final validGrpId = _isValidUuid(rawGrp) ? rawGrp : null;
+
+    bool success = false;
+
+    try {
+      await c.from('users').update({
+        'name': user.name,
+        'email': user.email.isNotEmpty ? user.email : null,
+        'phone': user.phone,
+        'address': user.address,
+        'notes': user.notes,
+        'role': user.role.roleKey,
+        'organization_id': validOrgId,
+        'group_id': validGrpId,
+        'is_active': user.isActive,
+        if (passwordHash != null) 'password_hash': passwordHash,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', user.id);
+      success = true;
+    } catch (e) {
+      try {
+        await c.from('users').update({
+          'name': user.name,
+          'email': user.email.isNotEmpty ? user.email : null,
+          'phone': user.phone,
+          'address': user.address,
+          'notes': user.notes,
+          'role': user.role.roleKey,
+          'organization_id': validOrgId,
+          'group_id': validGrpId,
+          'is_active': user.isActive,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', user.id);
+        success = true;
+      } catch (err) {
+        debugPrint('Supabase update users error: $err');
+      }
+    }
 
     try {
       await c.from('profiles').update({
@@ -375,6 +494,7 @@ class SupabaseService {
         'address': user.address,
         'notes': user.notes,
         'account_status': user.accountStatus,
+        if (passwordHash != null) 'password_hash': passwordHash,
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', user.id);
 
@@ -414,9 +534,8 @@ class SupabaseService {
     }
 
     try {
-      await c.from('users').update({
+      final baseUpdate = {
         'name': user.name,
-        'full_name': user.name,
         'email': user.email,
         'phone': user.phone,
         'address': user.address,
@@ -426,10 +545,14 @@ class SupabaseService {
         'group_id': user.selectedGroupId ??
             (user.groupIds.isNotEmpty ? user.groupIds.first : null),
         'is_active': user.isActive,
-        'account_status': user.accountStatus,
-      }).eq('id', user.id);
+      };
+      try {
+        await c.from('users').update(baseUpdate).eq('id', user.id);
+      } catch (e) {
+        debugPrint('Supabase update users fallback error: $e');
+      }
     } catch (e) {
-      debugPrint('Supabase update users fallback error: $e');
+      debugPrint('Supabase update users outer error: $e');
     }
 
     return true;

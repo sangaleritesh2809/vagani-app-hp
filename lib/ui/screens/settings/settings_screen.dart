@@ -8,9 +8,12 @@ import '../../../providers/vargani_data_provider.dart';
 import '../auth/group_selection_screen.dart';
 import '../campaigns/campaign_config_dialog.dart';
 import '../profile/user_profile_dialog.dart';
+import '../profile/user_profile_screen.dart';
 import '../management/organization_management_screen.dart';
 import '../management/role_management_screen.dart';
 import '../management/user_management_screen.dart';
+import '../auth/login_screen.dart';
+import '../../widgets/organization_status_card.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -29,9 +32,9 @@ class SettingsScreen extends StatelessWidget {
           // User Card with Role Badge & Profile Details
           InkWell(
             onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => const UserProfileDialog(),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UserProfileScreen()),
               );
             },
             borderRadius: BorderRadius.circular(16),
@@ -128,7 +131,9 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+
 
           // Administration & PBAC Management (Rules 1, 2, 3, 4, 5)
           if (!auth.isCitizen) ...[
@@ -214,24 +219,26 @@ class SettingsScreen extends StatelessWidget {
                     ],
 
                     // Change Group Jurisdiction (Rule 6)
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.group_work_rounded,
-                          color: Colors.teal),
-                      title: const Text('Switch Active Group'),
-                      subtitle: Text(
-                        'Current: ${auth.selectedGroup?.name ?? "Central Division"}',
+                    if (auth.authorizedGroups.length > 1) ...[
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.group_work_rounded,
+                            color: Colors.teal),
+                        title: const Text('Switch Active Group'),
+                        subtitle: Text(
+                          'Current: ${auth.selectedGroup?.name ?? "Central Division"}',
+                        ),
+                        trailing:
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const GroupSelectionScreen()),
+                          );
+                        },
                       ),
-                      trailing:
-                          const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const GroupSelectionScreen()),
-                        );
-                      },
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -239,45 +246,7 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 20),
           ],
 
-          // Quick Role Switcher for Testing (SRS 3 & Requirement 9)
-          const Text('Switch Demo Role (Testing RBAC)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Material(
-            color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
-            borderRadius: BorderRadius.circular(16),
-            clipBehavior: Clip.antiAlias,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color:
-                        isDark ? AppColors.darkBorder : AppColors.lightBorder),
-              ),
-              child: Column(
-                children: auth.availableUsers.map((user) {
-                  final isSelected = auth.currentUser.id == user.id;
-                  return ListTile(
-                    leading: Icon(
-                      isSelected
-                          ? Icons.check_circle_rounded
-                          : Icons.radio_button_off_rounded,
-                      color: isSelected ? AppColors.primary : Colors.grey,
-                    ),
-                    title: Text(user.name,
-                        style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal)),
-                    subtitle: Text(
-                        '${user.role.nameString} • ${user.phone} • ${user.isActive ? "Active" : "Inactive"}'),
-                    onTap: () => auth.switchUser(user),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
+
 
           // Citizen Phone OTP Login Simulator (SRS 9 & 12 FR-01)
           const Text('Citizen Phone OTP Login (FR-01)',
@@ -334,10 +303,10 @@ class SettingsScreen extends StatelessWidget {
                     title: Text(langTheme.tr('language')),
                     subtitle: Text(
                       langTheme.languageCode == 'mr'
-                          ? 'मराठी (Marathi - Primary)'
+                          ? 'Marathi'
                           : (langTheme.languageCode == 'hi'
-                              ? 'हिंदी (Hindi)'
-                              : 'English'),
+                              ? 'Hindi'
+                              : 'English (Primary)'),
                     ),
                     trailing:
                         const Icon(Icons.arrow_forward_ios_rounded, size: 14),
@@ -468,6 +437,10 @@ class SettingsScreen extends StatelessWidget {
                   size: 16, color: Colors.redAccent),
               onTap: () {
                 auth.logout();
+                Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
               },
             ),
           ),
@@ -550,24 +523,10 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(),
                 ListTile(
-                  leading: const Text('🚩', style: TextStyle(fontSize: 24)),
-                  title: const Text('मराठी (Marathi)',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('प्राथमिक भाषा (Default Primary)'),
-                  trailing: langTheme.languageCode == 'mr'
-                      ? const Icon(Icons.check_circle_rounded,
-                          color: AppColors.primary)
-                      : null,
-                  onTap: () {
-                    langTheme.setLanguage('mr');
-                    Navigator.pop(ctx);
-                  },
-                ),
-                ListTile(
                   leading: const Text('🌐', style: TextStyle(fontSize: 24)),
                   title: const Text('English',
                       style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Standard English'),
+                  subtitle: const Text('Primary App Language'),
                   trailing: langTheme.languageCode == 'en'
                       ? const Icon(Icons.check_circle_rounded,
                           color: AppColors.primary)
@@ -578,10 +537,24 @@ class SettingsScreen extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Text('🇮🇳', style: TextStyle(fontSize: 24)),
-                  title: const Text('हिंदी (Hindi)',
+                  leading: const Text('🚩', style: TextStyle(fontSize: 24)),
+                  title: const Text('Marathi',
                       style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('राष्ट्रभाषा हिंदी'),
+                  subtitle: const Text('Regional Language'),
+                  trailing: langTheme.languageCode == 'mr'
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    langTheme.setLanguage('mr');
+                    Navigator.pop(ctx);
+                  },
+                ),
+                ListTile(
+                  leading: const Text('🇮🇳', style: TextStyle(fontSize: 24)),
+                  title: const Text('Hindi',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('National Language'),
                   trailing: langTheme.languageCode == 'hi'
                       ? const Icon(Icons.check_circle_rounded,
                           color: AppColors.primary)

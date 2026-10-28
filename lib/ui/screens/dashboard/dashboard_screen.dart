@@ -15,6 +15,7 @@ import '../households/household_form_dialog.dart';
 import '../collections/new_collection_dialog.dart';
 import '../expenses/add_expense_dialog.dart';
 import '../handovers/cash_handover_screen.dart';
+import '../../widgets/organization_status_card.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -35,6 +36,13 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Organization Status Card (shows org name & type; hides button if 1 org)
+            OrganizationStatusCard(
+              margin: const EdgeInsets.only(bottom: 16),
+              organization: auth.selectedOrganization ?? data.organization,
+              organizationCount: auth.availableOrganizations.length,
+            ),
+
             // Active Campaign Banner Card
             _buildCampaignBanner(context, data, currencyFormat, isDark),
             const SizedBox(height: 16),

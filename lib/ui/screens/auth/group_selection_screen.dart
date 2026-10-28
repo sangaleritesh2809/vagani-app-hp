@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import 'login_screen.dart';
 
 class GroupSelectionScreen extends StatefulWidget {
   const GroupSelectionScreen({super.key});
@@ -227,7 +228,7 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
                 icon: const Icon(Icons.arrow_back_rounded),
                 onPressed: () => Navigator.pop(context),
               ),
-              title: const Text('गट निवडा / Select Group',
+              title: const Text('Select Group',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             )
           : null,
@@ -871,7 +872,13 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
 
                     // ── Logout ────────────────────────────────────────────
                     TextButton.icon(
-                      onPressed: () => auth.logout(),
+                      onPressed: () {
+                        auth.logout();
+                        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          (route) => false,
+                        );
+                      },
                       icon: const Icon(Icons.logout_rounded,
                           size: 16, color: Colors.redAccent),
                       label: const Text(

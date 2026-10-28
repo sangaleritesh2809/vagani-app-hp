@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
+import '../../../core/navigation/app_navigator.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
@@ -198,7 +199,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-          Navigator.popUntil(context, (route) => route.isFirst);
+          AppNavigator.navigateToHome(context.read<AuthProvider>());
         } else {
           setState(() => _errorMessage = res.message);
         }

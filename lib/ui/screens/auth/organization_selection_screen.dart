@@ -270,6 +270,15 @@ class _OrganizationSelectionScreenState
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
+                                                '(${org.organizationType.isNotEmpty ? org.organizationType : "Festival Committee"})',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
                                                 org.name,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,

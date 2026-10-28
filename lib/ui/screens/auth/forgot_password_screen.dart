@@ -135,8 +135,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => _errorMessage = 'Please enter a valid 6-digit OTP.');
       return;
     }
-    if (newPass.length < 6) {
-      setState(() => _errorMessage = 'Password must be at least 6 characters.');
+    if (newPass.length < 8 || newPass.length > 17) {
+      setState(() => _errorMessage = 'Password must be between 8 and 17 characters.');
       return;
     }
     if (newPass != confirmPass) {
@@ -398,9 +398,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     TextField(
                       controller: _newPasswordController,
                       obscureText: _obscureNewPassword,
+                      maxLength: 17,
                       decoration: InputDecoration(
+                        hintText: 'Enter new password',
+                        counterText: '',
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
-                        hintText: 'Min 6 characters',
                         filled: true,
                         fillColor:
                             isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -430,7 +432,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     TextField(
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirmPassword,
+                      maxLength: 17,
                       decoration: InputDecoration(
+                        counterText: '',
                         prefixIcon: const Icon(Icons.lock_reset_rounded),
                         hintText: 'Re-enter password',
                         filled: true,

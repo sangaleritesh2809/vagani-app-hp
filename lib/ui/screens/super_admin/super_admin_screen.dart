@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/organization_model.dart';
 import '../../../core/models/group_model.dart';
@@ -17,6 +19,10 @@ import '../../../core/services/api_service.dart';
 import '../../../core/services/mock_data_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../auth/organization_selection_screen.dart';
+import '../auth/login_screen.dart';
+import '../../widgets/organization_status_card.dart';
+import '../../widgets/mandatory_label.dart';
+import '../../../core/utils/hash_util.dart';
 
 enum SuperAdminModule {
   dashboard,
@@ -114,7 +120,13 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
         setState(() {
           _organizations = orgs ?? [];
           _groups = grps ?? [];
-          final rawUsers = usrs ?? [];
+          final authUsers = context.read<AuthProvider>().availableUsers;
+          final rawUsers = <UserModel>[...authUsers];
+          for (final u in (usrs ?? [])) {
+            if (!rawUsers.any((e) => e.id == u.id || (e.phone.isNotEmpty && e.phone == u.phone))) {
+              rawUsers.add(u);
+            }
+          }
           final cleanUsers = <UserModel>[];
           bool hasSuperAdmin = false;
           for (final u in rawUsers) {
@@ -371,7 +383,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'लॉग आउट (Log Out)',
+                        'Log Out',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -434,9 +446,13 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
               ),
             ),
             const Divider(height: 1),
-            // Organization Switcher placed at the bottom of the drawer
-            InkWell(
-              onTap: () {
+            // Organization Status Card
+            OrganizationStatusCard(
+              margin: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+              organization: auth.selectedOrganization ??
+                  (_organizations.isNotEmpty ? _organizations.last : null),
+              organizationCount: _organizations.length,
+              onSwitch: () {
                 Navigator.pop(context); // Close drawer first
                 Navigator.push(
                   context,
@@ -446,59 +462,6 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                   ),
                 );
               },
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.25)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.corporate_fare_rounded,
-                          size: 20, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Selected Organization',
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            auth.selectedOrganization?.name ??
-                                'All Organizations',
-                            style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.swap_horiz_rounded,
-                        size: 20, color: AppColors.primary),
-                  ],
-                ),
-              ),
             ),
             // Logout Button placed prominently at the bottom of the drawer
             InkWell(
@@ -531,7 +494,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'लॉग आउट (Log Out)',
+                            'Log Out',
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -539,7 +502,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'खात्यातून बाहेर पडा (Return to Login)',
+                            'Return to Login',
                             style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey,
@@ -569,16 +532,16 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           children: [
             Icon(Icons.logout_rounded, color: Colors.redAccent),
             SizedBox(width: 8),
-            Text('लॉग आउट (Log Out)'),
+            Text('Log Out'),
           ],
         ),
         content: const Text(
-          'आपण खात्यातून बाहेर पडू इच्छिता का?\n(Are you sure you want to log out?)',
+          'Are you sure you want to log out?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('रद्द करा (Cancel)'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -591,8 +554,12 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                 Navigator.pop(context);
               }
               auth.logout();
+              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
             },
-            child: const Text('लॉग आउट (Log Out)'),
+            child: const Text('Log Out'),
           ),
         ],
       ),
@@ -852,12 +819,14 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                   Icon(Icons.verified_user_rounded,
                       color: Colors.white, size: 28),
                   SizedBox(width: 10),
-                  Text(
-                    'Super Admin System Overview',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      'Super Admin System Overview',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -1123,13 +1092,17 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
               child: Form(
                 key: formKey,
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const MandatoryLabel('Organization Name', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: nameCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Organization Name *',
+                          hintText: 'Enter organization name',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -1139,12 +1112,14 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                             ? 'Organization name is required'
                             : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Organization Type', isRequired: true),
+                      const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedType,
                         isExpanded: true,
                         decoration: InputDecoration(
-                          labelText: 'Organization Type *',
+                          hintText: 'Select organization type',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -1153,27 +1128,27 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                         items: const [
                           DropdownMenuItem(
                             value: 'Festival Committee',
-                            child: Text('Festival Committee (उत्सव मंडळ)'),
+                            child: Text('Festival Committee'),
                           ),
                           DropdownMenuItem(
                             value: 'Housing Society',
-                            child: Text('Housing Society (सोसायटी)'),
+                            child: Text('Housing Society'),
                           ),
                           DropdownMenuItem(
                             value: 'Charitable Trust',
-                            child: Text('Charitable Trust (देवस्थान ट्रस्ट)'),
+                            child: Text('Charitable Trust'),
                           ),
                           DropdownMenuItem(
                             value: 'Social Organization',
-                            child: Text('Social Organization (सामाजिक संस्था)'),
+                            child: Text('Social Organization'),
                           ),
                           DropdownMenuItem(
                             value: 'Sports Club',
-                            child: Text('Sports Club (क्रीडा मंडळ)'),
+                            child: Text('Sports Club'),
                           ),
                           DropdownMenuItem(
                             value: 'Other',
-                            child: Text('Other (इतर)'),
+                            child: Text('Other'),
                           ),
                         ],
                         onChanged: (v) {
@@ -1182,45 +1157,59 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           }
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Village / City', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: villageCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Village / City',
+                          hintText: 'Enter village or city',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('District', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: distCtrl,
                         decoration: InputDecoration(
-                          labelText: 'District',
+                          hintText: 'Enter district',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Contact Number', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: phoneCtrl,
                         keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         decoration: InputDecoration(
-                          labelText: 'Contact Number',
+                          counterText: '',
+                          hintText: 'Enter 10-digit contact number',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Description', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: descCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Description',
+                          hintText: 'Enter brief description (optional)',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -1252,8 +1241,9 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                                 .replaceAll(RegExp(r'[^a-z0-9]+'), '-');
 
                         final org = OrganizationModel(
-                          id: existing?.id ??
-                              'org_${DateTime.now().millisecondsSinceEpoch}',
+                          id: (existing != null && RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(existing!.id))
+                              ? existing!.id
+                              : const Uuid().v4(),
                           name: nameCtrl.text.trim(),
                           slug: generatedSlug,
                           organizationType: selectedType,
@@ -1496,21 +1486,27 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                 Text(isEdit ? 'Edit Group' : 'Create Group'),
               ],
             ),
-            content: SizedBox(
-              width: 500,
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 500,
+                maxHeight: MediaQuery.of(context).size.height * 0.78,
+              ),
               child: Form(
                 key: formKey,
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (_organizations.isNotEmpty) ...[
+                        const MandatoryLabel('Organization', isRequired: true),
+                        const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
                           value: selectedOrgId,
                           isExpanded: true,
                           decoration: InputDecoration(
-                            labelText: 'Organization *',
-                            floatingLabelBehavior: FloatingLabelBehavior.always,
+                            hintText: 'Select organization',
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 14),
                             border: OutlineInputBorder(
@@ -1526,13 +1522,14 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           onChanged: (v) => setDialogState(
                               () => selectedOrgId = v ?? selectedOrgId),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                       ],
+                      const MandatoryLabel('Group Name', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: nameCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Group Name *',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'Enter group name',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -1542,12 +1539,13 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                             ? 'Group name is required'
                             : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Unique Group Code', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: codeCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Unique Group Code *',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'e.g. MANDAL_01',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -1557,60 +1555,72 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                             ? 'Group code is required'
                             : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Location / Ward', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: locCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Location / Ward',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'Enter location or ward number',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
                           Expanded(
-                            child: TextFormField(
-                              controller: rateCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                labelText: 'Rate / Person (₹)',
-                                floatingLabelBehavior:
-                                    FloatingLabelBehavior.always,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 14),
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const MandatoryLabel('Rate / Person (₹)', isRequired: false),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: rateCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    hintText: '200',
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 14),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: TextFormField(
-                              controller: suggestedCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                labelText: 'Suggested (₹)',
-                                floatingLabelBehavior:
-                                    FloatingLabelBehavior.always,
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 14),
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const MandatoryLabel('Suggested (₹)', isRequired: false),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: suggestedCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    hintText: '500',
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 14),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Description', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: descCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Description',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'Enter group description (optional)',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -1635,8 +1645,9 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                         setDialogState(() => isSaving = true);
 
                         final grp = GroupModel(
-                          id: existing?.id ??
-                              'grp_${DateTime.now().millisecondsSinceEpoch}',
+                          id: (existing != null && RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(existing!.id))
+                              ? existing!.id
+                              : const Uuid().v4(),
                           organizationId: selectedOrgId,
                           name: nameCtrl.text.trim(),
                           code: codeCtrl.text.trim().toUpperCase(),
@@ -2016,6 +2027,8 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final phoneCtrl = TextEditingController(text: existing?.phone ?? '');
     final emailCtrl = TextEditingController(text: existing?.email ?? '');
+    final passwordCtrl = TextEditingController();
+    bool obscurePassword = true;
 
     String selectedOrgId = existing?.organizationId ??
         (_organizations.isNotEmpty ? _organizations.first.id : 'org_001');
@@ -2056,70 +2069,134 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
             content: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: 520,
-                maxHeight: MediaQuery.of(context).size.height * 0.72,
+                maxHeight: MediaQuery.of(context).size.height * 0.78,
               ),
               child: Form(
                 key: formKey,
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const MandatoryLabel('Full Name', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: nameCtrl,
                         decoration: const InputDecoration(
-                          labelText: 'Full Name *',
+                          hintText: 'Enter full name',
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                         validator: (v) => (v == null || v.trim().isEmpty)
                             ? 'Full name is required'
                             : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Mobile Number', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: phoneCtrl,
                         keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         decoration: const InputDecoration(
-                          labelText: 'Mobile Number *',
+                          counterText: '',
+                          hintText: 'Enter 10-digit mobile number',
                           prefixIcon: Icon(Icons.phone_outlined),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
                             return 'Mobile number is required';
                           }
-                          if (v.replaceAll(RegExp(r'\D'), '').length < 10) {
+                          final clean = v.replaceAll(RegExp(r'\D'), '');
+                          if (clean.length != 10 ||
+                              !RegExp(r'^[6-9]\d{9}$').hasMatch(clean)) {
                             return 'Enter a valid 10-digit mobile number';
                           }
                           return null;
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Email Address', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: emailCtrl,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
-                          labelText: 'Email Address',
+                          hintText: 'Enter email address (optional)',
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      MandatoryLabel(
+                        'Password',
+                        isRequired: !isEdit,
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: passwordCtrl,
+                        obscureText: obscurePassword,
+                        maxLength: 17,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(17),
+                        ],
+                        decoration: InputDecoration(
+                          hintText: isEdit
+                              ? 'Leave blank to keep existing password'
+                              : 'Enter password',
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              size: 20,
+                            ),
+                            onPressed: () => setDialogState(
+                                () => obscurePassword = !obscurePassword),
+                          ),
+                          helperText: isEdit
+                              ? 'Leave blank to keep existing password'
+                              : null,
+                        ),
+                        validator: (v) {
+                          final pass = v?.trim() ?? '';
+                          if (!isEdit && pass.isEmpty) {
+                            return 'Please enter password';
+                          }
+                          if (pass.isNotEmpty &&
+                              (pass.length < 8 || pass.length > 17)) {
+                            return 'Password must be between 8 and 17 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
                       if (existing?.role == UserRole.superAdmin) ...[
+                        const MandatoryLabel('Role', isRequired: false),
+                        const SizedBox(height: 6),
                         TextFormField(
                           initialValue: 'Super Admin',
                           readOnly: true,
                           decoration: const InputDecoration(
-                            labelText: 'Role',
                             prefixIcon: Icon(Icons.security_rounded),
                             helperText:
                                 'Super Admin role cannot be modified or duplicated',
                           ),
                         ),
+                        const SizedBox(height: 14),
                       ] else ...[
+                        const MandatoryLabel('Role', isRequired: true),
+                        const SizedBox(height: 6),
                         DropdownButtonFormField<UserRole>(
                           value: selectedRole,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Role *',
+                            hintText: 'Select role',
                             prefixIcon: Icon(Icons.badge_outlined),
                           ),
                           items: const [
@@ -2157,14 +2234,16 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           onChanged: (v) => setDialogState(
                               () => selectedRole = v ?? selectedRole),
                         ),
+                        const SizedBox(height: 14),
                       ],
-                      const SizedBox(height: 12),
                       if (_organizations.isNotEmpty) ...[
+                        const MandatoryLabel('Organization', isRequired: true),
+                        const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
                           value: selectedOrgId,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Organization *',
+                            hintText: 'Select organization',
                             prefixIcon: Icon(Icons.apartment_rounded),
                           ),
                           items: _organizations.map((org) {
@@ -2182,14 +2261,16 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                             });
                           },
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                       ],
                       if (effectiveGroups.isNotEmpty) ...[
+                        const MandatoryLabel('Assigned Group / Mandal', isRequired: true),
+                        const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
                           value: selectedGroupId,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Assigned Group *',
+                            hintText: 'Select assigned group',
                             prefixIcon: Icon(Icons.hub_outlined),
                           ),
                           items: effectiveGroups.map((grp) {
@@ -2204,13 +2285,15 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           onChanged: (v) => setDialogState(
                               () => selectedGroupId = v ?? selectedGroupId),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                       ],
+                      const MandatoryLabel('Account Status', isRequired: true),
+                      const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedStatus,
                         isExpanded: true,
                         decoration: const InputDecoration(
-                          labelText: 'Account Status *',
+                          hintText: 'Select account status',
                           prefixIcon: Icon(Icons.check_circle_outline),
                         ),
                         items: const [
@@ -2264,8 +2347,9 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                             .firstOrNull;
 
                         final user = UserModel(
-                          id: existing?.id ??
-                              'usr_${DateTime.now().millisecondsSinceEpoch}',
+                          id: (existing != null && RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(existing!.id))
+                              ? existing!.id
+                              : const Uuid().v4(),
                           name: nameCtrl.text.trim(),
                           phone: cleanPhone,
                           email: emailVal,
@@ -2293,23 +2377,41 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                                   : ['group.view', 'collection.view']),
                         );
 
+                        final rawPass = passwordCtrl.text.trim();
+                        final assignedPass =
+                            rawPass.isNotEmpty ? rawPass : 'Vargani@123';
+                        final passHash = HashUtil.hashPassword(assignedPass);
+
+                        final finalUser = user.copyWith(passwordHash: passHash);
+
                         if (isEdit) {
-                          await SupabaseService.updateUser(user);
+                          await SupabaseService.updateUser(
+                            finalUser,
+                            passwordHash: rawPass.isNotEmpty ? passHash : null,
+                          );
                         } else {
-                          await SupabaseService.insertUser(user);
+                          await SupabaseService.insertUser(
+                            finalUser,
+                            passwordHash: passHash,
+                          );
                         }
 
-                        MockDataService.addUser(user);
+                        await context.read<AuthProvider>().registerAdminCreatedUser(
+                          user: finalUser,
+                          password: assignedPass,
+                        );
+
+                        MockDataService.addUser(finalUser);
 
                         if (mounted) {
                           setState(() {
                             final idx = _users.indexWhere((u) =>
-                                u.id == user.id ||
-                                (u.phone.isNotEmpty && u.phone == user.phone));
+                                u.id == finalUser.id ||
+                                (u.phone.isNotEmpty && u.phone == finalUser.phone));
                             if (idx != -1) {
-                              _users[idx] = user;
+                              _users[idx] = finalUser;
                             } else {
-                              _users.insert(0, user);
+                              _users.insert(0, finalUser);
                             }
                           });
 
@@ -2317,7 +2419,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  'User "${user.name}" saved successfully!'),
+                                  'User "${finalUser.name}" saved successfully!'),
                               backgroundColor: AppColors.statusPaid,
                               duration: const Duration(seconds: 3),
                             ),
@@ -2706,14 +2808,17 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
               child: Form(
                 key: formKey,
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const MandatoryLabel('Role Name', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: nameCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Role Name *',
+                          hintText: 'Enter role name (e.g. Branch Supervisor)',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -2731,61 +2836,77 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           }
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
                           Expanded(
-                            child: TextFormField(
-                              controller: keyCtrl,
-                              decoration: InputDecoration(
-                                labelText: 'Role Key *',
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 14),
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                              ),
-                              validator: (v) => v == null || v.trim().isEmpty
-                                  ? 'Role key is required'
-                                  : null,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const MandatoryLabel('Role Key', isRequired: true),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: keyCtrl,
+                                  decoration: InputDecoration(
+                                    hintText: 'e.g. BRANCH_SUPERVISOR',
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 14),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  validator: (v) => v == null || v.trim().isEmpty
+                                      ? 'Role key is required'
+                                      : null,
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: scopeType,
-                              isExpanded: true,
-                              decoration: InputDecoration(
-                                labelText: 'Scope Type *',
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 14),
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                    value: 'organization',
-                                    child: Text('Organization',
-                                        overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(
-                                    value: 'group',
-                                    child: Text('Group',
-                                        overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(
-                                    value: 'system',
-                                    child: Text('System',
-                                        overflow: TextOverflow.ellipsis)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const MandatoryLabel('Scope Type', isRequired: true),
+                                const SizedBox(height: 6),
+                                DropdownButtonFormField<String>(
+                                  value: scopeType,
+                                  isExpanded: true,
+                                  decoration: InputDecoration(
+                                    hintText: 'Select scope',
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 14),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: 'organization',
+                                        child: Text('Organization',
+                                            overflow: TextOverflow.ellipsis)),
+                                    DropdownMenuItem(
+                                        value: 'group',
+                                        child: Text('Group',
+                                            overflow: TextOverflow.ellipsis)),
+                                    DropdownMenuItem(
+                                        value: 'system',
+                                        child: Text('System',
+                                            overflow: TextOverflow.ellipsis)),
+                                  ],
+                                  onChanged: (v) => setDialogState(
+                                      () => scopeType = v ?? scopeType),
+                                ),
                               ],
-                              onChanged: (v) => setDialogState(
-                                  () => scopeType = v ?? scopeType),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Description', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: descCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Description',
+                          hintText: 'Brief description of role responsibilities',
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 14),
                           border: OutlineInputBorder(
@@ -2935,8 +3056,9 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                         setDialogState(() => isSaving = true);
 
                         final role = RoleModel(
-                          id: existing?.id ??
-                              'role_${DateTime.now().millisecondsSinceEpoch}',
+                          id: (existing != null && RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(existing!.id))
+                              ? existing!.id
+                              : const Uuid().v4(),
                           code: keyCtrl.text.trim().toUpperCase(),
                           roleKey: keyCtrl.text.trim().toUpperCase(),
                           name: nameCtrl.text.trim(),
@@ -3187,78 +3309,104 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Text('Assign Role to User'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedUserId,
-                    decoration:
-                        const InputDecoration(labelText: 'Select User *'),
-                    items: _users.map((u) {
-                      return DropdownMenuItem(
-                          value: u.id, child: Text('${u.name} (${u.phone})'));
-                    }).toList(),
-                    onChanged: (v) => setDialogState(
-                        () => selectedUserId = v ?? selectedUserId),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: selectedRoleId,
-                    decoration:
-                        const InputDecoration(labelText: 'Select Role *'),
-                    items: _roles.map((r) {
-                      return DropdownMenuItem(
-                          value: r.id, child: Text('${r.name} (${r.roleKey})'));
-                    }).toList(),
-                    onChanged: (v) => setDialogState(
-                        () => selectedRoleId = v ?? selectedRoleId),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: scopeChoice,
-                    decoration:
-                        const InputDecoration(labelText: 'Scope Type *'),
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'group', child: Text('Group Scope')),
-                      DropdownMenuItem(
-                          value: 'organization',
-                          child: Text('Organization Scope')),
-                      DropdownMenuItem(
-                          value: 'system', child: Text('System Wide Scope')),
-                    ],
-                    onChanged: (v) =>
-                        setDialogState(() => scopeChoice = v ?? 'group'),
-                  ),
-                  if (scopeChoice == 'organization' ||
-                      scopeChoice == 'group') ...[
-                    const SizedBox(height: 10),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const MandatoryLabel('Select User', isRequired: true),
+                    const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: selectedOrgId,
-                      decoration:
-                          const InputDecoration(labelText: 'Organization *'),
-                      items: _organizations.map((o) {
+                      value: selectedUserId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Select user',
+                      ),
+                      items: _users.map((u) {
                         return DropdownMenuItem(
-                            value: o.id, child: Text(o.name));
+                            value: u.id, child: Text('${u.name} (${u.phone})'));
                       }).toList(),
-                      onChanged: (v) => setDialogState(() => selectedOrgId = v),
+                      onChanged: (v) => setDialogState(
+                          () => selectedUserId = v ?? selectedUserId),
                     ),
-                  ],
-                  if (scopeChoice == 'group') ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
+                    const MandatoryLabel('Select Role', isRequired: true),
+                    const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: selectedGroupId,
-                      decoration: const InputDecoration(labelText: 'Group *'),
-                      items: _groups.map((g) {
+                      value: selectedRoleId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Select role',
+                      ),
+                      items: _roles.map((r) {
                         return DropdownMenuItem(
-                            value: g.id, child: Text(g.name));
+                            value: r.id, child: Text('${r.name} (${r.roleKey})'));
                       }).toList(),
+                      onChanged: (v) => setDialogState(
+                          () => selectedRoleId = v ?? selectedRoleId),
+                    ),
+                    const SizedBox(height: 14),
+                    const MandatoryLabel('Scope Type', isRequired: true),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: scopeChoice,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Select scope type',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'group', child: Text('Group Scope')),
+                        DropdownMenuItem(
+                            value: 'organization',
+                            child: Text('Organization Scope')),
+                        DropdownMenuItem(
+                            value: 'system', child: Text('System Wide Scope')),
+                      ],
                       onChanged: (v) =>
-                          setDialogState(() => selectedGroupId = v),
+                          setDialogState(() => scopeChoice = v ?? 'group'),
                     ),
+                    if (scopeChoice == 'organization' ||
+                        scopeChoice == 'group') ...[
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Organization', isRequired: true),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        value: selectedOrgId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Select organization',
+                        ),
+                        items: _organizations.map((o) {
+                          return DropdownMenuItem(
+                              value: o.id, child: Text(o.name));
+                        }).toList(),
+                        onChanged: (v) => setDialogState(() => selectedOrgId = v),
+                      ),
+                    ],
+                    if (scopeChoice == 'group') ...[
+                      const SizedBox(height: 14),
+                      const MandatoryLabel('Group / Mandal', isRequired: true),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        value: selectedGroupId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Select group',
+                        ),
+                        items: _groups.map((g) {
+                          return DropdownMenuItem(
+                              value: g.id, child: Text(g.name));
+                        }).toList(),
+                        onChanged: (v) =>
+                            setDialogState(() => selectedGroupId = v),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
             actions: [

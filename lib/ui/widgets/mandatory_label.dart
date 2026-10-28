@@ -26,14 +26,23 @@ class MandatoryLabel extends StatelessWidget {
       cleanText = cleanText.substring(0, cleanText.length - 1).trimRight();
     }
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final defaultStyle = TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+    );
+    final effectiveStyle = style ?? defaultStyle;
+
     if (!isRequired) {
-      return Text(cleanText, style: style);
+      return Text(cleanText, style: effectiveStyle);
     }
 
     return Text.rich(
       TextSpan(
         text: cleanText,
-        style: style,
+        style: effectiveStyle,
         children: [
           const TextSpan(text: ' '),
           TextSpan(
@@ -41,7 +50,7 @@ class MandatoryLabel extends StatelessWidget {
             style: TextStyle(
               color: starColor,
               fontWeight: FontWeight.bold,
-              fontSize: (style?.fontSize != null) ? (style!.fontSize! + 1) : 14,
+              fontSize: (effectiveStyle.fontSize != null) ? (effectiveStyle.fontSize! + 1) : 14,
             ),
           ),
         ],

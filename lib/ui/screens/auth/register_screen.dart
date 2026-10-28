@@ -107,8 +107,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (password.isEmpty) {
       _passwordError = 'Please enter password';
       hasError = true;
-    } else if (password.length < 6) {
-      _passwordError = 'Password must be at least 6 characters';
+    } else if (password.length < 8 || password.length > 17) {
+      _passwordError = 'Password must be between 8 and 17 characters';
       hasError = true;
     }
 
@@ -256,8 +256,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           setState(() => _nameError = null);
                       },
                       decoration: InputDecoration(
+                        hintText: 'Enter full name',
                         prefixIcon: const Icon(Icons.person_outline_rounded),
-                        hintText: 'e.g. Ramesh Patil',
                         errorText: _nameError,
                         errorStyle: const TextStyle(
                             fontSize: 12, color: Colors.redAccent),
@@ -290,11 +290,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           setState(() => _phoneError = null);
                       },
                       decoration: InputDecoration(
+                        hintText: 'Enter 10-digit mobile number',
                         prefixIcon:
                             const Icon(Icons.phone_android_rounded, size: 20),
                         prefixIconConstraints:
                             const BoxConstraints(minWidth: 42, minHeight: 42),
-                        hintText: 'Enter 10-digit mobile number',
                         counterText: '',
                         errorText: _phoneError,
                         errorStyle: const TextStyle(
@@ -323,8 +323,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           setState(() => _emailError = null);
                       },
                       decoration: InputDecoration(
+                        hintText: 'name@example.com',
                         prefixIcon: const Icon(Icons.email_outlined),
-                        hintText: 'name@gmail.com',
                         errorText: _emailError,
                         errorStyle: const TextStyle(
                             fontSize: 12, color: Colors.redAccent),
@@ -347,13 +347,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      maxLength: 17,
                       onChanged: (val) {
                         if (_passwordError != null)
                           setState(() => _passwordError = null);
                       },
                       decoration: InputDecoration(
+                        hintText: 'Enter password',
+                        counterText: '',
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
-                        hintText: 'Minimum 6 characters',
                         errorText: _passwordError,
                         errorStyle: const TextStyle(
                             fontSize: 12, color: Colors.redAccent),
@@ -386,13 +388,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirmPassword,
+                      maxLength: 17,
                       onChanged: (val) {
                         if (_confirmPasswordError != null)
                           setState(() => _confirmPasswordError = null);
                       },
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.lock_reset_rounded),
                         hintText: 'Re-enter password',
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.lock_reset_rounded),
                         errorText: _confirmPasswordError,
                         errorStyle: const TextStyle(
                             fontSize: 12, color: Colors.redAccent),

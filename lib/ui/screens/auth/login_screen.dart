@@ -9,6 +9,7 @@ import '../../widgets/mandatory_label.dart';
 import 'forgot_password_screen.dart';
 import 'otp_verification_screen.dart';
 import 'register_screen.dart';
+import '../../../core/navigation/app_navigator.dart';
 
 enum LoginTab { mobileOtp, emailOtp, password }
 
@@ -31,6 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  late final FocusNode _passwordFocusNode;
+
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _phoneError;
@@ -41,14 +44,126 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _activeTab = widget.initialTab;
+    _passwordFocusNode = FocusNode(
+      onKeyEvent: (node, event) => _handleBackspacedKey(
+        node,
+        event,
+        _passwordController,
+        () {
+          if (_passwordError != null) setState(() => _passwordError = null);
+        },
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _passwordFocusNode.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Explicitly handle Backspace, Delete, and Cut keys for Web & Desktop reliability
+  KeyEventResult _handleBackspacedKey(
+    FocusNode node,
+    KeyEvent event,
+    TextEditingController controller,
+    VoidCallback? onClearError,
+  ) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      final isCtrlOrCmd = HardwareKeyboard.instance.isControlPressed ||
+          HardwareKeyboard.instance.isMetaPressed;
+      final text = controller.text;
+
+      // Handle Ctrl+X (Cut)
+      if (isCtrlOrCmd && event.logicalKey == LogicalKeyboardKey.keyX) {
+        if (text.isNotEmpty) {
+          final sel = controller.selection;
+          int start = sel.start;
+          int end = sel.end;
+          if (start < 0 || end < 0) {
+            start = 0;
+            end = text.length;
+          }
+          final min = start < end ? start : end;
+          final max = start < end ? end : start;
+          if (min != max) {
+            Clipboard.setData(ClipboardData(text: text.substring(min, max)));
+            final newText = text.replaceRange(min, max, '');
+            controller.value = TextEditingValue(
+              text: newText,
+              selection: TextSelection.collapsed(offset: min),
+            );
+            onClearError?.call();
+            return KeyEventResult.handled;
+          }
+        }
+      }
+
+      if (event.logicalKey == LogicalKeyboardKey.backspace) {
+        if (text.isNotEmpty) {
+          final sel = controller.selection;
+          int start = sel.start;
+          int end = sel.end;
+          // When Web has uninitialized cursor, assume end of string
+          if (start < 0 || end < 0) {
+            start = text.length;
+            end = text.length;
+          }
+          if (start != end) {
+            final min = start < end ? start : end;
+            final max = start < end ? end : start;
+            final newText = text.replaceRange(min, max, '');
+            controller.value = TextEditingValue(
+              text: newText,
+              selection: TextSelection.collapsed(offset: min),
+            );
+            onClearError?.call();
+            return KeyEventResult.handled;
+          } else if (start > 0) {
+            final newText = text.replaceRange(start - 1, start, '');
+            controller.value = TextEditingValue(
+              text: newText,
+              selection: TextSelection.collapsed(offset: start - 1),
+            );
+            onClearError?.call();
+            return KeyEventResult.handled;
+          }
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.delete) {
+        if (text.isNotEmpty) {
+          final sel = controller.selection;
+          int start = sel.start;
+          int end = sel.end;
+          if (start < 0 || end < 0) {
+            start = text.length;
+            end = text.length;
+          }
+          if (start != end) {
+            final min = start < end ? start : end;
+            final max = start < end ? end : start;
+            final newText = text.replaceRange(min, max, '');
+            controller.value = TextEditingValue(
+              text: newText,
+              selection: TextSelection.collapsed(offset: min),
+            );
+            onClearError?.call();
+            return KeyEventResult.handled;
+          } else if (start < text.length) {
+            final newText = text.replaceRange(start, start + 1, '');
+            controller.value = TextEditingValue(
+              text: newText,
+              selection: TextSelection.collapsed(offset: start),
+            );
+            onClearError?.call();
+            return KeyEventResult.handled;
+          }
+        }
+      }
+    }
+    return KeyEventResult.ignored;
   }
 
   /// Request OTP for Mobile Number (resolves to registered verified email)
@@ -187,6 +302,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (password.isEmpty) {
       _passwordError = 'Please enter your password';
       hasError = true;
+    } else if (password.length < 8) {
+      _passwordError = 'Password must be at least 8 characters';
+      hasError = true;
     }
 
     if (hasError) {
@@ -211,6 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
           duration: const Duration(seconds: 3),
         ),
       );
+      AppNavigator.navigateToHome(auth);
     } else {
       setState(() {
         _passwordError = result.message.isNotEmpty
@@ -270,7 +389,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    lang.tr('appName'),
+                    'Vargani Collection',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 26,
@@ -350,7 +469,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        lang.tr('dontHaveAccount'),
+                        "Don't have an account?",
                         style: TextStyle(
                           color: isDark
                               ? AppColors.darkTextSecondary
@@ -369,9 +488,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           );
                         },
-                        child: Text(
-                          lang.tr('signUp'),
-                          style: const TextStyle(
+                        child: const Text(
+                          'Sign Up',
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                             color: AppColors.primary,
@@ -384,7 +503,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Guest Public Transparency View Button
                   OutlinedButton.icon(
                     onPressed: () {
-                      context.read<AuthProvider>().continueAsGuest();
+                      final auth = context.read<AuthProvider>();
+                      auth.continueAsGuest();
+                      AppNavigator.navigateToHome(auth);
                     },
                     icon: const Icon(Icons.visibility_outlined, size: 18),
                     label: const Text(
@@ -638,55 +759,96 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
         const SizedBox(height: 6),
-        TextField(
-          controller: _phoneController,
-          keyboardType: TextInputType.emailAddress,
-          onChanged: (_) {
-            if (_phoneError != null) setState(() => _phoneError = null);
-          },
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-            prefixIconConstraints:
-                const BoxConstraints(minWidth: 42, minHeight: 42),
-            hintText: 'Enter 10-digit mobile number or email',
-            counterText: '',
-            errorText: _phoneError,
-            errorStyle: const TextStyle(fontSize: 12, color: Colors.redAccent),
-            filled: true,
-            fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        Focus(
+          onKeyEvent: (node, event) => _handleBackspacedKey(
+            node,
+            event,
+            _phoneController,
+            () {
+              if (_phoneError != null) setState(() => _phoneError = null);
+            },
+          ),
+          child: TextField(
+            controller: _phoneController,
+            keyboardType: TextInputType.emailAddress,
+            onChanged: (_) {
+              if (_phoneError != null) setState(() => _phoneError = null);
+            },
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+              prefixIconConstraints:
+                  const BoxConstraints(minWidth: 42, minHeight: 42),
+              hintText: 'Enter 10-digit mobile number or email',
+              counterText: '',
+              errorText: _phoneError,
+              errorStyle:
+                  const TextStyle(fontSize: 12, color: Colors.redAccent),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
         ),
         const SizedBox(height: 14),
 
-        MandatoryLabel(
-          lang.tr('password'),
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        const MandatoryLabel(
+          'Password',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
         const SizedBox(height: 6),
         TextField(
+          focusNode: _passwordFocusNode,
           controller: _passwordController,
           obscureText: _obscurePassword,
+          enableSuggestions: false,
+          autocorrect: false,
           onChanged: (_) {
-            if (_passwordError != null) setState(() => _passwordError = null);
+            if (_passwordError != null) {
+              setState(() => _passwordError = null);
+            } else {
+              setState(() {}); // refresh to toggle clear button
+            }
           },
           decoration: InputDecoration(
+            hintText: 'Enter password',
+            counterText: '',
             prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
             prefixIconConstraints:
                 const BoxConstraints(minWidth: 42, minHeight: 42),
-            hintText: 'Enter password',
             errorText: _passwordError,
-            errorStyle: const TextStyle(fontSize: 12, color: Colors.redAccent),
+            errorStyle:
+                const TextStyle(fontSize: 12, color: Colors.redAccent),
             filled: true,
             fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.remove_red_eye : Icons.visibility_off,
-                size: 20,
-              ),
-              onPressed: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_passwordController.text.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Clear password',
+                    icon: const Icon(Icons.cancel_rounded,
+                        size: 20, color: Colors.grey),
+                    onPressed: () {
+                      _passwordController.clear();
+                      if (_passwordError != null) {
+                        setState(() => _passwordError = null);
+                      } else {
+                        setState(() {});
+                      }
+                    },
+                  ),
+                IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.remove_red_eye
+                        : Icons.visibility_off,
+                    size: 20,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ],
             ),
           ),
         ),
@@ -735,15 +897,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: CircularProgressIndicator(
                         strokeWidth: 2.5, color: Colors.white),
                   )
-                : Row(
+                : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.login_rounded,
+                      Icon(Icons.login_rounded,
                           size: 20, color: Colors.white),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text(
-                        lang.tr('login'),
-                        style: const TextStyle(
+                        'Log In',
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,

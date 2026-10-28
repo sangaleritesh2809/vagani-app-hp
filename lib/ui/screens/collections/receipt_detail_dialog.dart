@@ -117,7 +117,11 @@ class ReceiptDetailDialog extends StatelessWidget {
                           currentReceipt.householdHeadName),
                       _buildReceiptRow(
                           '${langTheme.tr('memberCount')} & ${langTheme.tr('perPersonRate')}',
-                          '${langTheme.formatNumber(currentReceipt.familyMemberCount)} × ${langTheme.formatCurrency(currentReceipt.perPersonRate)}'),
+                          '${langTheme.formatNumber(currentReceipt.familyMemberCount)} × ${langTheme.formatCurrency(currentReceipt.perPersonRate)} = ${langTheme.formatCurrency(currentReceipt.familyMemberCount * currentReceipt.perPersonRate)}'),
+                      if (currentReceipt.amountReceived < (currentReceipt.familyMemberCount * currentReceipt.perPersonRate)) ...[
+                        _buildReceiptRow('Payment Status', 'Partial Installment (हप्ता)'),
+                        _buildReceiptRow('Remaining Balance Due', langTheme.formatCurrency((currentReceipt.familyMemberCount * currentReceipt.perPersonRate) - currentReceipt.amountReceived)),
+                      ],
                       _buildReceiptRow(langTheme.tr('paymentMode'),
                           currentReceipt.paymentType.displayName),
                       if (currentReceipt.referenceId != null)

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/group_model.dart';
 import '../../../core/models/organization_model.dart';
@@ -44,19 +46,37 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final users = await ApiService.fetchUsers();
-    final orgs = await ApiService.fetchOrganizations();
-    final groups = await ApiService.fetchGroups();
-    final roles = await ApiService.fetchRoles();
+    try {
+      final users = await ApiService.fetchUsers();
+      final orgs = await ApiService.fetchOrganizations();
+      final groups = await ApiService.fetchGroups();
+      final roles = await ApiService.fetchRoles();
 
-    if (mounted) {
-      setState(() {
-        _users = users ?? [];
-        _organizations = orgs ?? [];
-        _groups = groups ?? [];
-        _roles = roles ?? [];
-        _isLoading = false;
-      });
+      if (mounted) {
+        final auth = context.read<AuthProvider>();
+        final combined = <UserModel>[...auth.availableUsers];
+        for (final u in (users ?? [])) {
+          if (!combined.any((e) => e.id == u.id || (e.phone.isNotEmpty && e.phone == u.phone))) {
+            combined.add(u);
+          }
+        }
+
+        setState(() {
+          _users = combined;
+          _organizations = orgs ?? [];
+          _groups = groups ?? [];
+          _roles = roles ?? [];
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        final auth = context.read<AuthProvider>();
+        setState(() {
+          _users = auth.availableUsers;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -114,8 +134,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     if (user.role == UserRole.superAdmin && !newStatus) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Super Admin खाते निष्क्रिय करता येत नाही (Super Admin cannot be deactivated).'),
+          content: Text('Super Admin account cannot be deactivated.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -144,7 +163,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
             const SizedBox(width: 10),
             Text(
-              newStatus ? 'खाते सक्रिय करा' : 'खाते निष्क्रिय करा',
+              newStatus ? 'Activate Account' : 'Deactivate Account',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
@@ -154,7 +173,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'आपण खरोखरच "${user.name}" यांचे खाते ${newStatus ? 'सक्रिय' : 'निष्क्रिय'} करू इच्छिता?',
+              'Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} the account of "${user.name}"?',
               style: const TextStyle(fontSize: 14),
             ),
             if (hasFinancialRecords) ...[
@@ -174,7 +193,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'महत्त्वाचे: या युजरशी संबंधित वर्गणी पावत्या व आर्थिक नोंदी कायमस्वरूपी सुरक्षित राहतील. डेटा डिलीट होणार नाही.',
+                        'Important: All vargani receipts and financial records associated with this user will remain permanently safe. Data will not be deleted.',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.amber.shade900,
@@ -191,7 +210,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('रद्द करा (Cancel)'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -200,9 +219,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   newStatus ? AppColors.statusPaid : Colors.redAccent,
             ),
             child: Text(
-              newStatus
-                  ? 'सक्रिय करा (Activate)'
-                  : 'निष्क्रिय करा (Deactivate)',
+              newStatus ? 'Activate' : 'Deactivate',
               style: const TextStyle(color: Colors.white),
             ),
           ),
@@ -224,7 +241,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              res['data']?['message'] ?? 'खाते स्थिती यशस्वीरित्या बदलली.'),
+              res['data']?['message'] ?? 'Account status updated successfully.'),
           backgroundColor:
               newStatus ? AppColors.statusPaid : Colors.orangeAccent,
         ),
@@ -233,7 +250,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(res['message'] ?? 'खाते स्थिती बदलण्यात अडचण आली.'),
+          content: Text(res['message'] ?? 'Failed to update account status.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -264,7 +281,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       orElse: () => const GroupModel(
           id: '',
           organizationId: '',
-          name: 'सर्व गट (All Groups)',
+          name: 'All Groups',
           code: '',
           description: ''),
     );
@@ -314,38 +331,38 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow(Icons.phone_rounded, 'मोबाईल नंबर', user.phone),
-                _buildDetailRow(Icons.email_rounded, 'ईमेल पत्ता',
-                    user.email.isNotEmpty ? user.email : 'उपलब्ध नाही'),
+                _buildDetailRow(Icons.phone_rounded, 'Mobile Number', user.phone),
+                _buildDetailRow(Icons.email_rounded, 'Email Address',
+                    user.email.isNotEmpty ? user.email : 'Not available'),
                 _buildDetailRow(
                     Icons.location_on_rounded,
-                    'पत्ता (Address)',
+                    'Address',
                     user.address?.isNotEmpty == true
                         ? user.address!
-                        : 'नोंदवलेला नाही'),
+                        : 'Not provided'),
                 _buildDetailRow(
-                    Icons.business_rounded, 'संस्था (Organization)', org.name),
+                    Icons.business_rounded, 'Organization', org.name),
                 _buildDetailRow(
-                    Icons.groups_rounded, 'गट / मंडळ (Group)', group.name),
+                    Icons.groups_rounded, 'Group / Mandal', group.name),
                 _buildDetailRow(
                   Icons.verified_user_rounded,
-                  'खाते स्थिती (Account Status)',
-                  user.isActive ? 'Active (सक्रिय)' : 'Inactive (निष्क्रिय)',
+                  'Account Status',
+                  user.isActive ? 'Active' : 'Inactive',
                   color: user.isActive ? Colors.green : Colors.redAccent,
                 ),
                 if (user.notes != null && user.notes!.isNotEmpty)
                   _buildDetailRow(Icons.note_alt_rounded,
-                      'अंतर्गत नोंदी (Admin Notes)', user.notes!),
+                      'Admin Notes', user.notes!),
                 if (user.createdAt != null)
                   _buildDetailRow(
                     Icons.calendar_today_rounded,
-                    'नोंदणी दिनांक (Created At)',
+                    'Created At',
                     '${user.createdAt!.day}/${user.createdAt!.month}/${user.createdAt!.year} ${user.createdAt!.hour.toString().padLeft(2, '0')}:${user.createdAt!.minute.toString().padLeft(2, '0')}',
                   ),
                 if (user.updatedAt != null)
                   _buildDetailRow(
                     Icons.update_rounded,
-                    'अद्यतन दिनांक (Updated At)',
+                    'Updated At',
                     '${user.updatedAt!.day}/${user.updatedAt!.month}/${user.updatedAt!.year} ${user.updatedAt!.hour.toString().padLeft(2, '0')}:${user.updatedAt!.minute.toString().padLeft(2, '0')}',
                   ),
               ],
@@ -355,7 +372,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('बंद करा (Close)'),
+            child: const Text('Close'),
           ),
           ElevatedButton.icon(
             onPressed: () {
@@ -363,7 +380,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               _showAddEditUserDialog(user);
             },
             icon: const Icon(Icons.edit_rounded, size: 16),
-            label: const Text('माहिती बदला (Edit)'),
+            label: const Text('Edit'),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
           ),
         ],
@@ -436,7 +453,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         ? existing.groupIds.first
         : (orgGroups.isNotEmpty ? orgGroups.first.id : null);
 
-    // Dynamic Roles Selection (Placeholder "Role निवडा")
+    // Dynamic Roles Selection (Placeholder "Select Role")
     // Filter out superAdmin for unauthorized admins
     final assignableRoles = _roles.where((r) {
       if (!auth.currentUser.isSuperAdmin &&
@@ -505,8 +522,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 Expanded(
                   child: Text(
                     isEdit
-                        ? 'युजर माहिती संपादन (Edit User)'
-                        : 'नवीन युजर तयार करा (Create User)',
+                        ? 'Edit User'
+                        : 'Create New User',
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),
@@ -550,38 +567,48 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         ),
                       ],
 
-                      // 1. पूर्ण नाव (Full Name) - Mandatory
+                      // 1. Full Name - Mandatory
+                      const MandatoryLabel('Full Name', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: nameCtrl,
                         decoration: const InputDecoration(
-                          label: MandatoryLabel('पूर्ण नाव (Full Name)'),
+                          hintText: 'Enter full name',
                           prefixIcon:
                               Icon(Icons.person_outline_rounded, size: 20),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
-                            return 'पूर्ण नाव प्रविष्ट करणे आवश्यक आहे (Full Name is required).';
+                            return 'Full Name is required.';
                           }
                           if (v.trim().length < 2) {
-                            return 'नाव किमान 2 अक्षरांचे असावे.';
+                            return 'Name must be at least 2 characters.';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 14),
 
-                      // 2. मोबाईल नंबर (Mobile Number) - Mandatory Indian Mobile Check
+                      // 2. Mobile Number - Mandatory Indian Mobile Check
+                      const MandatoryLabel('Mobile Number', isRequired: true),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: phoneCtrl,
                         keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         decoration: const InputDecoration(
-                          label: MandatoryLabel('मोबाईल नंबर (Mobile Number)'),
+                          counterText: '',
+                          hintText: 'Enter 10-digit mobile number',
                           prefixIcon:
                               Icon(Icons.phone_android_rounded, size: 20),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
-                            return 'मोबाईल नंबर प्रविष्ट करणे आवश्यक आहे.';
+                            return 'Mobile number is required.';
                           }
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           final last10 = digits.length >= 10
@@ -589,7 +616,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               : digits;
                           if (last10.length != 10 ||
                               !RegExp(r'^[6-9]\d{9}$').hasMatch(last10)) {
-                            return 'कृपया वैध 10-अंकी भारतीय मोबाईल नंबर प्रविष्ट करा (6 ते 9 ने सुरू होणारा).';
+                            return 'Please enter a valid 10-digit Indian mobile number (starts with 6-9).';
                           }
 
                           // Duplicate mobile check on client side
@@ -604,19 +631,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           });
 
                           if (isDuplicate) {
-                            return 'हा मोबाईल नंबर आधीच नोंदणीकृत आहे (Duplicate Mobile).';
+                            return 'This mobile number is already registered (Duplicate Mobile).';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 14),
 
-                      // 3. ईमेल (Email Address) - Optional with validation
+                      // 3. Email Address - Optional with validation
+                      const MandatoryLabel('Email Address (Optional)', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: emailCtrl,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
-                          labelText: 'ईमेल पत्ता (Email Address - ऐच्छिक)',
+                          hintText: 'name@example.com',
                           prefixIcon:
                               Icon(Icons.mail_outline_rounded, size: 20),
                         ),
@@ -625,7 +654,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             final emailRegex = RegExp(
                                 r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
                             if (!emailRegex.hasMatch(v.trim())) {
-                              return 'कृपया वैध ईमेल पत्ता प्रविष्ट करा.';
+                              return 'Please enter a valid email address.';
                             }
                           }
                           return null;
@@ -633,25 +662,30 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // 4. पत्ता (Address) - Optional
+                      // 4. Address - Optional
+                      const MandatoryLabel('Address (Optional)', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: addressCtrl,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: 'पत्ता (Address - ऐच्छिक)',
+                          hintText: 'Enter resident or office address',
                           prefixIcon: Icon(Icons.home_outlined, size: 20),
                         ),
                       ),
                       const SizedBox(height: 14),
 
-                      // 4b. पासवर्ड (Initial Password) - Only for new users
+                      // 4b. Initial Password - Only for new users
                       if (!isEdit) ...[
+                        const MandatoryLabel('Initial Password', isRequired: true),
+                        const SizedBox(height: 6),
                         TextFormField(
                           controller: passwordCtrl,
                           obscureText: obscurePassword,
+                          maxLength: 17,
                           decoration: InputDecoration(
-                            label: const MandatoryLabel(
-                                'सुरुवातीचा पासवर्ड (Initial Password)'),
+                            counterText: '',
+                            hintText: 'Enter password',
                             prefixIcon: const Icon(Icons.lock_outline_rounded,
                                 size: 20),
                             suffixIcon: IconButton(
@@ -667,10 +701,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           ),
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) {
-                              return 'कृपया पासवर्ड प्रविष्ट करा.';
+                              return 'Please enter password.';
                             }
-                            if (v.trim().length < 6) {
-                              return 'पासवर्ड किमान 6 अक्षरांचा असावा.';
+                            if (v.trim().length < 8 || v.trim().length > 17) {
+                              return 'Password must be between 8 and 17 characters.';
                             }
                             return null;
                           },
@@ -679,6 +713,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       ],
 
                       // 5. Organization Dropdown - Dynamic & Role Scoped
+                      const MandatoryLabel('Organization', isRequired: true),
+                      const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: _organizations.any((o) => o.id == selectedOrg)
                             ? selectedOrg
@@ -686,7 +722,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 ? _organizations.first.id
                                 : null),
                         decoration: const InputDecoration(
-                          label: MandatoryLabel('संस्था (Organization)'),
+                          hintText: 'Select organization',
                           prefixIcon: Icon(Icons.business_rounded, size: 20),
                         ),
                         items: _organizations.map((org) {
@@ -715,23 +751,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               }
                             : null, // Non-super admins cannot switch organization
                         validator: (v) => v == null || v.isEmpty
-                            ? 'संस्था निवडणे आवश्यक आहे.'
+                            ? 'Organization is required.'
                             : null,
                       ),
                       const SizedBox(height: 14),
 
                       // 6. Group Dropdown - Cascade filtering based on Organization
+                      const MandatoryLabel('Group / Mandal', isRequired: true),
+                      const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedGroup,
                         decoration: const InputDecoration(
-                          label: MandatoryLabel('गट / मंडळ (Group)'),
+                          hintText: 'Select group / mandal',
                           prefixIcon: Icon(Icons.groups_rounded, size: 20),
                         ),
                         items: currentOrgGroups.isEmpty
                             ? [
                                 const DropdownMenuItem(
                                   value: 'grp_001',
-                                  child: Text('मुख्य मंडळ गट (Default Group)'),
+                                  child: Text('Default Group'),
                                 )
                               ]
                             : currentOrgGroups.map((g) {
@@ -746,17 +784,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           }
                         },
                         validator: (v) => v == null || v.isEmpty
-                            ? 'गट निवडणे आवश्यक आहे.'
+                            ? 'Group is required.'
                             : null,
                       ),
                       const SizedBox(height: 14),
 
-                      // 7. Role Dropdown - Dynamic from Supabase DB with "Role निवडा" placeholder
+                      // 7. Role Dropdown - Dynamic from Supabase DB
+                      const MandatoryLabel('Role', isRequired: true),
+                      const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedRoleCode,
-                        hint: const Text('Role निवडा (Select Role)'),
+                        hint: const Text('Select Role'),
                         decoration: const InputDecoration(
-                          label: MandatoryLabel('भूमिका / Role'),
                           prefixIcon: Icon(Icons.security_rounded, size: 20),
                         ),
                         items: assignableRoles.map((r) {
@@ -769,7 +808,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           setDialogState(() => selectedRoleCode = val);
                         },
                         validator: (v) => v == null || v.isEmpty
-                            ? 'कृपया Role निवडा (Role selection is required).'
+                            ? 'Role selection is required.'
                             : null,
                       ),
 
@@ -794,7 +833,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       size: 14, color: AppColors.primary),
                                   const SizedBox(width: 6),
                                   Text(
-                                    '${currentSelectedRole.name} परवानग्या (Permissions Preview):',
+                                    '${currentSelectedRole.name} Permissions Preview:',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -806,8 +845,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 currentSelectedRole.permissions.isEmpty
-                                    ? 'या Role साठी डीफॉल्ट दर्शक परवानग्या लागू आहेत.'
-                                    : 'उपलब्ध परवानग्या: ${currentSelectedRole.permissions.take(6).join(", ")}${currentSelectedRole.permissions.length > 6 ? " (+${currentSelectedRole.permissions.length - 6} अधिक)" : ""}',
+                                    ? 'Default viewer permissions apply to this role.'
+                                    : 'Available permissions: ${currentSelectedRole.permissions.take(6).join(", ")}${currentSelectedRole.permissions.length > 6 ? " (+${currentSelectedRole.permissions.length - 6} more)" : ""}',
                                 style: const TextStyle(
                                     fontSize: 11, color: Colors.grey),
                               ),
@@ -818,10 +857,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       const SizedBox(height: 14),
 
                       // 8. Account Status Dropdown - Active / Inactive
+                      const MandatoryLabel('Account Status', isRequired: true),
+                      const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: selectedStatus,
                         decoration: const InputDecoration(
-                          label: MandatoryLabel('खाते स्थिती (Account Status)'),
                           prefixIcon: Icon(Icons.toggle_on_rounded, size: 20),
                         ),
                         items: const [
@@ -832,7 +872,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 Icon(Icons.check_circle_rounded,
                                     color: Colors.green, size: 16),
                                 SizedBox(width: 8),
-                                Text('सक्रिय (Active)'),
+                                Text('Active'),
                               ],
                             ),
                           ),
@@ -843,7 +883,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 Icon(Icons.cancel_rounded,
                                     color: Colors.redAccent, size: 16),
                                 SizedBox(width: 8),
-                                Text('निष्क्रिय (Inactive)'),
+                                Text('Inactive'),
                               ],
                             ),
                           ),
@@ -857,12 +897,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       const SizedBox(height: 14),
 
                       // 9. Notes - Optional Admin-Only
+                      const MandatoryLabel('Admin Notes (Optional)', isRequired: false),
+                      const SizedBox(height: 6),
                       TextFormField(
                         controller: notesCtrl,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: 'अंतर्गत नोंदी (Admin Notes - ऐच्छिक)',
-                          hintText: 'फक्त अधिकृत Admin ला दिसणारी माहिती',
+                          hintText: 'Visible only to authorized Admins',
                           prefixIcon: Icon(Icons.notes_rounded, size: 20),
                         ),
                       ),
@@ -898,12 +939,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           dialogError = null;
                         });
                       },
-                child: const Text('पूर्ववत करा (Reset)'),
+                child: const Text('Reset'),
               ),
               // Cancel Button
               TextButton(
                 onPressed: isSaving ? null : () => Navigator.pop(ctx),
-                child: const Text('रद्द करा (Cancel)'),
+                child: const Text('Cancel'),
               ),
               // Save / Submit Button with isSaving Guard
               ElevatedButton(
@@ -963,7 +1004,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             final createdUser = (res['data'] is UserModel)
                                 ? res['data'] as UserModel
                                 : UserModel(
-                                    id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+                                    id: const Uuid().v4(),
                                     name: nameCtrl.text.trim(),
                                     phone: last10,
                                     email: emailCtrl.text.trim(),
@@ -989,8 +1030,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             SnackBar(
                               content: Text(
                                 isEdit
-                                    ? 'युजर माहिती यशस्वीरित्या अद्यतनित केली!'
-                                    : 'नवीन युजर यशस्वीरित्या तयार केला! (लॉगिन पासवर्ड सेव्ह झाला)',
+                                    ? 'User updated successfully!'
+                                    : 'New user created successfully! (Login password saved)',
                               ),
                               backgroundColor: AppColors.statusPaid,
                             ),
@@ -1000,7 +1041,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           setDialogState(() {
                             isSaving = false;
                             dialogError =
-                                res['message'] ?? 'प्रक्रियेमध्ये अडचण आली.';
+                                res['message'] ?? 'An error occurred during processing.';
                           });
                         }
                       },
@@ -1014,7 +1055,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             strokeWidth: 2, color: Colors.white),
                       )
                     : Text(
-                        isEdit ? 'जतन करा (Save)' : 'तयार करा (Create)',
+                        isEdit ? 'Save' : 'Create',
                         style: const TextStyle(color: Colors.white),
                       ),
               ),
@@ -1033,12 +1074,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('युजर व्यवस्थापन (User Management)'),
+        title: const Text('User Management'),
         actions: [
           IconButton(
             onPressed: _loadData,
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'रिफ्रेश (Refresh)',
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -1046,7 +1087,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ? FloatingActionButton.extended(
               onPressed: () => _showAddEditUserDialog(),
               icon: const Icon(Icons.person_add_rounded),
-              label: const Text('नवीन युजर (Add User)'),
+              label: const Text('Add User'),
               backgroundColor: AppColors.primary,
             )
           : null,
@@ -1066,7 +1107,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         controller: _searchController,
                         onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
-                          hintText: 'नाव, मोबाईल किंवा ईमेलने शोधा...',
+                          hintText: 'Search by name, mobile or email...',
                           prefixIcon:
                               const Icon(Icons.search_rounded, size: 20),
                           suffixIcon: _searchController.text.isNotEmpty
@@ -1099,13 +1140,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               items: const [
                                 DropdownMenuItem(
                                     value: 'all',
-                                    child: Text('सर्व स्थिती (All)')),
+                                    child: Text('All Status')),
                                 DropdownMenuItem(
                                     value: 'active',
-                                    child: Text('सक्रिय (Active)')),
+                                    child: Text('Active')),
                                 DropdownMenuItem(
                                     value: 'inactive',
-                                    child: Text('निष्क्रिय (Inactive)')),
+                                    child: Text('Inactive')),
                               ],
                               onChanged: (val) {
                                 if (val != null)
@@ -1121,7 +1162,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               items: [
                                 const DropdownMenuItem(
                                     value: 'all',
-                                    child: Text('सर्व भूमिका (All Roles)')),
+                                    child: Text('All Roles')),
                                 ..._roles.map((r) => DropdownMenuItem(
                                     value: r.roleKey, child: Text(r.name))),
                               ],
@@ -1139,7 +1180,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 items: [
                                   const DropdownMenuItem(
                                       value: 'all',
-                                      child: Text('सर्व संस्था (All Orgs)')),
+                                      child: Text('All Organizations')),
                                   ..._organizations.map((o) => DropdownMenuItem(
                                       value: o.id, child: Text(o.name))),
                                 ],
@@ -1158,7 +1199,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 items: [
                                   const DropdownMenuItem(
                                       value: 'all',
-                                      child: Text('सर्व गट (All Groups)')),
+                                      child: Text('All Groups')),
                                   ..._groups.map((g) => DropdownMenuItem(
                                       value: g.id, child: Text(g.name))),
                                 ],
@@ -1183,7 +1224,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   child: Row(
                     children: [
                       Text(
-                        'एकूण युजर्स: ${filteredUsers.length}',
+                        'Total Users: ${filteredUsers.length}',
                         style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -1204,7 +1245,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                   size: 54,
                                   color: Colors.grey.withValues(alpha: 0.5)),
                               const SizedBox(height: 12),
-                              const Text('कोणतेही युजर्स सापडले नाहीत.',
+                              const Text('No users found.',
                                   style: TextStyle(color: Colors.grey)),
                             ],
                           ),
@@ -1360,7 +1401,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                           icon: const Icon(Icons.edit_rounded,
                                               size: 18,
                                               color: AppColors.primary),
-                                          tooltip: 'संपादन (Edit)',
+                                          tooltip: 'Edit',
                                         ),
                                         Switch(
                                           value: user.isActive,

@@ -19,6 +19,7 @@ import 'campaigns/campaign_list_screen.dart';
 import 'settings/settings_screen.dart';
 import 'auth/group_selection_screen.dart';
 import 'profile/user_profile_dialog.dart';
+import 'profile/user_profile_screen.dart';
 import 'super_admin/super_admin_screen.dart';
 import 'groups/group_search_screen.dart';
 
@@ -250,7 +251,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     Text(
                       auth.selectedGroup != null
                           ? auth.selectedGroup!.code
-                          : 'गट निवडा (Select Group)',
+                          : 'Select Group',
                       style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -286,8 +287,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   const SizedBox(width: 4),
                   Text(
                     langTheme.languageCode == 'mr'
-                        ? 'मराठी'
-                        : (langTheme.languageCode == 'hi' ? 'हिंदी' : 'EN'),
+                        ? 'MR'
+                        : (langTheme.languageCode == 'hi' ? 'HI' : 'EN'),
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -302,19 +303,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             onSelected: (String code) => langTheme.setLanguage(code),
             itemBuilder: (BuildContext context) => [
               PopupMenuItem(
-                value: 'mr',
-                child: Row(
-                  children: [
-                    const Text('🚩 मराठी'),
-                    if (langTheme.languageCode == 'mr') ...[
-                      const Spacer(),
-                      const Icon(Icons.check_rounded,
-                          color: AppColors.primary, size: 18),
-                    ],
-                  ],
-                ),
-              ),
-              PopupMenuItem(
                 value: 'en',
                 child: Row(
                   children: [
@@ -328,10 +316,23 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 ),
               ),
               PopupMenuItem(
+                value: 'mr',
+                child: Row(
+                  children: [
+                    const Text('🚩 Marathi'),
+                    if (langTheme.languageCode == 'mr') ...[
+                      const Spacer(),
+                      const Icon(Icons.check_rounded,
+                          color: AppColors.primary, size: 18),
+                    ],
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 value: 'hi',
                 child: Row(
                   children: [
-                    const Text('🇮🇳 हिंदी'),
+                    const Text('🇮🇳 Hindi'),
                     if (langTheme.languageCode == 'hi') ...[
                       const Spacer(),
                       const Icon(Icons.check_rounded,
@@ -347,9 +348,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           // User Profile Quick Modal (Requirement 7)
           IconButton(
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (_) => const UserProfileDialog(),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UserProfileScreen()),
               );
             },
             icon: const Icon(Icons.account_circle_rounded,
@@ -441,7 +442,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           horizontal: 10, vertical: 4),
                       minimumSize: Size.zero,
                     ),
-                    child: const Text('पुन्हा प्रयत्न करा',
+                    child: const Text('Retry',
                         style: TextStyle(
                             fontSize: 11, fontWeight: FontWeight.bold)),
                   ),

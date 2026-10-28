@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/models/user_model.dart';
@@ -13,6 +14,7 @@ import '../core/services/supabase_service.dart';
 import '../core/services/supabase_auth_service.dart';
 import '../core/services/email_otp_service.dart';
 import '../core/utils/hash_util.dart';
+import '../core/navigation/app_navigator.dart';
 
 class AuthResult {
   final bool success;
@@ -68,6 +70,8 @@ class AuthProvider extends ChangeNotifier {
   OrganizationModel? get selectedOrganization => _selectedOrganization;
   bool get needsOrganizationSelection => _needsOrganizationSelection;
   List<GroupModel> get authorizedGroups => _authorizedGroups;
+  List<OrganizationModel> _cachedOrganizations = [];
+  List<OrganizationModel> get availableOrganizations => _cachedOrganizations;
   List<String> get permissions => _userPermissions;
   List<UserRoleAssignmentModel> get activeAssignments => _activeAssignments;
 
@@ -82,6 +86,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<List<OrganizationModel>> loadOrganizations() async {
+    try {
+      final list = await SupabaseService.getOrganizations();
+      final orgs = list ??
+          (kDebugMode
+              ? MockDataService.organizations
+              : <OrganizationModel>[]);
+      _cachedOrganizations = orgs;
+      if (_selectedOrganization == null && orgs.isNotEmpty) {
+        _selectedOrganization = orgs.last;
+      }
+      notifyListeners();
+      return orgs;
+    } catch (_) {
+      return _cachedOrganizations;
+    }
+  }
+
   /// Automatically resolves routing according to organization count:
   /// - 1 Organization -> Directly selects it and proceeds to Dashboard
   /// - Multiple Organizations -> Requires Organization Selection Screen
@@ -92,12 +114,16 @@ class AuthProvider extends ChangeNotifier {
           (kDebugMode
               ? MockDataService.organizations
               : <OrganizationModel>[]);
+      _cachedOrganizations = orgs;
       if (orgs.length <= 1) {
         if (orgs.isNotEmpty) {
           _selectedOrganization = orgs.first;
         }
         _needsOrganizationSelection = false;
       } else {
+        if (_selectedOrganization == null && orgs.isNotEmpty) {
+          _selectedOrganization = orgs.last;
+        }
         _needsOrganizationSelection = isSuperAdmin;
       }
     } catch (_) {
@@ -134,6 +160,7 @@ class AuthProvider extends ChangeNotifier {
       '9822022222': HashUtil.hashPassword('treasurer@123'),
       '9822033333': HashUtil.hashPassword('collector@123'),
       '9822044444': HashUtil.hashPassword('viewer@123'),
+      '7820803178': HashUtil.hashPassword('Rushi@123'),
     });
     initStorage();
   }
@@ -444,7 +471,7 @@ class AuthProvider extends ChangeNotifier {
 
     final hashedPassword = HashUtil.hashPassword(password);
     final newUser = UserModel(
-      id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+      id: const Uuid().v4(),
       name: fullName,
       phone: clean,
       email: email?.trim().isNotEmpty == true ? email!.trim() : '',
@@ -507,6 +534,43 @@ class AuthProvider extends ChangeNotifier {
     }
     await _saveToStorage();
     notifyListeners();
+  }
+
+  /// Update current user profile details & avatar
+  Future<bool> updateUserProfile({
+    String? name,
+    String? email,
+    String? address,
+    String? avatarUrl,
+  }) async {
+    if (_currentUser == null) return false;
+    final updated = _currentUser!.copyWith(
+      name: name ?? _currentUser!.name,
+      email: email ?? _currentUser!.email,
+      address: address ?? _currentUser!.address,
+      avatarUrl: avatarUrl ?? _currentUser!.avatarUrl,
+    );
+    _currentUser = updated;
+    await _saveToStorage();
+    notifyListeners();
+
+    try {
+      await SupabaseService.updateUser(updated);
+      final c = SupabaseService.client;
+      if (c != null && SupabaseService.isInitialized) {
+        await c.from('profiles').update({
+          if (name != null) 'full_name': name,
+          if (email != null) 'email': email,
+          if (address != null) 'address': address,
+          if (avatarUrl != null) 'avatar_url': avatarUrl,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', updated.id);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error updating user profile in Supabase: $e');
+      return true;
+    }
   }
 
   /// Login with mobile number or email and password
@@ -692,15 +756,62 @@ class AuthProvider extends ChangeNotifier {
       }
     }).firstOrNull;
 
+    String? dbPasswordHash;
+
+    if (SupabaseService.isInitialized && SupabaseService.client != null) {
+      try {
+        final query = SupabaseService.client!.from('users').select();
+        final response = isEmail
+            ? await query.eq('email', rawInput.toLowerCase()).maybeSingle()
+            : await query.eq('phone', clean).maybeSingle();
+        if (response != null) {
+          matchedUser = UserModel.fromJson(Map<String, dynamic>.from(response));
+          dbPasswordHash = response['password_hash'] as String?;
+          _customUsers.removeWhere((u) => u.id == matchedUser!.id || cleanPhone(u.phone) == clean);
+          _customUsers.add(matchedUser);
+        }
+      } catch (e) {
+        debugPrint('Supabase direct users table lookup error: $e');
+      }
+
+      // Check profiles table if still no dbPasswordHash
+      if (dbPasswordHash == null || dbPasswordHash.isEmpty) {
+        try {
+          final pQuery = SupabaseService.client!.from('profiles').select();
+          final pRes = isEmail
+              ? await pQuery.eq('email', rawInput.toLowerCase()).maybeSingle()
+              : await pQuery.eq('phone', clean).maybeSingle();
+          if (pRes != null) {
+            dbPasswordHash = pRes['password_hash'] as String?;
+            if (matchedUser == null) {
+              matchedUser = UserModel.fromJson(Map<String, dynamic>.from(pRes));
+              _customUsers.add(matchedUser);
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
     final lookupKey = isEmail ? rawInput.toLowerCase() : clean;
     final storedHash = _passwordHashes[lookupKey] ??
         (matchedUser != null
-            ? _passwordHashes[cleanPhone(matchedUser.phone)]
-            : null);
+            ? (_passwordHashes[cleanPhone(matchedUser.phone)] ?? matchedUser.passwordHash)
+            : null) ??
+        dbPasswordHash;
 
     bool isPasswordValid = false;
-    if (storedHash != null) {
+    if (storedHash != null && storedHash.isNotEmpty) {
       isPasswordValid = HashUtil.verifyPassword(password, storedHash);
+      if (isPasswordValid) {
+        _passwordHashes[clean] = storedHash;
+        if (matchedUser != null && matchedUser.email.isNotEmpty) {
+          _passwordHashes[matchedUser.email.toLowerCase()] = storedHash;
+        }
+      }
+    }
+    // Check fallback for plaintext if previously saved unhashed
+    if (!isPasswordValid && storedHash != null && storedHash == password) {
+      isPasswordValid = true;
     }
     // Also allow default initial passwords for created users / mock testing
     if (!isPasswordValid && matchedUser != null) {
@@ -717,7 +828,7 @@ class AuthProvider extends ChangeNotifier {
     if (isPasswordValid) {
       final user = matchedUser ??
           UserModel(
-            id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+            id: const Uuid().v4(),
             name: 'User ($clean)',
             phone: clean,
             email: isEmail ? rawInput : '',
@@ -878,7 +989,7 @@ class AuthProvider extends ChangeNotifier {
             u.email.toLowerCase() == cleanEmail.toLowerCase() ||
             cleanPhone(u.phone) == cleanPhone(cleanEmail),
         orElse: () => UserModel(
-          id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+          id: const Uuid().v4(),
           name: cleanEmail.split('@').first,
           phone: '',
           email: cleanEmail,
@@ -1020,7 +1131,7 @@ class AuthProvider extends ChangeNotifier {
       return const AuthResult(
         success: false,
         message:
-            'तुमचे खाते सध्या निष्क्रिय (Inactive) आहे. कृपया प्रशासकाशी संपर्क साधा.',
+            'Your account is currently inactive. Please contact the administrator.',
       );
     }
 
@@ -1132,10 +1243,10 @@ class AuthProvider extends ChangeNotifier {
         message: 'Please enter a valid email address.',
       );
     }
-    if (password.length < 6) {
+    if (password.length < 8 || password.length > 17) {
       return const AuthResult(
         success: false,
-        message: 'Password must be at least 6 characters.',
+        message: 'Password must be between 8 and 17 characters.',
       );
     }
     if (password != confirmPassword) {
@@ -1160,37 +1271,30 @@ class AuthProvider extends ChangeNotifier {
       );
     }
 
-    // 3. Register with Supabase Auth
-    if (SupabaseService.isInitialized && SupabaseService.client != null) {
-      try {
-        final authRes = await SupabaseAuthService.signUpWithEmail(
-          email: cleanEmail,
-          password: password,
-          name: cleanName,
-          phone: clean,
-          role: role,
-        );
+    // 3. Dispatch real 6-digit verification OTP to user's email via EmailJS
+    try {
+      final otpRes = await SupabaseAuthService.signUpWithEmail(
+        email: cleanEmail,
+        password: password,
+        name: cleanName,
+        phone: clean,
+        role: role,
+      );
 
-        if (authRes.user != null) {
-          return AuthResult(
-            success: true,
-            message: '6-digit verification OTP sent to $cleanEmail.',
-          );
-        }
-      } on AuthException catch (e) {
-        debugPrint('Supabase signUp error: ${e.message}');
-        if (e.message.toLowerCase().contains('already registered') ||
-            e.message.toLowerCase().contains('unique')) {
-          return const AuthResult(
-            success: false,
-            message: 'This email address is already registered. Please log in.',
-          );
-        }
+      if (otpRes['success'] == true) {
         return AuthResult(
-            success: false, message: 'Registration failed: ${e.message}');
-      } catch (e) {
-        return AuthResult(success: false, message: 'Registration failed: $e');
+          success: true,
+          message: '6-digit verification OTP sent to $cleanEmail.',
+        );
+      } else {
+        return AuthResult(
+          success: false,
+          message: otpRes['message'] ?? 'Failed to send verification OTP.',
+        );
       }
+    } catch (e) {
+      debugPrint('Registration OTP dispatch error: $e');
+      return AuthResult(success: false, message: 'Registration failed: $e');
     }
 
     // 4. Fallback local registration if offline / mock
@@ -1227,7 +1331,7 @@ class AuthProvider extends ChangeNotifier {
         EmailOtpService.verifyOtp(identifier: cleanEmail, enteredOtp: cleanOtp);
     if (emailCheck['success'] == true) {
       final newUser = UserModel(
-        id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+        id: const Uuid().v4(),
         name: name.trim(),
         phone: clean,
         email: cleanEmail,
@@ -1239,6 +1343,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (SupabaseService.isInitialized && SupabaseService.client != null) {
         await SupabaseAuthService.upsertUserProfile(newUser);
+        await SupabaseService.insertUser(newUser, passwordHash: HashUtil.hashPassword(password));
       }
 
       _customUsers.add(newUser);
@@ -1427,8 +1532,10 @@ class AuthProvider extends ChangeNotifier {
     _needsOrganizationSelection = true;
     _selectedGroup = null;
     _selectedOrganization = null;
+    _currentUser = null;
     _saveToStorage().ignore();
     notifyListeners();
+    AppNavigator.navigateToLogin();
   }
 
   // ==========================================

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/organization_model.dart';
@@ -116,27 +117,27 @@ class _OrganizationManagementScreenState
                         items: const [
                           DropdownMenuItem(
                             value: 'Festival Committee',
-                            child: Text('Festival Committee (उत्सव मंडळ)'),
+                            child: Text('Festival Committee'),
                           ),
                           DropdownMenuItem(
                             value: 'Housing Society',
-                            child: Text('Housing Society (सोसायटी)'),
+                            child: Text('Housing Society'),
                           ),
                           DropdownMenuItem(
                             value: 'Charitable Trust',
-                            child: Text('Charitable Trust (देवस्थान ट्रस्ट)'),
+                            child: Text('Charitable Trust'),
                           ),
                           DropdownMenuItem(
                             value: 'Social Organization',
-                            child: Text('Social Organization (सामाजिक संस्था)'),
+                            child: Text('Social Organization'),
                           ),
                           DropdownMenuItem(
                             value: 'Sports Club',
-                            child: Text('Sports Club (क्रीडा मंडळ)'),
+                            child: Text('Sports Club'),
                           ),
                           DropdownMenuItem(
                             value: 'Other',
-                            child: Text('Other (इतर)'),
+                            child: Text('Other'),
                           ),
                         ],
                         onChanged: (v) {
@@ -166,12 +167,26 @@ class _OrganizationManagementScreenState
                       TextFormField(
                         controller: phoneCtrl,
                         keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
                         decoration: const InputDecoration(
+                          counterText: '',
                           label: MandatoryLabel('Mobile Number'),
                         ),
-                        validator: (v) => v == null || v.trim().length < 10
-                            ? '10-digit mobile number required'
-                            : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return '10-digit mobile number required';
+                          }
+                          final clean = v.replaceAll(RegExp(r'\D'), '');
+                          if (clean.length != 10 ||
+                              !RegExp(r'^[6-9]\d{9}$').hasMatch(clean)) {
+                            return 'Enter a valid 10-digit mobile number';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       TextFormField(

@@ -695,8 +695,7 @@ class MockDataService {
         villageArea: 'Shivaji Chowk, Lane 3',
         familyMemberCount: 4,
         perPersonRateSnapshot: 100.0,
-        amountReceived:
-            200.0, // Expected 400, Received 200 -> Remaining 200 (Partially Paid)
+        amountReceived: 400.0, // 4 members x Rs. 100 = Rs. 400 (Fully Paid)
         createdAt: DateTime(2026, 9, 2),
       ),
       HouseholdModel(
@@ -772,7 +771,7 @@ class MockDataService {
         campaignName: 'Ganeshotsav 2026',
         householdId: 'hh_001',
         householdHeadName: 'Rahul Patil',
-        amount: 200.0,
+        amount: 400.0,
         paymentType: PaymentType.cash,
         referenceId: null,
         collectedById: 'usr_collector1',
@@ -781,7 +780,7 @@ class MockDataService {
         receivedByName: 'Anil Shinde',
         verificationStatus: VerificationStatus.verified,
         collectionDateTime: DateTime(2026, 9, 2, 11, 30),
-        remarks: 'First installment of Vargani (Appendix A)',
+        remarks: 'Full payment of Vargani (4 members x 100)',
       ),
       PaymentModel(
         id: 'pmt_002',
@@ -874,7 +873,7 @@ class MockDataService {
         householdHeadName: 'Rahul Patil',
         familyMemberCount: 4,
         perPersonRate: 100.0,
-        amountReceived: 200.0,
+        amountReceived: 400.0,
         paymentType: PaymentType.cash,
         collectedByName: 'Rohan Gaikwad',
         receivedByName: 'Anil Shinde',
