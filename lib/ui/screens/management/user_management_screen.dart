@@ -451,7 +451,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _groups.where((g) => g.organizationId == selectedOrg).toList();
     String? selectedGroup = existing != null && existing.groupIds.isNotEmpty
         ? existing.groupIds.first
-        : (orgGroups.isNotEmpty ? orgGroups.first.id : null);
+        : (auth.selectedGroup != null &&
+                orgGroups.any((g) => g.id == auth.selectedGroup!.id)
+            ? auth.selectedGroup!.id
+            : (orgGroups.isNotEmpty ? orgGroups.first.id : null));
 
     // Dynamic Roles Selection (Placeholder "Select Role")
     // Filter out superAdmin for unauthorized admins
@@ -522,8 +525,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 Expanded(
                   child: Text(
                     isEdit
-                        ? 'Edit User'
-                        : 'Create New User',
+                        ? 'Edit Member / User'
+                        : 'Add New Member to Group',
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),
@@ -638,24 +641,37 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // 3. Email Address - Optional with validation
-                      const MandatoryLabel('Email Address (Optional)', isRequired: false),
+                      // 3. Email Address - Mandatory for Email OTP Login
+                      const MandatoryLabel('Email Address (Required for Email OTP)', isRequired: true),
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: emailCtrl,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
-                          hintText: 'name@example.com',
+                          hintText: 'member@gmail.com',
+                          helperText: 'Used for 6-digit Email OTP login',
                           prefixIcon:
                               Icon(Icons.mail_outline_rounded, size: 20),
                         ),
                         validator: (v) {
-                          if (v != null && v.trim().isNotEmpty) {
-                            final emailRegex = RegExp(
-                                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-                            if (!emailRegex.hasMatch(v.trim())) {
-                              return 'Please enter a valid email address.';
-                            }
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Email address is required for Email OTP login.';
+                          }
+                          final emailRegex = RegExp(
+                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                          if (!emailRegex.hasMatch(v.trim())) {
+                            return 'Please enter a valid email address (e.g. member@gmail.com).';
+                          }
+
+                          // Duplicate email check
+                          final isDuplicateEmail = _users.any((u) {
+                            if (isEdit && u.id == existing.id) return false;
+                            return u.email.trim().isNotEmpty &&
+                                u.email.trim().toLowerCase() ==
+                                    v.trim().toLowerCase();
+                          });
+                          if (isDuplicateEmail) {
+                            return 'This email address is already registered with another user.';
                           }
                           return null;
                         },
@@ -686,6 +702,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           decoration: InputDecoration(
                             counterText: '',
                             hintText: 'Enter password',
+                            helperText: 'Member can log in using either this Password OR Email OTP (Default: Vargani@123)',
                             prefixIcon: const Icon(Icons.lock_outline_rounded,
                                 size: 20),
                             suffixIcon: IconButton(
@@ -963,7 +980,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         final last10 = cleanPhone.length >= 10
                             ? cleanPhone.substring(cleanPhone.length - 10)
                             : cleanPhone;
+                        final memberEmail = emailCtrl.text.trim().toLowerCase();
                         final isActiveBool = selectedStatus == 'active';
+                        final assignedGroupId = selectedGroup ?? 'grp_001';
 
                         Map<String, dynamic> res;
                         if (isEdit) {
@@ -971,16 +990,33 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             userId: existing.id,
                             name: nameCtrl.text.trim(),
                             phone: last10,
-                            email: emailCtrl.text.trim(),
+                            email: memberEmail,
                             role: selectedRoleCode!,
                             organizationId: selectedOrg,
-                            groupIds: [selectedGroup ?? 'grp_001'],
+                            groupIds: [assignedGroupId],
                             isActive: isActiveBool,
                             address: addressCtrl.text.trim(),
                             notes: notesCtrl.text.trim(),
                             accountStatus: selectedStatus,
                             actorId: auth.currentUser.id,
                           );
+
+                          if (res['success'] == true) {
+                            final updatedUser = existing.copyWith(
+                              name: nameCtrl.text.trim(),
+                              phone: last10,
+                              email: memberEmail,
+                              organizationId: selectedOrg,
+                              groupIds: [assignedGroupId],
+                              selectedGroupId: assignedGroupId,
+                              role: UserModel.parseRole(selectedRoleCode!),
+                              isActive: isActiveBool,
+                              accountStatus: selectedStatus,
+                              address: addressCtrl.text.trim(),
+                              notes: notesCtrl.text.trim(),
+                            );
+                            await auth.updateAdminModifiedUser(updatedUser);
+                          }
                         } else {
                           final newPassword = passwordCtrl.text.trim().isNotEmpty
                               ? passwordCtrl.text.trim()
@@ -988,10 +1024,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           res = await ApiService.createUserByAdmin(
                             name: nameCtrl.text.trim(),
                             phone: last10,
-                            email: emailCtrl.text.trim(),
+                            email: memberEmail,
                             role: selectedRoleCode!,
                             organizationId: selectedOrg,
-                            groupIds: [selectedGroup ?? 'grp_001'],
+                            groupIds: [assignedGroupId],
                             isActive: isActiveBool,
                             password: newPassword,
                             address: addressCtrl.text.trim(),
@@ -1007,12 +1043,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                     id: const Uuid().v4(),
                                     name: nameCtrl.text.trim(),
                                     phone: last10,
-                                    email: emailCtrl.text.trim(),
+                                    email: memberEmail,
                                     organizationId: selectedOrg,
                                     role: UserModel.parseRole(selectedRoleCode!),
                                     isActive: isActiveBool,
                                     accountStatus: selectedStatus,
-                                    groupIds: [selectedGroup ?? 'grp_001'],
+                                    groupIds: [assignedGroupId],
+                                    selectedGroupId: assignedGroupId,
                                   );
 
                             await auth.registerAdminCreatedUser(
@@ -1030,8 +1067,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             SnackBar(
                               content: Text(
                                 isEdit
-                                    ? 'User updated successfully!'
-                                    : 'New user created successfully! (Login password saved)',
+                                    ? 'Member updated successfully!'
+                                    : 'Member added to group successfully! (Can log in with Email OTP or Password)',
                               ),
                               backgroundColor: AppColors.statusPaid,
                             ),
@@ -1087,7 +1124,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ? FloatingActionButton.extended(
               onPressed: () => _showAddEditUserDialog(),
               icon: const Icon(Icons.person_add_rounded),
-              label: const Text('Add User'),
+              label: const Text('Add Member / User'),
               backgroundColor: AppColors.primary,
             )
           : null,

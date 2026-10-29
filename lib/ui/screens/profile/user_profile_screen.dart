@@ -19,12 +19,14 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameCtrl;
+  late TextEditingController _phoneCtrl;
   late TextEditingController _emailCtrl;
   late TextEditingController _addressCtrl;
 
   bool _isSaving = false;
   bool _isLoading = true;
   bool _isUploadingImage = false;
+  bool _isEditing = false;
   Map<String, dynamic>? _profileExtraData;
 
   @override
@@ -32,6 +34,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.initState();
     final auth = context.read<AuthProvider>();
     _nameCtrl = TextEditingController(text: auth.currentUser.name);
+    _phoneCtrl = TextEditingController(text: auth.currentUser.phone);
     _emailCtrl = TextEditingController(text: auth.currentUser.email);
     _addressCtrl = TextEditingController(text: auth.currentUser.address ?? '');
     _loadProfileDetails();
@@ -40,6 +43,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _addressCtrl.dispose();
     super.dispose();
@@ -90,13 +94,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Future<void> _saveProfileDetails() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<bool> _saveProfileDetails() async {
+    if (!_formKey.currentState!.validate()) return false;
     setState(() => _isSaving = true);
+
+    final cleanPhone = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    final last10 = cleanPhone.length >= 10
+        ? cleanPhone.substring(cleanPhone.length - 10)
+        : cleanPhone;
 
     final auth = context.read<AuthProvider>();
     final ok = await auth.updateUserProfile(
       name: _nameCtrl.text.trim(),
+      phone: last10,
       email: _emailCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
     );
@@ -110,6 +120,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             backgroundColor: AppColors.statusPaid,
           ),
         );
+        return true;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -117,8 +128,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             backgroundColor: Colors.redAccent,
           ),
         );
+        return false;
       }
     }
+    return ok;
   }
 
   Widget _buildAvatar(String? avatarUrl, String name, bool isDark) {
@@ -210,10 +223,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final permissions =
-        _profileExtraData?['permissions'] as List? ?? auth.permissions;
-    final orgName = _profileExtraData?['organization']?['name'] ??
-        (user.organizationId != null ? 'Organization Assigned' : 'None');
 
     return Scaffold(
       appBar: AppBar(
@@ -345,30 +354,94 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    children: const [
-                                      Icon(Icons.person_outline_rounded,
-                                          color: AppColors.primary, size: 20),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Personal Details',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: const [
+                                          Icon(Icons.person_outline_rounded,
+                                              color: AppColors.primary,
+                                              size: 20),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Personal Details',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                      if (!_isEditing)
+                                        OutlinedButton.icon(
+                                          icon: const Icon(Icons.edit_outlined,
+                                              size: 15),
+                                          label: const Text(
+                                            'Edit',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.primary,
+                                            side: const BorderSide(
+                                                color: AppColors.primary),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 14, vertical: 6),
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                          ),
+                                          onPressed: () {
+                                            setState(() => _isEditing = true);
+                                          },
+                                        )
+                                      else
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.close_rounded,
+                                              size: 16),
+                                          label: const Text('Cancel'),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.grey,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _isEditing = false;
+                                              _nameCtrl.text = user.name;
+                                              _phoneCtrl.text = user.phone;
+                                              _emailCtrl.text = user.email;
+                                              _addressCtrl.text =
+                                                  user.address ?? '';
+                                            });
+                                          },
+                                        ),
                                     ],
                                   ),
                                   const Divider(height: 24),
 
                                   // Full Name
-                                  const MandatoryLabel('Full Name', isRequired: true),
+                                  MandatoryLabel('Full Name',
+                                      isRequired: _isEditing),
                                   const SizedBox(height: 6),
                                   TextFormField(
                                     controller: _nameCtrl,
-                                    decoration: const InputDecoration(
+                                    readOnly: !_isEditing,
+                                    decoration: InputDecoration(
                                       hintText: 'Enter your full name',
-                                      prefixIcon: Icon(Icons.person_rounded,
+                                      prefixIcon: const Icon(
+                                          Icons.person_rounded,
                                           size: 20),
+                                      filled: !_isEditing,
+                                      fillColor: !_isEditing
+                                          ? (isDark
+                                              ? Colors.grey.shade900
+                                              : const Color(0xFFF8FAFC))
+                                          : null,
                                     ),
                                     validator: (v) =>
                                         (v == null || v.trim().isEmpty)
@@ -378,26 +451,59 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                                   const SizedBox(height: 14),
 
-                                  // Mobile Number (Read-only)
-                                  const MandatoryLabel('Mobile Number (Verified)',
-                                      isRequired: false),
+                                  // Mobile Number (Editable when _isEditing)
+                                  MandatoryLabel('Mobile Number',
+                                      isRequired: _isEditing),
                                   const SizedBox(height: 6),
                                   TextFormField(
-                                    initialValue: user.phone,
-                                    readOnly: true,
+                                    controller: _phoneCtrl,
+                                    readOnly: !_isEditing,
+                                    keyboardType: TextInputType.phone,
+                                    maxLength: 10,
                                     decoration: InputDecoration(
-                                      prefixIcon: const Icon(Icons.phone_android_rounded,
+                                      counterText: '',
+                                      hintText: 'Enter 10-digit mobile number',
+                                      prefixIcon: const Icon(
+                                          Icons.phone_android_rounded,
                                           size: 20),
-                                      suffixIcon: const Tooltip(
-                                        message: 'Phone number cannot be edited',
-                                        child: Icon(Icons.lock_outline_rounded,
-                                            size: 18, color: Colors.grey),
-                                      ),
-                                      filled: true,
-                                      fillColor: isDark
-                                          ? Colors.grey.shade900
-                                          : const Color(0xFFF1F5F9),
+                                      suffixIcon: _isEditing
+                                          ? (_phoneCtrl.text.isNotEmpty
+                                              ? IconButton(
+                                                  icon: const Icon(Icons.clear,
+                                                      size: 18),
+                                                  onPressed: () => setState(
+                                                      () => _phoneCtrl.clear()),
+                                                )
+                                              : null)
+                                          : (user.phone.isNotEmpty
+                                              ? const Tooltip(
+                                                  message: 'Verified Mobile',
+                                                  child: Icon(
+                                                      Icons.verified_rounded,
+                                                      size: 18,
+                                                      color: Colors.green),
+                                                )
+                                              : null),
+                                      filled: !_isEditing,
+                                      fillColor: !_isEditing
+                                          ? (isDark
+                                              ? Colors.grey.shade900
+                                              : const Color(0xFFF8FAFC))
+                                          : null,
                                     ),
+                                    validator: (v) {
+                                      if (v == null || v.trim().isEmpty) {
+                                        return 'Mobile number is required';
+                                      }
+                                      final clean =
+                                          v.replaceAll(RegExp(r'\D'), '');
+                                      if (clean.length != 10 ||
+                                          !RegExp(r'^[6-9]\d{9}$')
+                                              .hasMatch(clean)) {
+                                        return 'Please enter a valid 10-digit mobile number';
+                                      }
+                                      return null;
+                                    },
                                   ),
 
                                   const SizedBox(height: 14),
@@ -408,12 +514,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   const SizedBox(height: 6),
                                   TextFormField(
                                     controller: _emailCtrl,
+                                    readOnly: !_isEditing,
                                     keyboardType: TextInputType.emailAddress,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       hintText: 'Enter your email address',
-                                      prefixIcon: Icon(Icons.email_outlined,
+                                      prefixIcon: const Icon(
+                                          Icons.email_outlined,
                                           size: 20),
+                                      filled: !_isEditing,
+                                      fillColor: !_isEditing
+                                          ? (isDark
+                                              ? Colors.grey.shade900
+                                              : const Color(0xFFF8FAFC))
+                                          : null,
                                     ),
+                                    validator: (v) {
+                                      if (v != null && v.trim().isNotEmpty) {
+                                        final emailRegex = RegExp(
+                                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                                        if (!emailRegex.hasMatch(v.trim())) {
+                                          return 'Please enter a valid email address';
+                                        }
+                                      }
+                                      return null;
+                                    },
                                   ),
 
                                   const SizedBox(height: 14),
@@ -424,161 +548,103 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   const SizedBox(height: 6),
                                   TextFormField(
                                     controller: _addressCtrl,
+                                    readOnly: !_isEditing,
                                     maxLines: 2,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Enter resident or street address',
-                                      prefixIcon: Icon(Icons.home_outlined,
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          'Enter resident or street address',
+                                      prefixIcon: const Icon(
+                                          Icons.home_outlined,
                                           size: 20),
+                                      filled: !_isEditing,
+                                      fillColor: !_isEditing
+                                          ? (isDark
+                                              ? Colors.grey.shade900
+                                              : const Color(0xFFF8FAFC))
+                                          : null,
                                     ),
                                   ),
 
-                                  const SizedBox(height: 20),
-
-                                  // Save Profile Details Button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton.icon(
-                                      icon: _isSaving
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white),
-                                            )
-                                          : const Icon(Icons.check_circle_outline,
-                                              size: 18),
-                                      label: Text(_isSaving
-                                          ? 'Saving Details...'
-                                          : 'Save Profile Changes'),
-                                      onPressed:
-                                          _isSaving ? null : _saveProfileDetails,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // 3. Organization & Role Information Card
-                          Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(
-                                color: isDark
-                                    ? Colors.grey.shade800
-                                    : AppColors.lightBorder,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: const [
-                                      Icon(Icons.apartment_rounded,
-                                          color: AppColors.primary, size: 20),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Organization & Hierarchy',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 24),
-                                  _buildDetailRow(
-                                    'Organization',
-                                    orgName,
-                                    Icons.business_rounded,
-                                    isDark,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildDetailRow(
-                                    'Assigned Group / Mandal',
-                                    user.selectedGroupName ??
-                                        (user.groupIds.isNotEmpty
-                                            ? 'Group ${user.groupIds.first}'
-                                            : 'Not Assigned'),
-                                    Icons.groups_rounded,
-                                    isDark,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildDetailRow(
-                                    'System User ID',
-                                    user.id,
-                                    Icons.fingerprint_rounded,
-                                    isDark,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // 4. Permissions Preview Card
-                          Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(
-                                color: isDark
-                                    ? Colors.grey.shade800
-                                    : AppColors.lightBorder,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: const [
-                                      Icon(Icons.vpn_key_rounded,
-                                          color: AppColors.primary, size: 20),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Granted Permissions',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 24),
-                                  if (permissions.isEmpty)
-                                    const Text(
-                                      'No custom permissions assigned.',
-                                      style: TextStyle(color: Colors.grey),
-                                    )
-                                  else
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 6,
-                                      children: permissions.map((p) {
-                                        return Chip(
-                                          label: Text(
-                                            p.toString(),
-                                            style: const TextStyle(fontSize: 11),
+                                  // Save Profile Changes Button - Only displayed when editing
+                                  if (_isEditing) ...[
+                                    const SizedBox(height: 20),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            onPressed: _isSaving
+                                                ? null
+                                                : () {
+                                                    setState(() {
+                                                      _isEditing = false;
+                                                      _nameCtrl.text =
+                                                          user.name;
+                                                      _phoneCtrl.text =
+                                                          user.phone;
+                                                      _emailCtrl.text =
+                                                          user.email;
+                                                      _addressCtrl.text =
+                                                          user.address ?? '';
+                                                    });
+                                                  },
+                                            style: OutlinedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 14),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            child: const Text('Cancel'),
                                           ),
-                                          backgroundColor: isDark
-                                              ? AppColors.darkCardBg
-                                              : const Color(0xFFF1F5F9),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          flex: 2,
+                                          child: ElevatedButton.icon(
+                                            icon: _isSaving
+                                                ? const SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                            color:
+                                                                Colors.white),
+                                                  )
+                                                : const Icon(
+                                                    Icons.check_circle_outline,
+                                                    size: 18),
+                                            label: Text(_isSaving
+                                                ? 'Saving Details...'
+                                                : 'Save Profile Changes'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  AppColors.primary,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 14),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            onPressed: _isSaving
+                                                ? null
+                                                : () async {
+                                                    final ok =
+                                                        await _saveProfileDetails();
+                                                    if (ok && mounted) {
+                                                      setState(() =>
+                                                          _isEditing = false);
+                                                    }
+                                                  },
                                           ),
-                                        );
-                                      }).toList(),
+                                        ),
+                                      ],
                                     ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -590,41 +656,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
       ),
-    );
-  }
-
-  Widget _buildDetailRow(
-      String label, String value, IconData icon, bool isDark) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon,
-            size: 18,
-            color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B)),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

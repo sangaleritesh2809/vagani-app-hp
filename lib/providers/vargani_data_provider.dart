@@ -21,27 +21,13 @@ class VarganiDataProvider extends ChangeNotifier {
       kDebugMode ? List.from(MockDataService.campaigns) : <CampaignModel>[];
   late String _selectedCampaignId;
 
-  List<HouseholdModel> _households = kDebugMode
-      ? List.from(MockDataService.getInitialHouseholds())
-      : <HouseholdModel>[];
-  List<PaymentModel> _payments = kDebugMode
-      ? List.from(MockDataService.getInitialPayments())
-      : <PaymentModel>[];
-  List<ReceiptModel> _receipts = kDebugMode
-      ? List.from(MockDataService.getInitialReceipts())
-      : <ReceiptModel>[];
-  List<CashHandoverModel> _handovers = kDebugMode
-      ? List.from(MockDataService.getInitialHandovers())
-      : <CashHandoverModel>[];
-  List<ExpenseModel> _expenses = kDebugMode
-      ? List.from(MockDataService.getInitialExpenses())
-      : <ExpenseModel>[];
-  List<ComplaintModel> _complaints = kDebugMode
-      ? List.from(MockDataService.getInitialComplaints())
-      : <ComplaintModel>[];
-  List<AuditLogModel> _auditLogs = kDebugMode
-      ? List.from(MockDataService.getInitialAuditLogs())
-      : <AuditLogModel>[];
+  List<HouseholdModel> _households = <HouseholdModel>[];
+  List<PaymentModel> _payments = <PaymentModel>[];
+  List<ReceiptModel> _receipts = <ReceiptModel>[];
+  List<CashHandoverModel> _handovers = <CashHandoverModel>[];
+  List<ExpenseModel> _expenses = <ExpenseModel>[];
+  List<ComplaintModel> _complaints = <ComplaintModel>[];
+  List<AuditLogModel> _auditLogs = <AuditLogModel>[];
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -838,11 +824,7 @@ class VarganiDataProvider extends ChangeNotifier {
       if (created != null) {
         final idx = _complaints.indexWhere((c) => c.id == complaint.id);
         if (idx != -1) {
-          _complaints[idx] = created.copyWith(
-            submittedById: citizenUser.id,
-            submittedByName: citizenUser.name,
-            submittedByPhone: citizenUser.phone,
-          );
+          _complaints[idx] = created;
           notifyListeners();
         }
       }

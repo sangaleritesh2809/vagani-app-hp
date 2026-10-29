@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/navigation/app_navigator.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import 'login_screen.dart';
@@ -168,6 +169,8 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
       );
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
+      } else {
+        AppNavigator.navigateToHome(auth);
       }
     } else {
       setState(
@@ -204,6 +207,8 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
       );
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
+      } else {
+        AppNavigator.navigateToHome(auth);
       }
     } else {
       setState(

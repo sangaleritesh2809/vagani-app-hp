@@ -298,96 +298,11 @@ INITIAL_DATA = {
             "allow_partial_payment": True,
         },
     ],
-    "households": [
-        {
-            "id": "hh_001",
-            "campaign_id": "cmp_ganesh_2026",
-            "head_of_family_name": "Rahul Patil",
-            "mobile_number": "9823401122",
-            "village_area": "Shivaji Chowk, Lane 3",
-            "family_member_count": 4,
-            "per_person_rate_snapshot": 100.0,
-            "amount_received": 200.0,
-        },
-        {
-            "id": "hh_002",
-            "campaign_id": "cmp_ganesh_2026",
-            "head_of_family_name": "Sanjay More",
-            "mobile_number": "9822311445",
-            "village_area": "Shivaji Chowk, Lane 1",
-            "family_member_count": 5,
-            "per_person_rate_snapshot": 100.0,
-            "amount_received": 500.0,
-        },
-    ],
-    "collections": [
-        {
-            "id": "pmt_001",
-            "receipt_no": "VRG-2026-0001",
-            "campaign_id": "cmp_ganesh_2026",
-            "household_id": "hh_001",
-            "household_head_name": "Rahul Patil",
-            "amount": 200.0,
-            "payment_type": "cash",
-            "collected_by_name": "Rohan Gaikwad",
-            "received_by_name": "Anil Shinde",
-            "status": "verified",
-        }
-    ],
-    "receipts": [
-        {
-            "id": "rcp_001",
-            "receipt_no": "VRG-2026-0001",
-            "campaign_id": "cmp_ganesh_2026",
-            "household_head_name": "Rahul Patil",
-            "amount_received": 200.0,
-            "payment_type": "cash",
-            "collected_by_name": "Rohan Gaikwad",
-            "received_by_name": "Anil Shinde",
-            "is_cancelled": False,
-        }
-    ],
-    "handovers": [
-        {
-            "id": "hnd_001",
-            "campaign_id": "cmp_ganesh_2026",
-            "handover_from_name": "Rohan Gaikwad",
-            "handover_to_name": "Anil Shinde",
-            "amount": 200.0,
-            "status": "confirmed",
-        }
-    ],
-    "expenses": [
-        {
-            "id": "exp_001",
-            "campaign_id": "cmp_ganesh_2026",
-            "category": "tent",
-            "title": "Main Utsav Mandap & Waterproof Shed",
-            "amount": 45000.0,
-            "vendor_payee": "Shree Krishna Mandap Decorators",
-            "has_proof": True,
-            "approval_status": "approved",
-            "payment_status": "paid",
-            "is_public_visible": True,
-        }
-    ],
-    "complaints": [
-        {
-            "id": "cmp_001",
-            "campaign_id": "cmp_ganesh_2026",
-            "title": "Remaining dues inquiry for Rahul Patil",
-            "description": "Inquiry regarding second installment payment method.",
-            "status": "resolved",
-            "submitted_by_name": "Rahul Patil",
-            "admin_response": "Verified receipt VRG-2026-0001. Online QR available at pandal.",
-        }
-    ],
-    "audit_logs": [
-        {
-            "id": "aud_001",
-            "action": "RECORD_PAYMENT",
-            "performed_by_name": "Rohan Gaikwad",
-            "details": "Recorded Rs. 200 from Rahul Patil (VRG-2026-0001)",
-        }
-    ]
+    "households": [],
+    "collections": [],
+    "receipts": [],
+    "handovers": [],
+    "expenses": [],
+    "complaints": [],
+    "audit_logs": []
 }

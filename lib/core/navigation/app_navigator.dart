@@ -3,7 +3,6 @@ import '../../providers/auth_provider.dart';
 import '../../ui/screens/auth/group_selection_screen.dart';
 import '../../ui/screens/auth/login_screen.dart';
 import '../../ui/screens/auth/organization_selection_screen.dart';
-import '../../ui/screens/groups/group_search_screen.dart';
 import '../../ui/screens/main_navigation_shell.dart';
 import '../../ui/screens/super_admin/super_admin_screen.dart';
 
@@ -69,10 +68,6 @@ class AppNavigator {
         return const OrganizationSelectionScreen();
       }
       return const SuperAdminScreen();
-    }
-
-    if (auth.isPublicUser && auth.selectedGroup == null && auth.authorizedGroups.isEmpty) {
-      return const GroupSearchScreen();
     }
 
     if (auth.needsGroupSelection) {

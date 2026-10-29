@@ -165,7 +165,7 @@ class ApiService {
   static Future<List<HouseholdModel>?> fetchHouseholds(
       String campaignId) async {
     final supaHouseholds = await SupabaseService.getHouseholds(campaignId);
-    if (supaHouseholds != null && supaHouseholds.isNotEmpty) {
+    if (supaHouseholds != null) {
       return supaHouseholds;
     }
     if (!await isBackendOnline()) {
@@ -244,7 +244,7 @@ class ApiService {
   // 7. Fetch Collections / Payments
   static Future<List<PaymentModel>?> fetchCollections(String campaignId) async {
     final supaCols = await SupabaseService.getCollections(campaignId);
-    if (supaCols != null && supaCols.isNotEmpty) {
+    if (supaCols != null) {
       return supaCols;
     }
     if (!await isBackendOnline()) {
@@ -306,7 +306,7 @@ class ApiService {
   // 9. Fetch Receipts
   static Future<List<ReceiptModel>?> fetchReceipts(String campaignId) async {
     final supaReceipts = await SupabaseService.getReceipts(campaignId);
-    if (supaReceipts != null && supaReceipts.isNotEmpty) {
+    if (supaReceipts != null) {
       return supaReceipts;
     }
     if (!await isBackendOnline()) {
@@ -433,7 +433,7 @@ class ApiService {
   // 14. Fetch Expenses
   static Future<List<ExpenseModel>?> fetchExpenses(String campaignId) async {
     final supaExpenses = await SupabaseService.getExpenses(campaignId);
-    if (supaExpenses != null && supaExpenses.isNotEmpty) {
+    if (supaExpenses != null) {
       return supaExpenses;
     }
     if (!await isBackendOnline()) {
@@ -552,7 +552,7 @@ class ApiService {
   static Future<List<ComplaintModel>?> fetchComplaints(
       String campaignId) async {
     final supaComplaints = await SupabaseService.getComplaints(campaignId);
-    if (supaComplaints != null && supaComplaints.isNotEmpty) {
+    if (supaComplaints != null) {
       return supaComplaints;
     }
     if (!await isBackendOnline()) {
