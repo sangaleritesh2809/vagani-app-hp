@@ -63,6 +63,7 @@ class EmailOtpService {
 
     // 1. Generate 6-digit OTP
     final otp = _generateOtp();
+    debugPrint('🔑 [EmailOtpService] Generated 6-digit OTP for $cleanEmail: $otp');
 
     // 2. 5-Minute validity period
     final expiry = DateTime.now().add(const Duration(minutes: 5));
@@ -160,6 +161,15 @@ class EmailOtpService {
         };
       } else {
         debugPrint('⚠️ [EmailJS] HTTP Error ${res.statusCode}: ${res.body}');
+        if (kDebugMode) {
+          debugPrint('🔑 [DEV FALLBACK] Using test OTP: $otp for $cleanEmail');
+          return {
+            'success': true,
+            'message': 'Demo Mode (EmailJS notice): OTP is $otp',
+            'otp': otp,
+            'expiry': expiry,
+          };
+        }
         return {
           'success': false,
           'message':
@@ -169,6 +179,15 @@ class EmailOtpService {
       }
     } catch (e) {
       debugPrint('⚠️ [EmailJS] Network Exception: $e');
+      if (kDebugMode) {
+        debugPrint('🔑 [DEV FALLBACK] Network offline. Using test OTP: $otp for $cleanEmail');
+        return {
+          'success': true,
+          'message': 'Demo Mode (Offline): OTP is $otp',
+          'otp': otp,
+          'expiry': expiry,
+        };
+      }
       return {
         'success': false,
         'message':

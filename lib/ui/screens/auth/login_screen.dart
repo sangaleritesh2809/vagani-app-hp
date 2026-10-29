@@ -500,31 +500,49 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
 
-                  // Guest Public Transparency View Button
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      final auth = context.read<AuthProvider>();
-                      auth.continueAsGuest();
-                      AppNavigator.navigateToHome(auth);
-                    },
-                    icon: const Icon(Icons.visibility_outlined, size: 18),
-                    label: const Text(
-                      'Continue as Citizen / Public',
-                      style: TextStyle(fontSize: 13),
+                  // Citizen / Public Secure Login Notice Card
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      ),
                     ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark
-                          ? Colors.blueGrey.shade300
-                          : AppColors.lightTextSecondary,
-                      side: BorderSide(
-                        color: isDark
-                            ? Colors.blueGrey.shade700
-                            : Colors.blueGrey.shade300,
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified_user_outlined,
+                            size: 20, color: AppColors.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isMarathi
+                                    ? 'नागरिक / पब्लिक लॉगिन'
+                                    : 'Citizen / Public Account Access',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                isMarathi
+                                    ? 'नागरिकांना पारदर्शकता व पावत्या पाहण्यासाठी मोबाईल नंबरने लॉगिन करणे आवश्यक आहे.'
+                                    : 'Citizens must sign in with their registered mobile number or Sign Up to view receipts and track collections.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? Colors.white70 : Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

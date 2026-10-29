@@ -100,31 +100,84 @@ class RoleSwitchHeader extends StatelessWidget {
             ),
           ),
 
-          // Safe Logout Button (Role switching disabled for security)
-          InkWell(
-            onTap: () {
-              auth.logout();
-              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          // Quick Role Switch Dropdown / Popup - Only visible to Super Admin (Hidden for Citizens & regular users)
+          if (auth.isSuperAdmin) ...[
+            PopupMenuButton<UserRole?>(
+              tooltip: 'Switch Demo Role / Logout',
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
                 ),
+                child: const Icon(Icons.swap_horiz_rounded,
+                    size: 18, color: AppColors.primary),
               ),
-              child: const Icon(Icons.logout_rounded,
-                  size: 18, color: Colors.redAccent),
+              onSelected: (role) {
+                if (role == null) {
+                  auth.logout();
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                } else {
+                  auth.switchRole(role);
+                }
+              },
+              itemBuilder: (context) {
+                return [
+                  ...UserRole.values.map((role) {
+                    final isSelected = auth.currentRole == role;
+                    return PopupMenuItem<UserRole?>(
+                      value: role,
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
+                            size: 16,
+                            color: isSelected ? AppColors.primary : Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            role.nameString,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected ? AppColors.primary : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem<UserRole?>(
+                    value: null,
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout_rounded,
+                            size: 16, color: Colors.redAccent),
+                        SizedBox(width: 8),
+                        Text(
+                          'Log Out',
+                          style: TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ];
+              },
             ),
-          ),
-
-          const SizedBox(width: 4),
+            const SizedBox(width: 4),
+          ],
 
           // Language Toggle (English)
           InkWell(

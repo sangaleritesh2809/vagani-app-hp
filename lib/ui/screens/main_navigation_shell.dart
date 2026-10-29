@@ -22,6 +22,7 @@ import 'profile/user_profile_dialog.dart';
 import 'profile/user_profile_screen.dart';
 import 'super_admin/super_admin_screen.dart';
 import 'groups/group_search_screen.dart';
+import '../../core/navigation/app_navigator.dart';
 
 enum StaffDestination {
   dashboard,
@@ -345,46 +346,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           ),
           const SizedBox(width: 4),
 
-          // User Profile Quick Modal (Requirement 7)
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const UserProfileScreen()),
-              );
-            },
-            icon: const Icon(Icons.account_circle_rounded,
-                color: AppColors.primary),
-            tooltip: 'User Profile',
-          ),
-
-          // Super Admin Quick Access
-          if (auth.isSuperAdmin)
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings_rounded,
-                  color: Colors.purple),
-              tooltip: 'Super Admin Console',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SuperAdminScreen()),
-                );
-              },
-            ),
-
-          // Group Search / Public Requests Shortcut
-          IconButton(
-            icon: const Icon(Icons.travel_explore_rounded,
-                color: AppColors.primary),
-            tooltip: 'Find Groups',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const GroupSearchScreen()),
-              );
-            },
-          ),
-
           // Quick Transparency Portal shortcut for staff
           if (!isCitizen)
             TextButton.icon(
@@ -409,6 +370,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           const SizedBox(width: 8),
         ],
       ),
+      drawer: _buildDrawer(context, auth, data, langTheme, isDark),
       body: Column(
         children: [
           const RoleSwitchHeader(),
@@ -619,5 +581,236 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         label: lang.tr('settings'),
       ),
     ];
+  }
+
+  Widget _buildDrawer(
+    BuildContext context,
+    AuthProvider auth,
+    VarganiDataProvider data,
+    LanguageThemeProvider langTheme,
+    bool isDark,
+  ) {
+    final user = auth.currentUser;
+    final isMarathi = langTheme.isMarathi;
+
+    return Drawer(
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      child: Column(
+        children: [
+          // Drawer Header with User Profile info
+          UserAccountsDrawerHeader(
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
+            ),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                user.name.isNotEmpty
+                    ? user.name.substring(0, 1).toUpperCase()
+                    : 'U',
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            accountName: Text(
+              user.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            accountEmail: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (user.phone.isNotEmpty)
+                  Text(
+                    user.phone,
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                if (user.email.isNotEmpty)
+                  Text(
+                    user.email,
+                    style: const TextStyle(fontSize: 11, color: Colors.white70),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+
+          // Drawer Menu Items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                // 1. My Profile
+                ListTile(
+                  leading: const Icon(Icons.person_rounded,
+                      color: AppColors.primary),
+                  title: Text(
+                    isMarathi ? 'माझी प्रोफाईल' : 'User Profile',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    isMarathi
+                        ? 'नाव, मोबाईल व माहिती अपडेट करा'
+                        : 'View & update personal details',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const UserProfileScreen()),
+                    );
+                  },
+                ),
+
+                // 2. Find Groups / Mandals
+                ListTile(
+                  leading: const Icon(Icons.travel_explore_rounded,
+                      color: AppColors.primary),
+                  title: Text(
+                    isMarathi ? 'मंडळ / ग्रुप शोधा' : 'Find Groups & Mandals',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    isMarathi
+                        ? 'नोंदणीकृत मंडळे व मोहिमा शोधा'
+                        : 'Search registered groups & mandals',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const GroupSearchScreen()),
+                    );
+                  },
+                ),
+
+                const Divider(),
+
+                // 3. Organization & Group Details Info Tile
+                ListTile(
+                  leading: const Icon(Icons.business_rounded,
+                      color: Colors.blueGrey),
+                  title: Text(
+                    data.organization.name,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    auth.selectedGroup != null
+                        ? auth.selectedGroup!.name
+                        : (auth.isCitizen
+                            ? 'Citizen Transparency Portal'
+                            : 'Main Jurisdiction'),
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ),
+
+                // 4. Super Admin Console (Only for super admins)
+                if (auth.isSuperAdmin) ...[
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.admin_panel_settings_rounded,
+                        color: Colors.purple),
+                    title: const Text(
+                      'Super Admin Console',
+                      style: TextStyle(
+                          color: Colors.purple, fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text(
+                      'Global organizations, roles & settings',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SuperAdminScreen()),
+                      );
+                    },
+                  ),
+                ],
+
+                const Divider(),
+
+                // 5. Language Selector Tile
+                ListTile(
+                  leading: const Icon(Icons.translate_rounded,
+                      color: AppColors.primary),
+                  title: Text(isMarathi ? 'भाषा बदला' : 'Language'),
+                  trailing: DropdownButton<String>(
+                    value: langTheme.languageCode,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 'en', child: Text('English')),
+                      DropdownMenuItem(value: 'mr', child: Text('मराठी')),
+                      DropdownMenuItem(value: 'hi', child: Text('हिंदी')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) langTheme.setLanguage(val);
+                    },
+                  ),
+                ),
+
+                // 6. Theme Toggle Tile
+                SwitchListTile(
+                  secondary: Icon(
+                    langTheme.isDarkMode
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded,
+                    color: Colors.amber,
+                  ),
+                  title: Text(isMarathi ? 'डार्क मोड' : 'Dark Mode'),
+                  value: langTheme.isDarkMode,
+                  onChanged: (_) => langTheme.toggleTheme(),
+                ),
+              ],
+            ),
+          ),
+
+          // Sign Out Tile at Bottom of Drawer
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+              ),
+            ),
+            child: ListTile(
+              leading:
+                  const Icon(Icons.logout_rounded, color: Colors.redAccent),
+              title: Text(
+                isMarathi ? 'लॉगआउट करा' : 'Sign Out',
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                auth.logout();
+                AppNavigator.navigateToLogin();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

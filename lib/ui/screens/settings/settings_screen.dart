@@ -133,7 +133,13 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-
+          // Organization Status Card matching user reference design
+          OrganizationStatusCard(
+            margin: EdgeInsets.zero,
+            organization: auth.selectedOrganization ?? data.organization,
+            organizationCount: auth.availableOrganizations.length,
+          ),
+          const SizedBox(height: 16),
 
           // Administration & PBAC Management (Rules 1, 2, 3, 4, 5)
           if (!auth.isCitizen) ...[
@@ -246,39 +252,79 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 20),
           ],
 
-
-
-          // Citizen Phone OTP Login Simulator (SRS 9 & 12 FR-01)
-          const Text('Citizen Phone OTP Login (FR-01)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+          // Quick Role Switcher for Testing (SRS 3 & Requirement 9) - Only visible to Super Admin (Hidden for Citizens)
+          if (auth.isSuperAdmin && !auth.isCitizen) ...[
+            const Text('Switch Demo Role (Testing RBAC)',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Material(
               color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Simulate citizen sign-in via phone number and OTP for public transparency and grievance tracking.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color:
+                          isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () => _showCitizenOtpDialog(context, auth),
-                  icon: const Icon(Icons.sms_rounded, size: 16),
-                  label: const Text('Log In with Phone OTP'),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary),
+                child: Column(
+                  children: auth.availableUsers.map((user) {
+                    final isSelected = auth.currentUser.id == user.id;
+                    return ListTile(
+                      leading: Icon(
+                        isSelected
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_off_rounded,
+                        color: isSelected ? AppColors.primary : Colors.grey,
+                      ),
+                      title: Text(user.name,
+                          style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal)),
+                      subtitle: Text(
+                          '${user.role.nameString} • ${user.phone} • ${user.isActive ? "Active" : "Inactive"}'),
+                      onTap: () => auth.switchUser(user),
+                    );
+                  }).toList(),
                 ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+
+            // Citizen Phone OTP Login Simulator (SRS 9 & 12 FR-01)
+            const Text('Citizen Phone OTP Login (FR-01)',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Simulate citizen sign-in via phone number and OTP for public transparency and grievance tracking.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCitizenOtpDialog(context, auth),
+                    icon: const Icon(Icons.sms_rounded, size: 16),
+                    label: const Text('Log In with Phone OTP'),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
 
           // App Settings & Preferences
           const Text('Preferences & Localization',

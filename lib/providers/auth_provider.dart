@@ -343,6 +343,14 @@ class AuthProvider extends ChangeNotifier {
 
       if (_selectedGroup != null) {
         _needsGroupSelection = false;
+      } else if (currentUser.selectedGroupId != null &&
+          _authorizedGroups.any((g) => g.id == currentUser.selectedGroupId)) {
+        _selectedGroup = _authorizedGroups
+            .firstWhere((g) => g.id == currentUser.selectedGroupId);
+        _needsGroupSelection = false;
+      } else if (_authorizedGroups.length == 1) {
+        _selectedGroup = _authorizedGroups.first;
+        _needsGroupSelection = false;
       } else {
         _needsGroupSelection =
             currentUser.role != UserRole.citizen && !currentUser.isSuperAdmin;
@@ -536,21 +544,42 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update an admin-modified user so local storage and lookup reflect changes immediately
+  Future<void> updateAdminModifiedUser(UserModel user) async {
+    _customUsers.removeWhere((u) => u.id == user.id);
+    _customUsers.add(user);
+    if (user.phone.isNotEmpty) {
+      final clean = cleanPhone(user.phone);
+      if (clean.length == 10 && _passwordHashes[clean] != null) {
+        if (user.email.trim().isNotEmpty) {
+          _passwordHashes[user.email.trim().toLowerCase()] = _passwordHashes[clean]!;
+        }
+      }
+    }
+    await _saveToStorage();
+    notifyListeners();
+  }
+
   /// Update current user profile details & avatar
   Future<bool> updateUserProfile({
     String? name,
+    String? phone,
     String? email,
     String? address,
     String? avatarUrl,
   }) async {
     if (_currentUser == null) return false;
+    final clean = phone != null ? cleanPhone(phone) : _currentUser!.phone;
     final updated = _currentUser!.copyWith(
       name: name ?? _currentUser!.name,
+      phone: clean,
       email: email ?? _currentUser!.email,
       address: address ?? _currentUser!.address,
       avatarUrl: avatarUrl ?? _currentUser!.avatarUrl,
     );
     _currentUser = updated;
+    _customUsers.removeWhere((u) => u.id == updated.id);
+    _customUsers.add(updated);
     await _saveToStorage();
     notifyListeners();
 
@@ -560,6 +589,7 @@ class AuthProvider extends ChangeNotifier {
       if (c != null && SupabaseService.isInitialized) {
         await c.from('profiles').update({
           if (name != null) 'full_name': name,
+          if (phone != null) 'phone': clean,
           if (email != null) 'email': email,
           if (address != null) 'address': address,
           if (avatarUrl != null) 'avatar_url': avatarUrl,
@@ -934,8 +964,47 @@ class AuthProvider extends ChangeNotifier {
         };
       }
 
+      // Check whether user account exists in availableUsers or Supabase
+      UserModel? matched = availableUsers
+          .where((u) => u.email.trim().toLowerCase() == cleanEmail.toLowerCase())
+          .firstOrNull;
+
+      if (matched == null &&
+          SupabaseService.isInitialized &&
+          SupabaseService.client != null) {
+        try {
+          final res = await SupabaseService.client!
+              .from('users')
+              .select()
+              .ilike('email', cleanEmail)
+              .maybeSingle();
+          if (res != null) {
+            matched = UserModel.fromJson(Map<String, dynamic>.from(res));
+            _customUsers.removeWhere((u) => u.id == matched!.id);
+            _customUsers.add(matched);
+          }
+        } catch (_) {}
+      }
+
+      if (matched == null) {
+        return {
+          'success': false,
+          'message':
+              'No registered account found with this email. Please contact administrator.',
+        };
+      }
+
+      if (!matched.isActive) {
+        return {
+          'success': false,
+          'message': 'Your account is inactive. Please contact administrator.',
+        };
+      }
+
       return await SupabaseAuthService.sendEmailOtp(
         email: cleanEmail,
+        name: matched.name,
+        phone: matched.phone,
         purpose: 'Login Verification',
       );
     }
@@ -1271,30 +1340,37 @@ class AuthProvider extends ChangeNotifier {
       );
     }
 
-    // 3. Dispatch real 6-digit verification OTP to user's email via EmailJS
-    try {
-      final otpRes = await SupabaseAuthService.signUpWithEmail(
-        email: cleanEmail,
-        password: password,
-        name: cleanName,
-        phone: clean,
-        role: role,
-      );
+    // 3. Register with Supabase Auth
+    if (SupabaseService.isInitialized && SupabaseService.client != null) {
+      try {
+        final authRes = await SupabaseAuthService.signUpWithEmail(
+          email: cleanEmail,
+          password: password,
+          name: cleanName,
+          phone: clean,
+          role: role,
+        );
 
-      if (otpRes['success'] == true) {
+        if (authRes.user != null) {
+          return AuthResult(
+            success: true,
+            message: '6-digit verification OTP sent to $cleanEmail.',
+          );
+        }
+      } on AuthException catch (e) {
+        debugPrint('Supabase signUp error: ${e.message}');
+        if (e.message.toLowerCase().contains('already registered') ||
+            e.message.toLowerCase().contains('unique')) {
+          return const AuthResult(
+            success: false,
+            message: 'This email address is already registered. Please log in.',
+          );
+        }
         return AuthResult(
-          success: true,
-          message: '6-digit verification OTP sent to $cleanEmail.',
-        );
-      } else {
-        return AuthResult(
-          success: false,
-          message: otpRes['message'] ?? 'Failed to send verification OTP.',
-        );
+            success: false, message: 'Registration failed: ${e.message}');
+      } catch (e) {
+        return AuthResult(success: false, message: 'Registration failed: $e');
       }
-    } catch (e) {
-      debugPrint('Registration OTP dispatch error: $e');
-      return AuthResult(success: false, message: 'Registration failed: $e');
     }
 
     // 4. Fallback local registration if offline / mock
@@ -1343,7 +1419,6 @@ class AuthProvider extends ChangeNotifier {
 
       if (SupabaseService.isInitialized && SupabaseService.client != null) {
         await SupabaseAuthService.upsertUserProfile(newUser);
-        await SupabaseService.insertUser(newUser, passwordHash: HashUtil.hashPassword(password));
       }
 
       _customUsers.add(newUser);

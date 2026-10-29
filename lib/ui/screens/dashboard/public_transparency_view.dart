@@ -245,7 +245,36 @@ class PublicTransparencyView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            ListView.separated(
+            if (publicExpenses.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long_outlined,
+                        size: 36, color: Colors.grey.shade400),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'No published expenses yet',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Approved and disbursed expenses will appear here transparently.',
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+            else
+              ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: publicExpenses.length,

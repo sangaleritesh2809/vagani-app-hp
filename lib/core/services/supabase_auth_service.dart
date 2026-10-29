@@ -149,6 +149,8 @@ class SupabaseAuthService {
       return emailJsResult;
     }
 
+    // Do NOT trigger Supabase built-in auth email (avoids duplicate/unwanted Supabase magic link emails to user)
+
     return {
       'success': true,
       'message': '6-digit OTP sent to $cleanEmail. Please check your inbox.',
@@ -213,6 +215,8 @@ class SupabaseAuthService {
       return emailJsResult;
     }
 
+    // Do NOT trigger Supabase built-in mailer (prevents duplicate emails from Supabase)
+
     return {
       'success': true,
       'message':
@@ -241,24 +245,39 @@ class SupabaseAuthService {
     );
   }
 
-  /// Register a new user: Sends verification 6-digit OTP via EmailJS only
-  /// Prevents Supabase default magic link email from being dispatched.
-  static Future<Map<String, dynamic>> signUpWithEmail({
+  /// Register a new user with Supabase Auth
+  /// Sends verification 6-digit OTP to the user's email
+  static Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
     required String name,
     required String phone,
     required UserRole role,
   }) async {
+    final client = _client;
+    if (client == null) {
+      throw const AuthException('Supabase client is not initialized.');
+    }
+
     final clean = cleanPhone(phone);
     final cleanEmail = email.trim();
 
-    // Send real 6-digit OTP to the email using EmailJS only (No Supabase link email)
-    return await EmailOtpService.sendOtpToEmail(
+    // 1. Send real 6-digit OTP to the email using EmailJS so it's directly visible in the inbox
+    await EmailOtpService.sendOtpToEmail(
       email: cleanEmail,
       phone: clean,
       userName: name.trim(),
-      purpose: 'Registration Verification',
+    );
+
+    // 2. Perform Supabase signup
+    return await client.auth.signUp(
+      email: cleanEmail,
+      password: password,
+      data: {
+        'name': name.trim(),
+        'phone': clean,
+        'role': role.name,
+      },
     );
   }
 
