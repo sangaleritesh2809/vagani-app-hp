@@ -633,6 +633,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 ),
               ),
             ),
+            otherAccountsPictures: [
+              CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Image.asset(
+                    'assets/images/app_logo_small.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ],
             accountName: Text(
               user.name,
               style: const TextStyle(
@@ -796,6 +808,22 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   title: Text(isMarathi ? 'डार्क मोड' : 'Dark Mode'),
                   value: langTheme.isDarkMode,
                   onChanged: (_) => langTheme.toggleTheme(),
+                ),
+              ],
+            ),
+          ),
+
+          // Vargani Pro Branding Footer
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/images/app_logo_small.png', width: 18, height: 18),
+                const SizedBox(width: 8),
+                const Text(
+                  'Vargani Pro • वर्गणी',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
                 ),
               ],
             ),

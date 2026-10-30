@@ -97,11 +97,21 @@ class _OrganizationSelectionScreenState
       appBar: AppBar(
         elevation: 0,
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.corporate_fare_rounded,
-                color: AppColors.primary, size: 22),
-            SizedBox(width: 10),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                'assets/images/app_logo_small.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Select Organization',
