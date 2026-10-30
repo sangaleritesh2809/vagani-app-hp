@@ -55,6 +55,28 @@ class _NewCollectionDialogState extends State<NewCollectionDialog> {
     final auth = context.watch<AuthProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    if (auth.isCitizen || auth.isPublicUser || !auth.canCollectVargani) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.gpp_bad_rounded, color: Colors.redAccent),
+            SizedBox(width: 8),
+            Text('Unauthorized'),
+          ],
+        ),
+        content: const Text(
+          'Citizen / Public accounts are not authorized to issue receipts or collect funds. Only authorized committee members can collect vargani.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      );
+    }
+
     final availableHouseholds = data.households;
     final orgUsers =
         auth.availableUsers.where((u) => u.role != UserRole.citizen).toList();
@@ -72,6 +94,7 @@ class _NewCollectionDialogState extends State<NewCollectionDialog> {
     }
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
@@ -87,17 +110,19 @@ class _NewCollectionDialogState extends State<NewCollectionDialog> {
             children: [
               // 1. Fixed Header
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+                padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Record Contribution (SRS 6)',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    const Expanded(
+                      child: Text(
+                        'Record Contribution',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
+                      visualDensity: VisualDensity.compact,
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],

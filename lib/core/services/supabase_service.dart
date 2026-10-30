@@ -250,6 +250,43 @@ class SupabaseService {
       debugPrint('Supabase getUsers profiles query: $e');
     }
 
+    // 3. Fetch from user_roles joined with roles to assign accurate roles
+    try {
+      final roleRes =
+          await c.from('user_roles').select('user_id, roles(code, role_key)');
+      for (final row in (roleRes as List)) {
+        final uid = row['user_id']?.toString();
+        final roleObj = row['roles'];
+        final roleCode = (roleObj is Map
+                ? (roleObj['code'] ?? roleObj['role_key'])
+                : null)
+            ?.toString();
+        if (uid != null && roleCode != null && userMap.containsKey(uid)) {
+          final current = userMap[uid]!;
+          final parsed = UserModel.parseRole(roleCode);
+          userMap[uid] = current.copyWith(
+            role: parsed,
+            permissions:
+                parsed == UserRole.superAdmin ? ['*'] : current.permissions,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Supabase getUsers user_roles query: $e');
+    }
+
+    // 4. Ensure Super Admin account (9699342811) always has UserRole.superAdmin
+    for (final entry in userMap.entries) {
+      final clean = entry.value.phone.replaceAll(RegExp(r'\D'), '');
+      if (clean.endsWith('9699342811') ||
+          entry.value.email.toLowerCase() == 'riteshsangale71@gmail.com') {
+        userMap[entry.key] = entry.value.copyWith(
+          role: UserRole.superAdmin,
+          permissions: ['*'],
+        );
+      }
+    }
+
     if (userMap.isNotEmpty) {
       return userMap.values.toList();
     }
@@ -1170,28 +1207,22 @@ class SupabaseService {
   // ===========================================================================
   static Future<List<CampaignModel>?> getCampaigns() async {
     final c = client;
-    if (c == null)
-      return kDebugMode ? MockDataService.campaigns : <CampaignModel>[];
+    if (c == null) return <CampaignModel>[];
     try {
       final res = await c.from('campaigns').select();
       final list = (res as List)
           .map((row) => CampaignModel.fromJson(Map<String, dynamic>.from(row)))
           .toList();
-      return list.isNotEmpty
-          ? list
-          : (kDebugMode ? MockDataService.campaigns : <CampaignModel>[]);
+      return list;
     } catch (e) {
       debugPrint('Supabase getCampaigns error: $e');
-      return kDebugMode ? MockDataService.campaigns : null;
+      return <CampaignModel>[];
     }
   }
 
   static Future<List<HouseholdModel>?> getHouseholds(String campaignId) async {
     final c = client;
-    if (c == null)
-      return kDebugMode
-          ? MockDataService.getInitialHouseholds()
-          : <HouseholdModel>[];
+    if (c == null) return <HouseholdModel>[];
     try {
       final res =
           await c.from('households').select().eq('campaign_id', campaignId);
@@ -1201,7 +1232,7 @@ class SupabaseService {
       return list;
     } catch (e) {
       debugPrint('Supabase getHouseholds error: $e');
-      return kDebugMode ? MockDataService.getInitialHouseholds() : null;
+      return <HouseholdModel>[];
     }
   }
 
@@ -1250,10 +1281,7 @@ class SupabaseService {
 
   static Future<List<PaymentModel>?> getCollections(String campaignId) async {
     final c = client;
-    if (c == null)
-      return kDebugMode
-          ? MockDataService.getInitialPayments()
-          : <PaymentModel>[];
+    if (c == null) return <PaymentModel>[];
     try {
       dynamic res;
       try {
@@ -1272,7 +1300,7 @@ class SupabaseService {
       return list;
     } catch (e) {
       debugPrint('Supabase getCollections error: $e');
-      return kDebugMode ? MockDataService.getInitialPayments() : null;
+      return <PaymentModel>[];
     }
   }
 
@@ -1290,10 +1318,7 @@ class SupabaseService {
 
   static Future<List<ReceiptModel>?> getReceipts(String campaignId) async {
     final c = client;
-    if (c == null)
-      return kDebugMode
-          ? MockDataService.getInitialReceipts()
-          : <ReceiptModel>[];
+    if (c == null) return <ReceiptModel>[];
     try {
       dynamic res;
       try {
@@ -1307,7 +1332,7 @@ class SupabaseService {
       return list;
     } catch (e) {
       debugPrint('Supabase getReceipts error: $e');
-      return kDebugMode ? MockDataService.getInitialReceipts() : null;
+      return <ReceiptModel>[];
     }
   }
 
@@ -1343,10 +1368,7 @@ class SupabaseService {
 
   static Future<List<ExpenseModel>?> getExpenses(String campaignId) async {
     final c = client;
-    if (c == null)
-      return kDebugMode
-          ? MockDataService.getInitialExpenses()
-          : <ExpenseModel>[];
+    if (c == null) return <ExpenseModel>[];
     try {
       dynamic res;
       try {
@@ -1364,7 +1386,7 @@ class SupabaseService {
       return list;
     } catch (e) {
       debugPrint('Supabase getExpenses error: $e');
-      return kDebugMode ? MockDataService.getInitialExpenses() : null;
+      return <ExpenseModel>[];
     }
   }
 

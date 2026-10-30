@@ -38,11 +38,12 @@ class _CampaignConfigDialogState extends State<CampaignConfigDialog> {
     final campaign = data.currentCampaign;
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
             child: Column(
@@ -50,15 +51,17 @@ class _CampaignConfigDialogState extends State<CampaignConfigDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Configure Vargani Rate (SRS 5.1)',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    const Expanded(
+                      child: Text(
+                        'Configure Vargani Rate',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
+                      visualDensity: VisualDensity.compact,
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],

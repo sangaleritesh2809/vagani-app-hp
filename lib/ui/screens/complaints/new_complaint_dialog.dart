@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/complaint_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
-import '../../widgets/mandatory_label.dart';
 
 class NewComplaintDialog extends StatefulWidget {
   const NewComplaintDialog({super.key});
@@ -26,86 +26,179 @@ class _NewComplaintDialogState extends State<NewComplaintDialog> {
     super.dispose();
   }
 
+  Widget _buildFieldLabel(String label, {bool isRequired = true}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (isRequired)
+            const Text(
+              ' *',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
+    final langTheme = context.watch<LanguageThemeProvider>();
+    final isMarathi = langTheme.isMarathi;
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Title Row with close icon (Responsive with Expanded)
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Submit Inquiry / Complaint (SRS 10)',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: Text(
+                          isMarathi
+                              ? 'तक्रार / चौकशी नोंदवा'
+                              : 'Submit Inquiry / Complaint',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
+                        visualDensity: VisualDensity.compact,
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
+
+                  // 1. Grievance / Inquiry Type Label (Outside input box)
+                  _buildFieldLabel(
+                    isMarathi
+                        ? 'तक्रार / चौकशीचा प्रकार'
+                        : 'Grievance / Inquiry Type',
+                  ),
                   DropdownButtonFormField<ComplaintType>(
                     value: _selectedType,
-                    decoration: const InputDecoration(
-                        label: MandatoryLabel('Grievance / Inquiry Type')),
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     items: ComplaintType.values.map((type) {
                       return DropdownMenuItem<ComplaintType>(
                         value: type,
-                        child: Text(type.displayName),
+                        child: Text(
+                          type.displayName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     }).toList(),
                     onChanged: (t) {
                       if (t != null) setState(() => _selectedType = t);
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+
+                  // 2. Subject / Title Label (Outside input box)
+                  _buildFieldLabel(
+                    isMarathi ? 'विषय / शीर्षक' : 'Subject / Title',
+                  ),
                   TextFormField(
                     controller: _titleController,
-                    decoration: const InputDecoration(
-                      label: MandatoryLabel('Subject / Title'),
-                      hintText: 'e.g. Discrepancy in Remaining Dues',
+                    decoration: InputDecoration(
+                      hintText: isMarathi
+                          ? 'उदा. वर्गणी पावती किंवा रक्कमेत फरक'
+                          : 'e.g. Discrepancy in Remaining Dues',
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Please enter subject'
+                        ? (isMarathi
+                            ? 'कृपया विषय प्रविष्ट करा'
+                            : 'Please enter subject')
                         : null,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+
+                  // 3. Detailed Explanation Label (Outside input box)
+                  _buildFieldLabel(
+                    isMarathi
+                        ? 'सविस्तर माहिती / कारण'
+                        : 'Detailed Explanation',
+                  ),
                   TextFormField(
                     controller: _descController,
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      label: MandatoryLabel('Detailed Explanation'),
-                      hintText:
-                          'Please describe your query with payment date/receipt details...',
+                    decoration: InputDecoration(
+                      hintText: isMarathi
+                          ? 'कृपया आपल्या समस्येचा सविस्तर तपशील द्या...'
+                          : 'Please describe your query with payment date/receipt details...',
+                      contentPadding: const EdgeInsets.all(14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Please provide explanation'
+                        ? (isMarathi
+                            ? 'कृपया सविस्तर माहिती द्या'
+                            : 'Please provide explanation')
                         : null,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 22),
+
+                  // Actions: Cancel & Submit buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel')),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(isMarathi ? 'रद्द करा' : 'Cancel'),
+                      ),
                       const SizedBox(width: 12),
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             data.submitComplaint(
@@ -116,15 +209,21 @@ class _NewComplaintDialogState extends State<NewComplaintDialog> {
                             );
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                    'Inquiry submitted! Committee notified with tracking ID.'),
+                                  isMarathi
+                                      ? 'तक्रार यशस्वीरित्या नोंदवली गेली आहे!'
+                                      : 'Inquiry submitted! Committee notified with tracking ID.',
+                                ),
                                 backgroundColor: AppColors.statusPaid,
                               ),
                             );
                           }
                         },
-                        child: const Text('Submit Ticket'),
+                        child: Text(
+                          isMarathi ? 'नोंदणी करा' : 'Submit Ticket',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),

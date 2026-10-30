@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/payment_model.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import 'receipt_detail_dialog.dart';
@@ -19,6 +20,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
     final data = context.watch<VarganiDataProvider>();
     final langTheme = context.watch<LanguageThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -114,13 +116,24 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Text(
+                                      r.householdHeadName,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: isDark
+                                            ? AppColors.darkTextPrimary
+                                            : AppColors.lightTextPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
                                     Row(
                                       children: [
                                         Text(
                                           r.receiptNo,
                                           style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
                                             color: r.isCancelled
                                                 ? Colors.red
                                                 : AppColors.primary,
@@ -147,12 +160,6 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 2),
-                                    Text(
-                                      r.householdHeadName,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13),
-                                    ),
                                     Text(
                                       '${r.paymentType.displayName} • By ${r.collectedByName} • ${langTheme.formatDate(r.issuedAt)}',
                                       style: const TextStyle(
@@ -191,18 +198,20 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (_) => const NewCollectionDialog(),
-          );
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New Receipt'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      floatingActionButton: (auth.isCitizen || auth.isPublicUser || !auth.canCollectVargani)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const NewCollectionDialog(),
+                );
+              },
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('New Receipt'),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
     );
   }
 }

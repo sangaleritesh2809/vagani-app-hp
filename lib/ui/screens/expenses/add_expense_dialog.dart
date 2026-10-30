@@ -42,11 +42,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     final auth = context.watch<AuthProvider>();
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 540),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
@@ -55,15 +56,17 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Record Event Expense (SRS 8)',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                      const Expanded(
+                        child: Text(
+                          'Record Event Expense',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
+                        visualDensity: VisualDensity.compact,
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],

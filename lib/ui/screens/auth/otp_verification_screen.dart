@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../providers/language_theme_provider.dart';
 import '../../../core/navigation/app_navigator.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
