@@ -833,8 +833,6 @@ class _LoginScreenState extends State<LoginScreen> {
           onChanged: (_) {
             if (_passwordError != null) {
               setState(() => _passwordError = null);
-            } else {
-              setState(() {}); // refresh to toggle clear button
             }
           },
           decoration: InputDecoration(
@@ -849,34 +847,15 @@ class _LoginScreenState extends State<LoginScreen> {
             filled: true,
             fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_passwordController.text.isNotEmpty)
-                  IconButton(
-                    tooltip: 'Clear password',
-                    icon: const Icon(Icons.cancel_rounded,
-                        size: 20, color: Colors.grey),
-                    onPressed: () {
-                      _passwordController.clear();
-                      if (_passwordError != null) {
-                        setState(() => _passwordError = null);
-                      } else {
-                        setState(() {});
-                      }
-                    },
-                  ),
-                IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.remove_red_eye
-                        : Icons.visibility_off,
-                    size: 20,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                ),
-              ],
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.remove_red_eye
+                    : Icons.visibility_off,
+                size: 20,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
         ),
