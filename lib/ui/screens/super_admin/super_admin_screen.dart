@@ -67,12 +67,19 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
   // Filter States
   String _searchFilter = '';
+  final TextEditingController _searchController = TextEditingController();
   String _userRoleFilter = 'ALL';
 
   @override
   void initState() {
     super.initState();
     _loadAllMasterData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAllMasterData() async {
@@ -265,6 +272,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           setState(() {
             _activeModule = mainModules[idx];
             _searchFilter = '';
+            _searchController.clear();
           });
         },
         destinations: [
@@ -747,6 +755,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           setState(() {
             _activeModule = module;
             _searchFilter = '';
+            _searchController.clear();
           });
           if (isDrawer) Navigator.pop(context);
         },
@@ -917,6 +926,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           setState(() {
             _activeModule = target;
             _searchFilter = '';
+            _searchController.clear();
           });
         },
         borderRadius: BorderRadius.circular(12),
@@ -2438,6 +2448,16 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
   // 5. ROLE MANAGEMENT
   // ===========================================================================
   Widget _buildRoleManagement() {
+    final filteredRoles = _roles.where((role) {
+      if (_searchFilter.isEmpty) return true;
+      final q = _searchFilter.toLowerCase();
+      return role.name.toLowerCase().contains(q) ||
+          role.roleKey.toLowerCase().contains(q) ||
+          role.description.toLowerCase().contains(q) ||
+          role.scopeType.toLowerCase().contains(q) ||
+          role.permissions.any((p) => p.toLowerCase().contains(q));
+    }).toList();
+
     return Column(
       children: [
         _buildModuleHeader(
@@ -2448,13 +2468,15 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           addLabel: 'Create Custom Role',
         ),
         Expanded(
-          child: _roles.isEmpty
-              ? _buildEmptyState('No roles configured.')
+          child: filteredRoles.isEmpty
+              ? _buildEmptyState(_roles.isEmpty
+                  ? 'No roles configured.'
+                  : 'No roles matching "$_searchFilter".')
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _roles.length,
+                  itemCount: filteredRoles.length,
                   itemBuilder: (ctx, i) {
-                    final role = _roles[i];
+                    final role = filteredRoles[i];
                     final isSys = role.isSystemRole;
 
                     return Card(
@@ -2467,72 +2489,83 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      isSys
-                                          ? Icons.lock_outline_rounded
-                                          : Icons.shield_rounded,
-                                      size: 18,
-                                      color: isSys
-                                          ? Colors.grey
-                                          : AppColors.primary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      role.name,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: isSys
-                                            ? Colors.grey
-                                                .withValues(alpha: 0.12)
-                                            : AppColors.primary
-                                                .withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(4),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Icon(
+                                    isSys
+                                        ? Icons.lock_outline_rounded
+                                        : Icons.shield_rounded,
+                                    size: 18,
+                                    color: isSys
+                                        ? Colors.grey
+                                        : AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      Text(
+                                        role.name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
                                       ),
-                                      child: Text(
-                                        role.roleKey,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
                                           color: isSys
-                                              ? Colors.grey.shade700
-                                              : AppColors.primary,
+                                              ? Colors.grey
+                                                  .withValues(alpha: 0.12)
+                                              : AppColors.primary
+                                                  .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          role.roleKey,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSys
+                                                ? Colors.grey.shade700
+                                                : AppColors.primary,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          'Scope: ${role.scopeType.toUpperCase()}',
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.blue,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Colors.blue.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        'Scope: ${role.scopeType.toUpperCase()}',
-                                        style: const TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.blue,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
                                     IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: const EdgeInsets.all(6),
                                       icon: const Icon(Icons.edit_outlined,
                                           color: AppColors.primary, size: 18),
                                       tooltip: 'Edit Role / Modules',
@@ -2540,7 +2573,10 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
                                           _showAddEditRoleDialog(role),
                                     ),
                                     if (!isSys) ...[
+                                      const SizedBox(width: 2),
                                       IconButton(
+                                        constraints: const BoxConstraints(),
+                                        padding: const EdgeInsets.all(6),
                                         icon: const Icon(
                                             Icons.delete_outline_rounded,
                                             color: Colors.redAccent,
@@ -4370,10 +4406,20 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
             children: [
               Expanded(
                 child: TextField(
+                  controller: _searchController,
                   onChanged: (v) => setState(() => _searchFilter = v.trim()),
                   decoration: InputDecoration(
                     hintText: 'Search records...',
                     prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    suffixIcon: _searchFilter.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchFilter = '');
+                            },
+                          )
+                        : null,
                     filled: true,
                     fillColor: Theme.of(context).brightness == Brightness.dark
                         ? AppColors.darkBackground
