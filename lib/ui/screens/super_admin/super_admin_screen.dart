@@ -186,13 +186,18 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.shield_rounded,
-                  color: AppColors.primary, size: 20),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                'assets/images/app_logo_small.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(Icons.shield_rounded,
+                    color: AppColors.primary, size: 20),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(

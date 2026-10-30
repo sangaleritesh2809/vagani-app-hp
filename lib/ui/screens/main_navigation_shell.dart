@@ -193,13 +193,31 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
-              child: const Icon(Icons.account_balance_wallet_rounded,
-                  color: Colors.white, size: 20),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                'assets/images/app_logo_small.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.account_balance_wallet_rounded,
+                      color: Colors.white, size: 18),
+                ),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
