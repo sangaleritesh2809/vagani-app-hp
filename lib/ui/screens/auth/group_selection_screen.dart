@@ -268,20 +268,24 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
                     // ── Header ───────────────────────────────────────────
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.all(14),
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.35),
-                              blurRadius: 18,
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 16,
                               offset: const Offset(0, 6),
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.groups_rounded,
-                            size: 38, color: Colors.white),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.asset(
+                          'assets/images/app_logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

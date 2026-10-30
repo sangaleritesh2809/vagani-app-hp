@@ -54,13 +54,17 @@ class PublicTransparencyView extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.verified_user_rounded,
-                            color: Colors.white, size: 20),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.asset(
+                          'assets/images/app_logo_small.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       const Expanded(
