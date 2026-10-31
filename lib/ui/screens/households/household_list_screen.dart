@@ -96,18 +96,11 @@ class HouseholdListScreen extends StatelessWidget {
           // Household List
           Expanded(
             child: data.households.isEmpty
-                ? EmptyStateWidget(
+                ? const EmptyStateWidget(
                     title: 'No households found',
                     subtitle:
                         'No households match your current search or filter. Try a different query or add a new family.',
                     imageAsset: 'assets/images/not_found.png',
-                    actionText: 'Register Household',
-                    onAction: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => const HouseholdFormDialog(),
-                      );
-                    },
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
