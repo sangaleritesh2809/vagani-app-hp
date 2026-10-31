@@ -62,6 +62,8 @@ class SupabaseService {
         final res = await c
             .from('organizations')
             .select()
+            .neq('status', 'deleted')
+            .neq('status', 'archived')
             .order('name', ascending: true);
         final list = (res as List)
             .map((row) =>
@@ -114,6 +116,26 @@ class SupabaseService {
 
   static Future<bool> archiveOrganization(String id) async {
     return updateOrganization(id, {'status': 'archived'});
+  }
+
+  static Future<bool> deleteOrganization(String id) async {
+    MockDataService.deleteOrganization(id);
+    final c = client;
+    if (c != null) {
+      try {
+        await c.from('groups').delete().eq('organization_id', id).catchError((_) => null);
+        await c.from('campaigns').delete().eq('organization_id', id).catchError((_) => null);
+        await c.from('organizations').delete().eq('id', id);
+        return true;
+      } catch (e) {
+        debugPrint('Direct delete organization error: $e, falling back to soft delete');
+        try {
+          await c.from('organizations').update({'status': 'deleted'}).eq('id', id);
+        } catch (_) {}
+        return true;
+      }
+    }
+    return true;
   }
 
   // ===========================================================================

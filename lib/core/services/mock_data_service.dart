@@ -33,6 +33,11 @@ class MockDataService {
     organization,
   ];
 
+  static bool deleteOrganization(String id) {
+    organizations.removeWhere((o) => o.id == id);
+    return true;
+  }
+
   static void addOrganization(OrganizationModel org) {
     final idx = organizations.indexWhere(
         (o) => o.id == org.id || (o.slug.isNotEmpty && o.slug == org.slug));

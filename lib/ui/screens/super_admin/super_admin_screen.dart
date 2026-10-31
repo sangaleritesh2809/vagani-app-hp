@@ -1614,9 +1614,45 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
       children: [
         const SizedBox(height: 8),
 
-        const Text('Key Metrics & System Indicators',
-
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Dashboard Overview',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Live Monitoring',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
 
         const SizedBox(height: 12),
 
@@ -1735,6 +1771,193 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           },
 
         ),
+
+        const SizedBox(height: 20),
+
+        // Quick Operations
+        const Text(
+          'Quick Operations',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _buildOverviewQuickAction(
+              label: 'Add Org',
+              icon: Icons.apartment_rounded,
+              color: Colors.purple,
+              onTap: () => _showAddEditOrgDialog(),
+            ),
+            const SizedBox(width: 8),
+            _buildOverviewQuickAction(
+              label: 'Add Group',
+              icon: Icons.hub_rounded,
+              color: Colors.orange,
+              onTap: () => _showAddEditGroupDialog(),
+            ),
+            const SizedBox(width: 8),
+            _buildOverviewQuickAction(
+              label: 'Add User',
+              icon: Icons.person_add_rounded,
+              color: Colors.blue,
+              onTap: () => _showAddEditUserDialog(),
+            ),
+            const SizedBox(width: 8),
+            _buildOverviewQuickAction(
+              label: 'Add Role',
+              icon: Icons.shield_rounded,
+              color: Colors.teal,
+              onTap: () => _showAddEditRoleDialog(),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        // Active Organizations Overview
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Active Organizations',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _activeModule = SuperAdminModule.organizations;
+                });
+              },
+              child: const Text('View All', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        _organizations.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                ),
+                child: const Center(
+                  child: Text(
+                    'No organizations registered yet.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              )
+            : Column(
+                children: _organizations.take(3).map((org) {
+                  final groupCount = _groups.where((g) => g.organizationId == org.id).length;
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.purple.withValues(alpha: 0.1),
+                        child: const Icon(Icons.apartment_rounded, size: 18, color: Colors.purple),
+                      ),
+                      title: Text(
+                        org.name,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        '${org.district.isNotEmpty ? org.district : "Maharashtra"} • $groupCount ${groupCount == 1 ? "Group" : "Groups"}',
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Active',
+                          style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _activeModule = SuperAdminModule.organizations;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+
+        const SizedBox(height: 18),
+
+        // Recent System Activity Feed
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Recent Activity Feed',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _activeModule = SuperAdminModule.auditLogs;
+                });
+              },
+              child: const Text('Full Audit', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        _auditLogs.isEmpty
+            ? Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                ),
+                child: const Center(
+                  child: Text(
+                    'No audit logs recorded yet.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              )
+            : Column(
+                children: _auditLogs.take(3).map((log) {
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
+                        child: const Icon(Icons.history_rounded, size: 18, color: Colors.blueGrey),
+                      ),
+                      title: Text(
+                        log.action.replaceAll('_', ' '),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        '${log.performedByName.isNotEmpty ? log.performedByName : "System"} • ${log.details}',
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Text(
+                        DateFormat('dd MMM, hh:mm a').format(log.timestamp),
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
 
       ],
 
@@ -2016,7 +2239,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                                   color: Colors.redAccent, size: 20),
 
-                              onPressed: () => _archiveOrg(org),
+                              onPressed: () => _confirmDeleteOrg(org),
 
                             ),
 
@@ -2520,54 +2743,67 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
   }
 
-  Future<void> _archiveOrg(OrganizationModel org) async {
-
+  Future<void> _confirmDeleteOrg(OrganizationModel org) async {
     final confirm = await showDialog<bool>(
-
       context: context,
-
       builder: (ctx) => AlertDialog(
-
-        title: const Text('Archive Organization?'),
-
-        content: const Text(
-
-          'Financial safety rule: To preserve accounting and audit compliance, organizations with collections cannot be hard-deleted. They will be soft-deleted / archived.',
-
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Delete Organization?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
-
+        content: Text(
+          'Are you sure you want to delete "${org.name}"? This action will permanently remove the organization and its records.',
+          style: const TextStyle(fontSize: 14),
+        ),
         actions: [
-
           TextButton(
-
-              onPressed: () => Navigator.pop(ctx, false),
-
-              child: const Text('Cancel')),
-
-          ElevatedButton(
-
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-
-            onPressed: () => Navigator.pop(ctx, true),
-
-            child: const Text('Archive Organization'),
-
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
           ),
-
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.delete_rounded, size: 16),
+            onPressed: () => Navigator.pop(ctx, true),
+            label: const Text('Delete Organization'),
+          ),
         ],
-
       ),
-
     );
 
     if (confirm == true) {
-
-      await SupabaseService.archiveOrganization(org.id);
-
-      _loadAllMasterData();
-
+      setState(() {
+        _organizations.removeWhere((o) => o.id == org.id);
+      });
+      await SupabaseService.deleteOrganization(org.id);
+      if (mounted) {
+        _loadAllMasterData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Organization "${org.name}" deleted successfully.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
-
   }
 
   // ===========================================================================
