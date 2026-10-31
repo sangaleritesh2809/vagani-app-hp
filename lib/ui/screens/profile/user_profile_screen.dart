@@ -355,27 +355,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                             setState(() => _isEditing = true);
                                           },
                                         )
-                                      else
-                                        TextButton.icon(
-                                          icon: const Icon(Icons.close_rounded,
-                                              size: 16),
-                                          label: const Text('Cancel'),
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: Colors.grey,
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                          ),
-                                          onPressed: () {
-                                            setState(() {
-                                              _isEditing = false;
-                                              _nameCtrl.text = user.name;
-                                              _phoneCtrl.text = user.phone;
-                                              _emailCtrl.text = user.email;
-                                              _addressCtrl.text =
-                                                  user.address ?? '';
-                                            });
-                                          },
-                                        ),
+
                                     ],
                                   ),
                                   const Divider(height: 24),
