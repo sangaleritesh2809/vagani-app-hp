@@ -208,10 +208,10 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => OtpVerificationScreen(
-            email: targetEmail,
-            maskedEmail: maskedEmail,
+            email: targetEmail.isNotEmpty ? targetEmail : '$phone@vargani.org',
+            maskedEmail: maskedEmail.isNotEmpty ? maskedEmail : 'Mobile: +91 $phone',
             phone: phone,
-            otpType: OtpType.email,
+            otpType: OtpType.phone,
           ),
         ),
       );
@@ -285,25 +285,22 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final rawInput = _phoneController.text.trim();
+    final cleanPhone = AuthProvider.cleanPhone(rawInput);
     final isEmail = rawInput.contains('@');
-    final cleanPhone = rawInput.replaceAll(RegExp(r'\D'), '');
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
 
     bool hasError = false;
 
     if (rawInput.isEmpty) {
       _phoneError = 'Please enter mobile number or email';
       hasError = true;
-    } else if (!isEmail && (cleanPhone.length != 10 || !RegExp(r'^[6-9]\d{9}$').hasMatch(cleanPhone))) {
-      _phoneError = 'Please enter a valid 10-digit mobile number or email address';
+    } else if (!isEmail && cleanPhone.length != 10 && rawInput.length < 3) {
+      _phoneError = 'Please enter a valid mobile number or email address';
       hasError = true;
     }
 
     if (password.isEmpty) {
       _passwordError = 'Please enter your password';
-      hasError = true;
-    } else if (password.length < 8) {
-      _passwordError = 'Password must be at least 8 characters';
       hasError = true;
     }
 

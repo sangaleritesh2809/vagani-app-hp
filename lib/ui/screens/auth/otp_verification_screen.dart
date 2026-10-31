@@ -52,11 +52,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   void initState() {
     super.initState();
     _startCooldownTimer();
-    // Pre-fill default OTP 992224 for quick testing and convenience
-    const defaultOtp = '992224';
-    for (int i = 0; i < defaultOtp.length && i < _digitControllers.length; i++) {
-      _digitControllers[i].text = defaultOtp[i];
-    }
+    // Digit boxes start blank so numbers do not auto-fill unexpectedly
   }
 
   @override
@@ -190,6 +186,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           email: widget.email,
           otp: otp,
           type: widget.otpType,
+          phone: widget.phone,
         );
 
         if (!mounted) return;
