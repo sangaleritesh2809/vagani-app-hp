@@ -376,3 +376,4 @@ class _ReceiptSettingsScreenState extends State<ReceiptSettingsScreen> {
     );
   }
 }
+

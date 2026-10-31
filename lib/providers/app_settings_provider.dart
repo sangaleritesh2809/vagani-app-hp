@@ -245,3 +245,4 @@ class AppSettingsProvider extends ChangeNotifier {
     }).eq('id', currentUser.id).catchError((_) => null);
   }
 }
+

@@ -255,8 +255,8 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
                         'householdsCount': data.households.length,
                         'receiptsCount': data.receipts.length,
                         'totalCollections': data.totalVerifiedReceived,
-                        'totalExpenses': data.totalPaidExpenses,
-                        'cashBalance': data.availableCashBalance,
+                        'totalExpenses': data.totalActualPaidExpenses,
+                        'cashBalance': data.availableNetBalance,
                       };
                       Clipboard.setData(
                         ClipboardData(text: const JsonEncoder.withIndent('  ').convert(snapshot)),
@@ -337,3 +337,4 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
     );
   }
 }
+

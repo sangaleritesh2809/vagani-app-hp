@@ -1755,6 +1755,27 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> updatePassword(String phone, String newPassword) async {
+    final clean = cleanPhone(phone);
+    final hash = HashUtil.hashPassword(newPassword.trim());
+    if (clean.isNotEmpty) {
+      _passwordHashes[clean] = hash;
+    }
+    if (_currentUser != null && _currentUser!.email.isNotEmpty) {
+      _passwordHashes[_currentUser!.email.toLowerCase()] = hash;
+    }
+    if (SupabaseService.isInitialized && SupabaseService.client != null) {
+      try {
+        await SupabaseService.client!.auth.updateUser(
+          UserAttributes(password: newPassword.trim()),
+        );
+      } catch (_) {}
+    }
+    await _saveToStorage();
+    notifyListeners();
+    return true;
+  }
+
   void logout() {
     SupabaseAuthService.signOut().ignore();
     _isAuthenticated = false;
