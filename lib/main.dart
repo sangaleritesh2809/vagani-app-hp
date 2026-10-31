@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/constants/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/language_theme_provider.dart';
+import 'providers/app_settings_provider.dart';
 import 'providers/vargani_data_provider.dart';
 import 'ui/screens/auth/login_screen.dart';
 import 'core/navigation/app_navigator.dart';
@@ -18,6 +19,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageThemeProvider()),
+        ChangeNotifierProvider(create: (_) => AppSettingsProvider()),
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => VarganiDataProvider()),
       ],

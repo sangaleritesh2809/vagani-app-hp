@@ -17,6 +17,8 @@ class LanguageThemeProvider extends ChangeNotifier {
   bool get useMarathiNumerals => _useMarathiNumerals;
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
+  bool get isLightMode => _themeMode == ThemeMode.light;
+  bool get isSystemMode => _themeMode == ThemeMode.system;
   bool get isMarathi => _languageCode == 'mr';
   bool get isHindi => _languageCode == 'hi';
   bool get isEnglish => _languageCode == 'en';
@@ -49,6 +51,8 @@ class LanguageThemeProvider extends ChangeNotifier {
         _themeMode = ThemeMode.dark;
       } else if (savedTheme == 'light') {
         _themeMode = ThemeMode.light;
+      } else if (savedTheme == 'system') {
+        _themeMode = ThemeMode.system;
       } else {
         _themeMode = ThemeMode.light;
       }
@@ -106,8 +110,10 @@ class LanguageThemeProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          _prefThemeKey, mode == ThemeMode.dark ? 'dark' : 'light');
+      final modeStr = mode == ThemeMode.dark
+          ? 'dark'
+          : (mode == ThemeMode.light ? 'light' : 'system');
+      await prefs.setString(_prefThemeKey, modeStr);
     } catch (_) {}
   }
 
