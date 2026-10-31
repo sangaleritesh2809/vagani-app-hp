@@ -36,119 +36,27 @@ class HouseholdListScreen extends StatelessWidget {
                           ? AppColors.darkBorder
                           : AppColors.lightBorder)),
             ),
-            child: Column(
+            child: Row(
               children: [
-                TextField(
-                  onChanged: (val) => data.setHouseholdSearch(val),
-                  decoration: InputDecoration(
-                    hintText: 'Search by family head, area, or phone...',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        PopupMenuButton<String>(
-                          icon: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: data.selectedAreaFilter != 'All'
-                                  ? AppColors.primary.withValues(alpha: 0.15)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.filter_alt_rounded,
-                              size: 20,
-                              color: data.selectedAreaFilter != 'All'
-                                  ? AppColors.primary
-                                  : Colors.grey,
-                            ),
-                          ),
-                          tooltip: 'Filter by Area',
-                          onSelected: (area) => data.setAreaFilter(area),
-                          itemBuilder: (context) => data.availableAreas.map((area) {
-                            final isSel = data.selectedAreaFilter == area;
-                            return PopupMenuItem<String>(
-                              value: area,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    area == 'All'
-                                        ? Icons.all_inclusive_rounded
-                                        : Icons.location_on_outlined,
-                                    size: 16,
-                                    color: isSel ? AppColors.primary : Colors.grey,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      area == 'All' ? 'All Areas' : area,
-                                      style: TextStyle(
-                                        fontWeight: isSel
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        color: isSel ? AppColors.primary : null,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isSel)
-                                    const Icon(Icons.check_rounded,
-                                        size: 16, color: AppColors.primary),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                Expanded(
+                  child: TextField(
+                    onChanged: (val) => data.setHouseholdSearch(val),
+                    decoration: InputDecoration(
+                      hintText: 'Search family head, area, phone...',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: data.householdSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () => data.setHouseholdSearch(''),
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                     ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
-                const SizedBox(height: 12),
-                // Area & Status Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      // Status filters
-                      _buildFilterChip(
-                        context,
-                        label: 'All',
-                        isSelected: data.selectedStatusFilter == null,
-                        onTap: () => data.setStatusFilter(null),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                        context,
-                        label: 'Pending',
-                        isSelected:
-                            data.selectedStatusFilter == PaymentStatus.pending,
-                        color: AppColors.statusPending,
-                        onTap: () =>
-                            data.setStatusFilter(PaymentStatus.pending),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                        context,
-                        label: 'Partially Paid',
-                        isSelected: data.selectedStatusFilter ==
-                            PaymentStatus.partiallyPaid,
-                        color: AppColors.statusPartiallyPaid,
-                        onTap: () =>
-                            data.setStatusFilter(PaymentStatus.partiallyPaid),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                        context,
-                        label: 'Paid',
-                        isSelected:
-                            data.selectedStatusFilter == PaymentStatus.paid,
-                        color: AppColors.statusPaid,
-                        onTap: () => data.setStatusFilter(PaymentStatus.paid),
-                      ),
-                    ],
-                  ),
-                ),
+                const SizedBox(width: 10),
+                _buildFilterButton(context, data, isDark),
               ],
             ),
           ),
@@ -197,45 +105,203 @@ class HouseholdListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(
-    BuildContext context, {
+  Widget _buildFilterButton(
+    BuildContext context,
+    VarganiDataProvider data,
+    bool isDark,
+  ) {
+    final bool hasActiveFilter =
+        data.selectedStatusFilter != null || data.selectedAreaFilter != 'All';
+
+    return PopupMenuButton<String>(
+      tooltip: 'Filter Households',
+      offset: const Offset(0, 48),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      color: isDark ? AppColors.darkCardBg : Colors.white,
+      onSelected: (value) {
+        if (value == 'status_all') {
+          data.setStatusFilter(null);
+        } else if (value == 'status_pending') {
+          data.setStatusFilter(PaymentStatus.pending);
+        } else if (value == 'status_partiallyPaid') {
+          data.setStatusFilter(PaymentStatus.partiallyPaid);
+        } else if (value == 'status_paid') {
+          data.setStatusFilter(PaymentStatus.paid);
+        } else if (value == 'clear_all') {
+          data.setStatusFilter(null);
+          data.setAreaFilter('All');
+        } else if (value.startsWith('area_')) {
+          final area = value.replaceFirst('area_', '');
+          data.setAreaFilter(area);
+        }
+      },
+      itemBuilder: (context) {
+        return [
+          // Header: Status Filter
+          const PopupMenuItem<String>(
+            enabled: false,
+            height: 30,
+            child: Text(
+              'PAYMENT STATUS',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          _buildPopupFilterItem(
+            value: 'status_all',
+            label: 'All Households',
+            isSelected: data.selectedStatusFilter == null,
+            icon: Icons.all_inclusive_rounded,
+            color: AppColors.primary,
+          ),
+          _buildPopupFilterItem(
+            value: 'status_pending',
+            label: 'Pending',
+            isSelected: data.selectedStatusFilter == PaymentStatus.pending,
+            icon: Icons.pending_actions_rounded,
+            color: AppColors.statusPending,
+          ),
+          _buildPopupFilterItem(
+            value: 'status_partiallyPaid',
+            label: 'Partially Paid',
+            isSelected: data.selectedStatusFilter == PaymentStatus.partiallyPaid,
+            icon: Icons.timelapse_rounded,
+            color: AppColors.statusPartiallyPaid,
+          ),
+          _buildPopupFilterItem(
+            value: 'status_paid',
+            label: 'Paid',
+            isSelected: data.selectedStatusFilter == PaymentStatus.paid,
+            icon: Icons.check_circle_rounded,
+            color: AppColors.statusPaid,
+          ),
+
+          // Header: Area Filter
+          if (data.availableAreas.length > 1) ...[
+            const PopupMenuDivider(height: 10),
+            const PopupMenuItem<String>(
+              enabled: false,
+              height: 30,
+              child: Text(
+                'AREA / REGION',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            ...data.availableAreas.map((area) {
+              final isSel = data.selectedAreaFilter == area;
+              return _buildPopupFilterItem(
+                value: 'area_$area',
+                label: area == 'All' ? 'All Areas' : area,
+                isSelected: isSel,
+                icon: area == 'All'
+                    ? Icons.select_all_rounded
+                    : Icons.location_on_outlined,
+                color: Colors.indigo,
+              );
+            }),
+          ],
+
+          if (hasActiveFilter) ...[
+            const PopupMenuDivider(height: 10),
+            const PopupMenuItem<String>(
+              value: 'clear_all',
+              height: 34,
+              child: Row(
+                children: [
+                  Icon(Icons.clear_all_rounded, color: Colors.redAccent, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'Clear Filters',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ];
+      },
+      child: Container(
+        height: 46,
+        width: 46,
+        decoration: BoxDecoration(
+          color: hasActiveFilter
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : (isDark ? AppColors.darkSurface : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasActiveFilter
+                ? AppColors.primary
+                : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+            width: hasActiveFilter ? 1.5 : 1,
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              color: hasActiveFilter ? AppColors.primary : Colors.grey.shade700,
+              size: 20,
+            ),
+            if (hasActiveFilter)
+              Positioned(
+                top: 7,
+                right: 7,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _buildPopupFilterItem({
+    required String value,
     required String label,
     required bool isSelected,
-    Color? color,
-    required VoidCallback onTap,
+    required IconData icon,
+    required Color color,
   }) {
-    final chipColor = color ?? AppColors.primary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? chipColor : chipColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? chipColor : chipColor.withValues(alpha: 0.35),
-            width: isSelected ? 1.5 : 1,
+    return PopupMenuItem<String>(
+      value: value,
+      height: 36,
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: isSelected ? color : Colors.grey),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? color : null,
+              ),
+            ),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: chipColor.withValues(alpha: 0.28),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : chipColor,
-          ),
-        ),
+          if (isSelected)
+            Icon(Icons.check_rounded, size: 16, color: color),
+        ],
       ),
     );
   }
