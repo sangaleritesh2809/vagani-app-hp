@@ -621,7 +621,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
           foregroundColor: Colors.white,
           onPressed: () => _showAddEditRoleDialog(),
           icon: const Icon(Icons.add_rounded, size: 22),
-          label: const Text('Create Custom Role',
+          label: const Text('Add Role',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         );
       case SuperAdminModule.roleAssignment:
@@ -1612,84 +1612,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
 
       children: [
-
-        // Welcome Banner
-
-        Container(
-
-          padding: const EdgeInsets.all(20),
-
-          decoration: BoxDecoration(
-
-            gradient: const LinearGradient(
-
-              colors: [Color(0xFF4A00E0), Color(0xFF8E2DE2)],
-
-              begin: Alignment.topLeft,
-
-              end: Alignment.bottomRight,
-
-            ),
-
-            borderRadius: BorderRadius.circular(16),
-
-          ),
-
-          child: Column(
-
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-
-              const Row(
-
-                children: [
-
-                  Icon(Icons.verified_user_rounded,
-
-                      color: Colors.white, size: 28),
-
-                  SizedBox(width: 10),
-
-                  Expanded(
-
-                    child: Text(
-
-                      'Super Admin System Overview',
-
-                      style: TextStyle(
-
-                          color: Colors.white,
-
-                          fontSize: 18,
-
-                          fontWeight: FontWeight.bold),
-
-                    ),
-
-                  ),
-
-                ],
-
-              ),
-
-              const SizedBox(height: 8),
-
-              const Text(
-
-                'Complete governance over multi-organizations, groups, role-based access control (RBAC), and centralized financial monitoring.',
-
-                style: TextStyle(color: Colors.white70, fontSize: 13),
-
-              ),
-
-            ],
-
-          ),
-
-        ),
-
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
 
         const Text('Key Metrics & System Indicators',
 
@@ -4799,7 +4722,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
           onAdd: () => _showAddEditRoleDialog(),
 
-          addLabel: 'Create Custom Role',
+          addLabel: 'Add Role',
 
         ),
 
@@ -4807,11 +4730,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
           child: filteredRoles.isEmpty
 
-              ? _buildEmptyState(_roles.isEmpty
-
-                  ? 'No roles configured.'
-
-                  : 'No roles matching "$_searchFilter".')
+              ? _buildEmptyState('No roles found')
 
               : ListView.builder(
 
@@ -5057,93 +4976,74 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                             const SizedBox(height: 10),
 
-                            Text(
-
-                              'Enabled Permissions (${role.permissions.length}):',
-
-                              style: const TextStyle(
-
-                                  fontSize: 11, fontWeight: FontWeight.w600),
-
-                            ),
-
-                            const SizedBox(height: 6),
-
-                            role.permissions.isEmpty
-
-                                ? const Text('No explicit permissions assigned',
-
-                                    style: TextStyle(
-
-                                        fontSize: 11, color: Colors.grey))
-
-                                : Wrap(
-
-                                    spacing: 6,
-
-                                    runSpacing: 6,
-
-                                    children: role.permissions.map((p) {
-
-                                      final isAll = p == '*';
-
-                                      return Container(
-
-                                        padding: const EdgeInsets.symmetric(
-
-                                            horizontal: 8, vertical: 3),
-
-                                        decoration: BoxDecoration(
-
-                                          color: (isAll
-
-                                                  ? Colors.purple
-
-                                                  : AppColors.primary)
-
-                                              .withValues(alpha: 0.08),
-
-                                          borderRadius:
-
-                                              BorderRadius.circular(6),
-
-                                          border: Border.all(
-
-                                              color: (isAll
-
-                                                      ? Colors.purple
-
-                                                      : AppColors.primary)
-
-                                                  .withValues(alpha: 0.2)),
-
+                            Builder(
+                              builder: (context) {
+                                final modules = _getRoleModuleSummaries(role.permissions);
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.apps_rounded,
+                                          size: 14,
+                                          color: Colors.grey.shade600,
                                         ),
-
-                                        child: Text(
-
-                                          p,
-
-                                          style: TextStyle(
-
-                                            fontSize: 10,
-
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Accessible Modules (${modules.length}):',
+                                          style: const TextStyle(
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w600,
-
-                                            color: isAll
-
-                                                ? Colors.purple
-
-                                                : AppColors.primary,
-
                                           ),
-
                                         ),
-
-                                      );
-
-                                    }).toList(),
-
-                                  ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    modules.isEmpty
+                                        ? const Text(
+                                            'No module permissions assigned',
+                                            style: TextStyle(
+                                                fontSize: 11, color: Colors.grey),
+                                          )
+                                        : Wrap(
+                                            spacing: 6,
+                                            runSpacing: 6,
+                                            children: modules.map((m) {
+                                              return Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 9, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: m.color.withValues(alpha: 0.09),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: m.color.withValues(alpha: 0.28),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(m.icon, size: 13, color: m.color),
+                                                    const SizedBox(width: 5),
+                                                    Text(
+                                                      m.displayName,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: m.color,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                  ],
+                                );
+                              },
+                            ),
 
                           ],
 
@@ -5568,9 +5468,8 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                     existing != null
 
-                        ? 'Edit Role & Module Permissions'
-
-                        : 'Create Custom Role',
+                        ? 'Edit Permissions'
+                        : 'Add Role',
 
                     overflow: TextOverflow.ellipsis,
 
@@ -6072,7 +5971,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                     ? 'Saving...'
 
-                    : (existing != null ? 'Update Role' : 'Save Role')),
+                    : (existing != null ? 'Update' : 'Save')),
 
                 onPressed: isSaving
 
@@ -8688,4 +8587,170 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
   }
 
+}
+
+
+class _RoleModuleSummary {
+  final String key;
+  final String displayName;
+  final IconData icon;
+  final Color color;
+
+  const _RoleModuleSummary({
+    required this.key,
+    required this.displayName,
+    required this.icon,
+    required this.color,
+  });
+}
+
+const Map<String, _RoleModuleSummary> _knownRoleModules = {
+  'all': _RoleModuleSummary(
+    key: 'all',
+    displayName: 'All System Modules (Full Access)',
+    icon: Icons.verified_user_rounded,
+    color: Colors.purple,
+  ),
+  'dashboard': _RoleModuleSummary(
+    key: 'dashboard',
+    displayName: 'Dashboard',
+    icon: Icons.dashboard_rounded,
+    color: Colors.indigo,
+  ),
+  'collection': _RoleModuleSummary(
+    key: 'collection',
+    displayName: 'Vargani Collection',
+    icon: Icons.payments_rounded,
+    color: Colors.green,
+  ),
+  'receipt': _RoleModuleSummary(
+    key: 'receipt',
+    displayName: 'Receipts',
+    icon: Icons.receipt_long_rounded,
+    color: Colors.teal,
+  ),
+  'campaign': _RoleModuleSummary(
+    key: 'campaign',
+    displayName: 'Campaigns',
+    icon: Icons.campaign_rounded,
+    color: Colors.deepPurple,
+  ),
+  'expense': _RoleModuleSummary(
+    key: 'expense',
+    displayName: 'Expense Management',
+    icon: Icons.shopping_bag_rounded,
+    color: Colors.redAccent,
+  ),
+  'handover': _RoleModuleSummary(
+    key: 'handover',
+    displayName: 'Cash Handover',
+    icon: Icons.sync_alt_rounded,
+    color: Colors.cyan,
+  ),
+  'user': _RoleModuleSummary(
+    key: 'user',
+    displayName: 'Users & Staff',
+    icon: Icons.people_alt_rounded,
+    color: Colors.blue,
+  ),
+  'group': _RoleModuleSummary(
+    key: 'group',
+    displayName: 'Groups & Wards',
+    icon: Icons.hub_rounded,
+    color: Colors.orange,
+  ),
+  'complaint': _RoleModuleSummary(
+    key: 'complaint',
+    displayName: 'Complaints',
+    icon: Icons.report_problem_rounded,
+    color: Colors.deepOrange,
+  ),
+  'report': _RoleModuleSummary(
+    key: 'report',
+    displayName: 'Reports & Analytics',
+    icon: Icons.bar_chart_rounded,
+    color: Colors.purple,
+  ),
+  'organization': _RoleModuleSummary(
+    key: 'organization',
+    displayName: 'Organization Master',
+    icon: Icons.apartment_rounded,
+    color: Colors.amber,
+  ),
+  'settings': _RoleModuleSummary(
+    key: 'settings',
+    displayName: 'System Settings',
+    icon: Icons.settings_rounded,
+    color: Colors.blueGrey,
+  ),
+  'audit': _RoleModuleSummary(
+    key: 'audit',
+    displayName: 'Audit Logs',
+    icon: Icons.history_edu_rounded,
+    color: Colors.brown,
+  ),
+  'payment_verification': _RoleModuleSummary(
+    key: 'payment_verification',
+    displayName: 'Payment Verification',
+    icon: Icons.verified_outlined,
+    color: Colors.teal,
+  ),
+  'pending_dues': _RoleModuleSummary(
+    key: 'pending_dues',
+    displayName: 'Pending Dues Tracking',
+    icon: Icons.pending_actions_rounded,
+    color: Colors.amber,
+  ),
+  'join_requests': _RoleModuleSummary(
+    key: 'join_requests',
+    displayName: 'Join Requests',
+    icon: Icons.person_add_rounded,
+    color: Colors.teal,
+  ),
+};
+
+List<_RoleModuleSummary> _getRoleModuleSummaries(List<String> permissions) {
+  if (permissions.contains('*')) {
+    return [_knownRoleModules['all']!];
+  }
+
+  final Set<String> distinctModuleKeys = {};
+  for (final p in permissions) {
+    if (p.trim().isEmpty) continue;
+    if (p.trim() == '*') {
+      return [_knownRoleModules['all']!];
+    }
+    final rawMod = p.split('.').first.trim().toLowerCase();
+    String norm = rawMod;
+    if (norm == 'collections') norm = 'collection';
+    if (norm == 'receipts') norm = 'receipt';
+    if (norm == 'campaigns') norm = 'campaign';
+    if (norm == 'expenses') norm = 'expense';
+    if (norm == 'users') norm = 'user';
+    if (norm == 'groups' || norm == 'group_members') norm = 'group';
+    if (norm == 'complaints') norm = 'complaint';
+    if (norm == 'reports' || norm == 'collection_reports') norm = 'report';
+    if (norm == 'handovers' || norm == 'cash_handover') norm = 'handover';
+    if (norm == 'organizations') norm = 'organization';
+
+    distinctModuleKeys.add(norm);
+  }
+
+  final List<_RoleModuleSummary> result = [];
+  for (final k in distinctModuleKeys) {
+    if (_knownRoleModules.containsKey(k)) {
+      result.add(_knownRoleModules[k]!);
+    } else {
+      final title = k.isEmpty
+          ? 'General'
+          : '${k[0].toUpperCase()}${k.substring(1)}';
+      result.add(_RoleModuleSummary(
+        key: k,
+        displayName: title,
+        icon: Icons.category_rounded,
+        color: AppColors.primary,
+      ));
+    }
+  }
+  return result;
 }
