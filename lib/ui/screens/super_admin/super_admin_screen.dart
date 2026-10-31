@@ -316,9 +316,32 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
     final isWide = MediaQuery.of(context).size.width >= 900;
 
-    return Scaffold(
-
-      appBar: AppBar(
+    return PopScope(
+      canPop: _activeModule == SuperAdminModule.dashboard,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_activeModule != SuperAdminModule.dashboard) {
+          setState(() {
+            _activeModule = SuperAdminModule.dashboard;
+            _searchFilter = '';
+            _searchController.clear();
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: _activeModule != SuperAdminModule.dashboard
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: () {
+                    setState(() {
+                      _activeModule = SuperAdminModule.dashboard;
+                      _searchFilter = '';
+                      _searchController.clear();
+                    });
+                  },
+                )
+              : null,
 
         elevation: 1,
 
@@ -432,6 +455,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
             ),
 
+      ),
     );
 
   }
