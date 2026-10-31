@@ -221,7 +221,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Per Person Rate: ₹${campaign.perPersonRate.toStringAsFixed(0)} | Target: ${currencyFormat.format(campaign.targetAmount)}',
+            'Per Person Rate: ₹${(data.activeGroup?.perPersonRate ?? campaign.perPersonRate).toStringAsFixed(0)} | Target: ${currencyFormat.format(campaign.targetAmount)}',
             style: TextStyle(
               fontSize: 13,
               color: Colors.white.withOpacity(0.9),

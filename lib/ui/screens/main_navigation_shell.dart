@@ -231,6 +231,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final staffRailIndex = visibleStaffRail.indexOf(_staffDestination);
     final safeStaffRailIndex = staffRailIndex >= 0 ? staffRailIndex : 0;
 
+    if (data.activeGroup == null && auth.selectedGroup != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        data.setActiveGroup(auth.selectedGroup);
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -276,7 +282,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    data.organization.name,
+                    auth.selectedGroup != null
+                        ? '${data.organization.name} • ${auth.selectedGroup!.name}'
+                        : data.organization.name,
                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -674,62 +682,132 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               ),
             ),
 
-            // 2. Organization & Group Info Card
-            Container(
-              margin: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkCardBg
-                    : AppColors.primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
+            // 2. Interactive Organization & Group Selector Card
+            InkWell(
+              onTap: () => _showGroupSelectionModal(
+                  context, auth, data, langTheme, isDark),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
                   color: isDark
-                      ? AppColors.darkBorder
-                      : AppColors.primary.withValues(alpha: 0.16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.temple_hindu_rounded,
-                        color: AppColors.primary, size: 18),
+                      ? AppColors.darkCardBg
+                      : AppColors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.primary.withValues(alpha: 0.22),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Organization Header
+                    Row(
                       children: [
-                        Text(
-                          data.organization.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          child: const Icon(Icons.temple_hindu_rounded,
+                              color: AppColors.primary, size: 16),
                         ),
-                        Text(
-                          auth.selectedGroup?.name ??
-                              (auth.isCitizen
-                                  ? 'Citizen Transparency'
-                                  : 'Main Jurisdiction'),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            data.organization.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            isMarathi ? 'संस्था' : 'Org',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    const Divider(height: 1),
+                    const SizedBox(height: 8),
+                    // Active Group Selector Pill
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isMarathi ? 'सक्रिय ग्रुप / मंडळ:' : 'ACTIVE GROUP:',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                auth.selectedGroup?.name ??
+                                    (isMarathi ? 'ग्रुप निवडा' : 'Select Group'),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                  color: AppColors.primary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isMarathi ? 'बदला' : 'Switch',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              const Icon(Icons.keyboard_arrow_down_rounded,
+                                  size: 14, color: Colors.white),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -749,6 +827,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         letterSpacing: 0.5,
                       ),
                     ),
+                  ),
+
+                  // Switch Group
+                  _buildDrawerItem(
+                    icon: Icons.groups_rounded,
+                    iconColor: Colors.deepOrange,
+                    title: isMarathi ? 'ग्रुप / मंडळ बदला' : 'Switch Group',
+                    subtitle: auth.selectedGroup?.name ??
+                        (isMarathi ? 'ग्रुप निवडा' : 'Select Group'),
+                    onTap: () {
+                      _showGroupSelectionModal(
+                          context, auth, data, langTheme, isDark);
+                    },
                   ),
 
                   // User Profile
@@ -1020,6 +1111,198 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
         onTap: onTap,
       ),
+    );
+  }
+
+  void _showGroupSelectionModal(
+    BuildContext context,
+    AuthProvider auth,
+    VarganiDataProvider data,
+    LanguageThemeProvider langTheme,
+    bool isDark,
+  ) {
+    final isMarathi = langTheme.isMarathi;
+    final groups = auth.organizationGroups;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+              20, 16, 20, MediaQuery.of(ctx).padding.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Drag Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isMarathi ? 'मंडळ / ग्रुप निवडा' : 'Select Group',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${isMarathi ? "संस्था" : "Organization"}: ${data.organization.name}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (groups.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text(
+                      isMarathi
+                          ? 'कोणतेही ग्रुप आढळले नाहीत.'
+                          : 'No groups available in this organization.',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(ctx).size.height * 0.5,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: groups.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final g = groups[index];
+                      final isSelected = g.id == auth.selectedGroup?.id;
+
+                      return InkWell(
+                        onTap: () async {
+                          Navigator.pop(ctx); // close modal
+                          final res = await auth.selectGroup(g);
+                          data.setActiveGroup(g);
+                          await data.initDataFromBackend();
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isMarathi
+                                      ? 'सक्रिय ग्रुप बदलला: ${g.name}'
+                                      : 'Switched to group: ${g.name}',
+                                ),
+                                backgroundColor: AppColors.statusPaid,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : (isDark ? AppColors.darkCardBg : Colors.grey.shade50),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                              width: isSelected ? 1.8 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : (isDark ? AppColors.darkSurface : Colors.grey.shade200),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.groups_rounded,
+                                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      g.name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: isSelected ? AppColors.primary : null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '${g.code}${g.location.isNotEmpty ? " • ${g.location}" : ""} • ₹${g.perPersonRate.toInt()}/व्यक्ती',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: AppColors.primary,
+                                  size: 22,
+                                )
+                              else
+                                Icon(
+                                  Icons.radio_button_unchecked_rounded,
+                                  color: Colors.grey.shade400,
+                                  size: 20,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

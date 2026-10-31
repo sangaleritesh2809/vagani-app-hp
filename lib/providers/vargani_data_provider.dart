@@ -10,6 +10,7 @@ import '../core/models/expense_model.dart';
 import '../core/models/complaint_model.dart';
 import '../core/models/audit_log_model.dart';
 import '../core/models/user_model.dart';
+import '../core/models/group_model.dart';
 import '../core/services/api_service.dart';
 import '../core/services/mock_data_service.dart';
 import '../core/services/supabase_service.dart';
@@ -21,6 +22,7 @@ class VarganiDataProvider extends ChangeNotifier {
   List<CampaignModel> _campaigns =
       kDebugMode ? List.from(MockDataService.campaigns) : <CampaignModel>[];
   late String _selectedCampaignId;
+  GroupModel? _activeGroup;
 
   List<HouseholdModel> _households = <HouseholdModel>[];
   List<PaymentModel> _payments = <PaymentModel>[];
@@ -57,6 +59,16 @@ class VarganiDataProvider extends ChangeNotifier {
   OrganizationModel get organization => _organization;
   List<CampaignModel> get campaigns => _campaigns;
   String get selectedCampaignId => _selectedCampaignId;
+  GroupModel? get activeGroup => _activeGroup;
+  String? get activeGroupId => _activeGroup?.id;
+
+  void setActiveGroup(GroupModel? group) {
+    _activeGroup = group;
+    notifyListeners();
+    if (_selectedCampaignId.isNotEmpty) {
+      refreshCampaignData(_selectedCampaignId);
+    }
+  }
 
   CampaignModel get currentCampaign =>
       _campaigns.firstWhere((c) => c.id == _selectedCampaignId,
@@ -163,6 +175,12 @@ class VarganiDataProvider extends ChangeNotifier {
   List<HouseholdModel> get households {
     return _households.where((h) {
       if (h.campaignId != _selectedCampaignId) return false;
+      if (_activeGroup != null &&
+          h.groupId != null &&
+          h.groupId!.isNotEmpty &&
+          h.groupId != _activeGroup!.id) {
+        return false;
+      }
       if (_selectedAreaFilter != 'All' &&
           !h.villageArea
               .toLowerCase()
@@ -234,7 +252,16 @@ class VarganiDataProvider extends ChangeNotifier {
   // Key Financial Metric Calculations (SRS 5, 8, 9, 11)
   double get totalExpectedVargani {
     return _households
-        .where((h) => h.campaignId == _selectedCampaignId)
+        .where((h) {
+          if (h.campaignId != _selectedCampaignId) return false;
+          if (_activeGroup != null &&
+              h.groupId != null &&
+              h.groupId!.isNotEmpty &&
+              h.groupId != _activeGroup!.id) {
+            return false;
+          }
+          return true;
+        })
         .fold(0.0, (sum, h) => sum + h.expectedTotalVargani);
   }
 
@@ -352,11 +379,12 @@ class VarganiDataProvider extends ChangeNotifier {
       id: 'hh_${_uuid.v4().substring(0, 8)}',
       campaignId: _selectedCampaignId,
       organizationId: _organization.id,
+      groupId: _activeGroup?.id ?? currentUser.selectedGroupId,
       headOfFamilyName: headOfFamilyName,
       mobileNumber: mobileNumber,
       villageArea: villageArea,
       familyMemberCount: familyMemberCount,
-      perPersonRateSnapshot: currentCampaign.perPersonRate,
+      perPersonRateSnapshot: _activeGroup?.perPersonRate ?? currentCampaign.perPersonRate,
       amountReceived: 0.0,
       createdAt: DateTime.now(),
     );

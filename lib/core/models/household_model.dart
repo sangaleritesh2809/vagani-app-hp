@@ -32,6 +32,7 @@ class HouseholdModel {
   final String id;
   final String campaignId;
   final String organizationId;
+  final String? groupId;
   final String headOfFamilyName;
   final String mobileNumber;
   final String villageArea;
@@ -45,6 +46,7 @@ class HouseholdModel {
     required this.id,
     required this.campaignId,
     required this.organizationId,
+    this.groupId,
     required this.headOfFamilyName,
     required this.mobileNumber,
     required this.villageArea,
@@ -78,6 +80,7 @@ class HouseholdModel {
     String? id,
     String? campaignId,
     String? organizationId,
+    String? groupId,
     String? headOfFamilyName,
     String? mobileNumber,
     String? villageArea,
@@ -90,6 +93,7 @@ class HouseholdModel {
       id: id ?? this.id,
       campaignId: campaignId ?? this.campaignId,
       organizationId: organizationId ?? this.organizationId,
+      groupId: groupId ?? this.groupId,
       headOfFamilyName: headOfFamilyName ?? this.headOfFamilyName,
       mobileNumber: mobileNumber ?? this.mobileNumber,
       villageArea: villageArea ?? this.villageArea,
@@ -110,6 +114,7 @@ class HouseholdModel {
       organizationId: json['organization_id'] as String? ??
           json['organizationId'] as String? ??
           'org_001',
+      groupId: json['group_id'] as String? ?? json['groupId'] as String?,
       headOfFamilyName: json['head_of_family_name'] as String? ??
           json['headOfFamilyName'] as String? ??
           '',
@@ -140,6 +145,7 @@ class HouseholdModel {
       'id': id,
       'campaign_id': campaignId,
       'organization_id': organizationId,
+      'group_id': groupId,
       'head_of_family_name': headOfFamilyName,
       'mobile_number': mobileNumber,
       'village_area': villageArea,

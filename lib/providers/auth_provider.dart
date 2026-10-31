@@ -45,6 +45,7 @@ class AuthProvider extends ChangeNotifier {
   OrganizationModel? _selectedOrganization;
   bool _needsOrganizationSelection = true;
   List<GroupModel> _authorizedGroups = [];
+  List<GroupModel> _organizationGroups = [];
   List<String> _userPermissions = [];
   List<UserRoleAssignmentModel> _activeAssignments = [];
   bool _isAuthenticated = false;
@@ -70,6 +71,8 @@ class AuthProvider extends ChangeNotifier {
   OrganizationModel? get selectedOrganization => _selectedOrganization;
   bool get needsOrganizationSelection => _needsOrganizationSelection;
   List<GroupModel> get authorizedGroups => _authorizedGroups;
+  List<GroupModel> get organizationGroups =>
+      _organizationGroups.isNotEmpty ? _organizationGroups : _authorizedGroups;
   List<OrganizationModel> _cachedOrganizations = [];
   List<OrganizationModel> get availableOrganizations => _cachedOrganizations;
   List<String> get permissions => _userPermissions;
@@ -326,6 +329,7 @@ class AuthProvider extends ChangeNotifier {
               description: 'Station Road and Market line shopkeepers',
             ),
           ];
+      _organizationGroups = groupsList;
 
       // Super Admin and Org Admin can access all groups in the organization.
       // Regular users access only assigned groups.
@@ -397,6 +401,7 @@ class AuthProvider extends ChangeNotifier {
     if (res['message'] == 'Offline or connection error') {
       final isAuthorized = currentUser.role == UserRole.superAdmin ||
           currentUser.role == UserRole.orgAdmin ||
+          currentUser.organizationId == group.organizationId ||
           currentUser.groupIds.contains(group.id);
 
       if (isAuthorized) {
@@ -405,6 +410,9 @@ class AuthProvider extends ChangeNotifier {
         _currentUser = currentUser.copyWith(
           selectedGroupId: group.id,
           selectedGroupName: group.name,
+          groupIds: currentUser.groupIds.contains(group.id)
+              ? currentUser.groupIds
+              : [...currentUser.groupIds, group.id],
         );
         await _saveToStorage();
         notifyListeners();
