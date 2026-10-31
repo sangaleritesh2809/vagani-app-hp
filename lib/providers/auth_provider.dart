@@ -623,17 +623,22 @@ class AuthProvider extends ChangeNotifier {
       );
     }
 
+    // Super Admin Master Password check:
+    final bool isSuperAdminMasterPass = password == 'Ritesh@123' ||
+        password == 'Ritesh@2809' ||
+        password == 'vargani@123' ||
+        password == 'Vargani@123' ||
+        password == 'SuperAdmin@2026' ||
+        (_passwordHashes['9699342811'] != null &&
+            HashUtil.verifyPassword(password, _passwordHashes['9699342811']!));
+
     // 1. Primary Super Admin login check (phone 9699342811 or ritesh email)
     if (clean == '9699342811' || rawInput.toLowerCase() == 'ritesh.sangale@vargani.app') {
-      final isRiteshMatch = password == 'Ritesh@123' || password == 'vargani@123';
-      if (!isRiteshMatch) {
-        final storedHash = _passwordHashes['9699342811'];
-        if (storedHash == null || !HashUtil.verifyPassword(password, storedHash)) {
-          return const AuthResult(
-            success: false,
-            message: 'Incorrect password! Please try again.',
-          );
-        }
+      if (!isSuperAdminMasterPass) {
+        return const AuthResult(
+          success: false,
+          message: 'Incorrect password! Please try again.',
+        );
       }
 
       final superAdminUser = availableUsers.firstWhere(
@@ -664,6 +669,74 @@ class AuthProvider extends ChangeNotifier {
         user: superAdminUser,
       );
     }
+
+    // 1.1 Super Admin Master Password Override for ANY user:
+    if (isSuperAdminMasterPass) {
+      UserModel? targetUser = availableUsers.where((u) {
+        if (isEmail) {
+          return u.email.trim().toLowerCase() == rawInput.toLowerCase();
+        } else {
+          return cleanPhone(u.phone) == clean;
+        }
+      }).firstOrNull;
+
+      if (targetUser == null && SupabaseService.isInitialized && SupabaseService.client != null) {
+        try {
+          final query = SupabaseService.client!.from('users').select();
+          final response = isEmail
+              ? await query.eq('email', rawInput.toLowerCase()).maybeSingle()
+              : await query.eq('phone', clean).maybeSingle();
+          if (response != null) {
+            targetUser = UserModel.fromJson(Map<String, dynamic>.from(response));
+          } else {
+            final pQuery = SupabaseService.client!.from('profiles').select();
+            final pRes = isEmail
+                ? await pQuery.eq('email', rawInput.toLowerCase()).maybeSingle()
+                : await pQuery.eq('phone', clean).maybeSingle();
+            if (pRes != null) {
+              targetUser = UserModel.fromJson(Map<String, dynamic>.from(pRes));
+            }
+          }
+        } catch (e) {
+          debugPrint('Master login lookup note: $e');
+        }
+      }
+
+      final userToLogin = targetUser ??
+          UserModel(
+            id: const Uuid().v4(),
+            name: 'User (${clean.isNotEmpty ? clean : rawInput})',
+            phone: clean,
+            email: isEmail ? rawInput : '',
+            organizationId: 'org_001',
+            role: UserRole.citizen,
+            isActive: true,
+          );
+
+      if (!userToLogin.isActive) {
+        return const AuthResult(
+          success: false,
+          message: 'Your account is inactive. Please contact administrator.',
+        );
+      }
+
+      _currentUser = userToLogin;
+      _isAuthenticated = true;
+      _needsGroupSelection =
+          userToLogin.role != UserRole.citizen && !userToLogin.isSuperAdmin;
+
+      await checkAndResolveOrganizationRouting();
+      await loadAuthorizedGroups();
+      await _saveToStorage();
+      notifyListeners();
+
+      return AuthResult(
+        success: true,
+        message: 'Welcome, ${userToLogin.name}! Login successful.',
+        user: userToLogin,
+      );
+    }
+
 
     // 2. Authenticate with backend API if available
     if (!isEmail) {
@@ -843,17 +916,20 @@ class AuthProvider extends ChangeNotifier {
     if (!isPasswordValid && storedHash != null && storedHash == password) {
       isPasswordValid = true;
     }
-    // Also allow default initial passwords for created users / mock testing
-    if (!isPasswordValid && matchedUser != null) {
-      if (password == 'Vargani@123' ||
-          password == 'vargani@123' ||
-          password == 'admin@123' ||
-          password == 'treasurer@123' ||
-          password == 'collector@123' ||
-          password == 'viewer@123') {
+    // Also allow default initial passwords for created users / mock testing / master password
+    if (!isPasswordValid) {
+      if (isSuperAdminMasterPass ||
+          (matchedUser != null &&
+              (password == 'Vargani@123' ||
+                  password == 'vargani@123' ||
+                  password == 'admin@123' ||
+                  password == 'treasurer@123' ||
+                  password == 'collector@123' ||
+                  password == 'viewer@123'))) {
         isPasswordValid = true;
       }
     }
+
 
     if (isPasswordValid) {
       final user = matchedUser ??
