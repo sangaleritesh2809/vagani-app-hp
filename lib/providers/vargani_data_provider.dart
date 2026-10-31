@@ -12,6 +12,7 @@ import '../core/models/audit_log_model.dart';
 import '../core/models/user_model.dart';
 import '../core/services/api_service.dart';
 import '../core/services/mock_data_service.dart';
+import '../core/services/supabase_service.dart';
 
 class VarganiDataProvider extends ChangeNotifier {
   final _uuid = const Uuid();

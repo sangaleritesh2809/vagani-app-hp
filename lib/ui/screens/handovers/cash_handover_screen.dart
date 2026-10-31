@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/cash_handover_model.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/services/mock_data_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
@@ -340,83 +342,229 @@ class _CashHandoverScreenState extends State<CashHandoverScreen>
         text: userCashBalance > 0 ? userCashBalance.toStringAsFixed(0) : '');
     final remarksController = TextEditingController();
 
-    final orgTreasurers = auth.availableUsers
-        .where(
-            (u) => u.role == UserRole.treasurer || u.role == UserRole.orgAdmin)
-        .toList();
-    UserModel selectedToUser = orgTreasurers.first;
+    // Safely collect eligible handover receivers without throwing Bad state: No element
+    final seenIds = <String>{auth.currentUser.id};
+    final eligibleReceivers = <UserModel>[];
+
+    // 1. Treasurers, Org Admins, Group Admins, Super Admins from availableUsers
+    for (final u in auth.availableUsers) {
+      if (!seenIds.contains(u.id) &&
+          (u.role == UserRole.treasurer ||
+              u.role == UserRole.orgAdmin ||
+              u.role == UserRole.groupAdmin ||
+              u.role == UserRole.superAdmin)) {
+        seenIds.add(u.id);
+        eligibleReceivers.add(u);
+      }
+    }
+
+    // 2. Any non-citizen user from availableUsers
+    if (eligibleReceivers.isEmpty) {
+      for (final u in auth.availableUsers) {
+        if (!seenIds.contains(u.id) &&
+            u.role != UserRole.citizen &&
+            u.role != UserRole.publicUser) {
+          seenIds.add(u.id);
+          eligibleReceivers.add(u);
+        }
+      }
+    }
+
+    // 3. Mock treasurers / admins
+    if (eligibleReceivers.isEmpty) {
+      for (final u in MockDataService.users) {
+        if (!seenIds.contains(u.id) &&
+            (u.role == UserRole.treasurer ||
+                u.role == UserRole.orgAdmin ||
+                u.role == UserRole.superAdmin)) {
+          seenIds.add(u.id);
+          eligibleReceivers.add(u);
+        }
+      }
+    }
+
+    // 4. Default fallback treasurer so list is guaranteed never empty
+    if (eligibleReceivers.isEmpty) {
+      eligibleReceivers.add(
+        const UserModel(
+          id: 'usr_default_treasurer',
+          name: 'Mandal Treasurer (खजिनदार)',
+          phone: '9850077889',
+          email: 'treasurer@mandal.org',
+          organizationId: 'org_001',
+          role: UserRole.treasurer,
+          accountStatus: 'active',
+          isActive: true,
+        ),
+      );
+    }
+
+    UserModel selectedToUser = eligibleReceivers.first;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Submit Cash Handover'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Handover From: ${auth.currentUser.name} (Current User)',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<UserModel>(
-                  value: selectedToUser,
-                  decoration: const InputDecoration(
-                      label: MandatoryLabel('Handover To (Receiver)')),
-                  items: orgTreasurers.map((u) {
-                    return DropdownMenuItem<UserModel>(
-                      value: u,
-                      child: Text('${u.name} (${u.role.nameString})'),
-                    );
-                  }).toList(),
-                  onChanged: (u) {
-                    if (u != null) setDialogState(() => selectedToUser = u);
-                  },
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    label: MandatoryLabel('Amount (₹)'),
-                    prefixIcon: Icon(Icons.currency_rupee_rounded),
+                child: const Icon(
+                  Icons.arrow_upward_rounded,
+                  color: AppColors.secondary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Submit Cash Handover',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border:
+                          Border.all(color: AppColors.primary.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Handover From: ${auth.currentUser.name} (${auth.currentUser.role.nameString})',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  validator: (v) {
-                    final parsed = double.tryParse(v ?? '');
-                    if (parsed == null || parsed <= 0)
-                      return 'Enter valid amount';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: remarksController,
-                  decoration: const InputDecoration(
-                    labelText: 'Remarks / Handover Note',
-                    hintText: 'e.g. Day 1 collection cash envelope',
+                  const SizedBox(height: 16),
+
+                  // Handover To (Receiver) - Label outside input box
+                  const MandatoryLabel('Handover To (Receiver)'),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<UserModel>(
+                    value: selectedToUser,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.person_rounded),
+                    ),
+                    items: eligibleReceivers.map((u) {
+                      return DropdownMenuItem<UserModel>(
+                        value: u,
+                        child: Text(
+                          '${u.name} (${u.role.nameString})',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (u) {
+                      if (u != null) setDialogState(() => selectedToUser = u);
+                    },
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  // Amount - Label outside input box
+                  const MandatoryLabel('Amount (₹)'),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    decoration: InputDecoration(
+                      hintText: 'Enter amount to handover',
+                      prefixIcon: const Icon(Icons.currency_rupee_rounded),
+                      helperText: userCashBalance > 0
+                          ? 'Available Cash in Hand: ₹${userCashBalance.toStringAsFixed(0)}'
+                          : null,
+                    ),
+                    validator: (v) {
+                      final parsed = double.tryParse((v ?? '').trim());
+                      if (parsed == null || parsed <= 0) {
+                        return 'Please enter valid amount';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Remarks - Label outside input box
+                  const Text(
+                    'Remarks / Handover Note',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: remarksController,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Day 1 collection cash envelope',
+                      prefixIcon: Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 if (formKey.currentState!.validate()) {
+                  final amt = double.parse(amountController.text.trim());
                   data.submitCashHandover(
                     fromUser: auth.currentUser,
                     toUser: selectedToUser,
-                    amount: double.parse(amountController.text.trim()),
+                    amount: amt,
                     remarks: remarksController.text.trim(),
                   );
                   Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Cash handover of ₹${amt.toStringAsFixed(0)} submitted successfully!',
+                      ),
+                      backgroundColor: AppColors.statusPaid,
+                    ),
+                  );
                 }
               },
-              child: const Text('Submit Handover'),
+              child: const Text('Save'),
             ),
           ],
         ),
