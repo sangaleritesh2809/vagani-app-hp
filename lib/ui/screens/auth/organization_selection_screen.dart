@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -112,7 +112,7 @@ class _OrganizationSelectionScreenState
               ),
             ),
             const SizedBox(width: 10),
-            Expanded(
+            const Expanded(
               child: Text(
                 'Select Organization',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -146,61 +146,7 @@ class _OrganizationSelectionScreenState
           constraints: const BoxConstraints(maxWidth: 800),
           child: Column(
             children: [
-              // Header Card
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6A11CB).withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.admin_panel_settings_rounded,
-                          color: Colors.white, size: 32),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome to Super Admin Console',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Please select an organization or committee to manage.',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
+              const SizedBox(height: 16),
               // Search Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -267,7 +213,7 @@ class _OrganizationSelectionScreenState
                                         CircleAvatar(
                                           radius: 26,
                                           backgroundColor: AppColors.primary
-                                              .withValues(alpha: 0.12),
+                                              .withOpacity(0.12),
                                           child: const Icon(
                                               Icons.apartment_rounded,
                                               color: AppColors.primary,
