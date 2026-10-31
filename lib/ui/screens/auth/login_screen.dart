@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -211,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
             email: targetEmail.isNotEmpty ? targetEmail : '$phone@vargani.org',
             maskedEmail: maskedEmail.isNotEmpty ? maskedEmail : 'Mobile: +91 $phone',
             phone: phone,
-            otpType: OtpType.phone,
+            otpType: OtpType.email,
           ),
         ),
       );
