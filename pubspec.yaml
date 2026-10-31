@@ -74,6 +74,9 @@ flutter:
   assets:
     - assets/fonts/
     - assets/images/
+    - assets/images/app_logo.png
+    - assets/images/app_logo_small.png
+    - assets/images/not_found.png
 
   fonts:
     - family: NotoSansDevanagari
@@ -81,3 +84,4 @@ flutter:
         - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
         - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
           weight: 700
+
