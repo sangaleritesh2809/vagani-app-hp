@@ -230,7 +230,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                             );
                           }
                         },
-                        child: const Text('Save Expense'),
+                        child: const Text('Save'),
                       ),
                     ],
                   ),

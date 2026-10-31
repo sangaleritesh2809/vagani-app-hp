@@ -494,7 +494,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ),
                                   ),
 
-                                  // Save Profile Changes Button - Only displayed when editing
+                                  // Save Button - Only displayed when editing
                                   if (_isEditing) ...[
                                     const SizedBox(height: 20),
                                     Row(
@@ -547,7 +547,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                                     size: 18),
                                             label: Text(_isSaving
                                                 ? 'Saving Details...'
-                                                : 'Save Profile Changes'),
+                                                : 'Save'),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor:
                                                   AppColors.primary,

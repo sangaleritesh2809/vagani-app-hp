@@ -3333,7 +3333,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                       },
 
-                child: const Text('Save Group'),
+                child: const Text('Save'),
 
               ),
 

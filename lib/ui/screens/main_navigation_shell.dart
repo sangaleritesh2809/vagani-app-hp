@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/user_model.dart';
@@ -71,6 +71,42 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     StaffDestination.campaigns,
     StaffDestination.settings,
   ];
+
+  bool _hasStaffDestinationAccess(
+      StaffDestination destination, AuthProvider auth) {
+    switch (destination) {
+      case StaffDestination.dashboard:
+        return true;
+      case StaffDestination.households:
+        return auth.hasPermission('households.view');
+      case StaffDestination.receipts:
+        return auth.hasPermission('collections.view');
+      case StaffDestination.handover:
+        return auth.hasPermission('handovers.view');
+      case StaffDestination.expenses:
+        return auth.hasPermission('expenses.view');
+      case StaffDestination.complaints:
+        return auth.hasPermission('complaints.view');
+      case StaffDestination.reports:
+        return auth.hasPermission('reports.view');
+      case StaffDestination.campaigns:
+        return auth.hasPermission('campaigns.view');
+      case StaffDestination.settings:
+        return true;
+    }
+  }
+
+  List<StaffDestination> _getVisibleStaffBottomDestinations(AuthProvider auth) {
+    return _staffBottomDestinations
+        .where((d) => _hasStaffDestinationAccess(d, auth))
+        .toList();
+  }
+
+  List<StaffDestination> _getVisibleStaffRailDestinations(AuthProvider auth) {
+    return _staffRailDestinations
+        .where((d) => _hasStaffDestinationAccess(d, auth))
+        .toList();
+  }
 
   Widget _getStaffScreen(StaffDestination destination, AuthProvider auth) {
     // PBAC Check for Screen Access (Requirement 4)
@@ -175,15 +211,24 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       const SettingsScreen(),
     ];
 
+    final visibleStaffBottom = _getVisibleStaffBottomDestinations(auth);
+    final visibleStaffRail = _getVisibleStaffRailDestinations(auth);
+
+    if (!_hasStaffDestinationAccess(_staffDestination, auth)) {
+      _staffDestination = visibleStaffBottom.isNotEmpty
+          ? visibleStaffBottom.first
+          : StaffDestination.dashboard;
+    }
+
     final currentScreen = isCitizen
         ? citizenScreens[_citizenIndex.clamp(0, citizenScreens.length - 1)]
         : _getStaffScreen(_staffDestination, auth);
 
     final staffBottomIndex =
-        _staffBottomDestinations.indexOf(_staffDestination);
+        visibleStaffBottom.indexOf(_staffDestination);
     final safeStaffBottomIndex = staffBottomIndex >= 0 ? staffBottomIndex : 0;
 
-    final staffRailIndex = _staffRailDestinations.indexOf(_staffDestination);
+    final staffRailIndex = visibleStaffRail.indexOf(_staffDestination);
     final safeStaffRailIndex = staffRailIndex >= 0 ? staffRailIndex : 0;
 
     return Scaffold(
@@ -297,7 +342,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             if (isCitizen) {
                               _citizenIndex = index;
                             } else {
-                              _staffDestination = _staffRailDestinations[index];
+                              _staffDestination = visibleStaffRail[index];
                             }
                           });
                         },
@@ -319,7 +364,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             const TextStyle(color: Colors.grey, fontSize: 11),
                         destinations: isCitizen
                             ? _buildCitizenRailDestinations(lang)
-                            : _buildStaffRailDestinations(lang),
+                            : visibleStaffRail
+                                .map((d) => _buildStaffRailDestination(d, lang))
+                                .toList(),
                       ),
                     ),
                   ),
@@ -340,47 +387,68 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   if (isCitizen) {
                     _citizenIndex = index;
                   } else {
-                    _staffDestination = _staffBottomDestinations[index];
+                    _staffDestination = visibleStaffBottom[index];
                   }
                 });
               },
               items: isCitizen
                   ? _buildCitizenBottomNav(lang)
-                  : _buildStaffBottomNav(lang),
+                  : visibleStaffBottom
+                      .map((d) => _buildStaffBottomNavItem(d, lang))
+                      .toList(),
             ),
     );
   }
 
-  List<NavigationRailDestination> _buildStaffRailDestinations(dynamic lang) {
-    return [
-      NavigationRailDestination(
+  NavigationRailDestination _buildStaffRailDestination(
+      StaffDestination dest, dynamic lang) {
+    switch (dest) {
+      case StaffDestination.dashboard:
+        return NavigationRailDestination(
           icon: const Icon(Icons.dashboard_rounded),
-          label: Text(lang.tr('dashboard'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('dashboard')),
+        );
+      case StaffDestination.households:
+        return NavigationRailDestination(
           icon: const Icon(Icons.home_work_rounded),
-          label: Text(lang.tr('households'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('households')),
+        );
+      case StaffDestination.receipts:
+        return NavigationRailDestination(
           icon: const Icon(Icons.receipt_long_rounded),
-          label: Text(lang.tr('receipts'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('receipts')),
+        );
+      case StaffDestination.handover:
+        return NavigationRailDestination(
           icon: const Icon(Icons.currency_exchange_rounded),
-          label: Text(lang.tr('handover'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('handover')),
+        );
+      case StaffDestination.expenses:
+        return NavigationRailDestination(
           icon: const Icon(Icons.receipt_rounded),
-          label: Text(lang.tr('expenses'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('expenses')),
+        );
+      case StaffDestination.complaints:
+        return NavigationRailDestination(
           icon: const Icon(Icons.support_agent_rounded),
-          label: Text(lang.tr('complaints'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('complaints')),
+        );
+      case StaffDestination.reports:
+        return NavigationRailDestination(
           icon: const Icon(Icons.bar_chart_rounded),
-          label: Text(lang.tr('reportsShort'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('reportsShort')),
+        );
+      case StaffDestination.campaigns:
+        return NavigationRailDestination(
           icon: const Icon(Icons.festival_rounded),
-          label: Text(lang.tr('campaigns'))),
-      NavigationRailDestination(
+          label: Text(lang.tr('campaigns')),
+        );
+      case StaffDestination.settings:
+        return NavigationRailDestination(
           icon: const Icon(Icons.settings_rounded),
-          label: Text(lang.tr('settings'))),
-    ];
+          label: Text(lang.tr('settings')),
+        );
+    }
   }
 
   List<NavigationRailDestination> _buildCitizenRailDestinations(dynamic lang) {
@@ -400,37 +468,55 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     ];
   }
 
-  List<ResponsiveBottomNavItem> _buildStaffBottomNav(dynamic lang) {
-    return [
-      ResponsiveBottomNavItem(
-        icon: Icons.dashboard_rounded,
-        label: lang.tr('dashboard'),
-      ),
-      ResponsiveBottomNavItem(
-        icon: Icons.home_work_rounded,
-        label: lang.tr('households'),
-      ),
-      ResponsiveBottomNavItem(
-        icon: Icons.receipt_long_rounded,
-        label: lang.tr('receipts'),
-      ),
-      ResponsiveBottomNavItem(
-        icon: Icons.currency_exchange_rounded,
-        label: lang.tr('handover'),
-      ),
-      ResponsiveBottomNavItem(
-        icon: Icons.receipt_rounded,
-        label: lang.tr('expenses'),
-      ),
-      ResponsiveBottomNavItem(
-        icon: Icons.bar_chart_rounded,
-        label: lang.tr('reportsShort'),
-      ),
-      ResponsiveBottomNavItem(
-        icon: Icons.settings_rounded,
-        label: lang.tr('settings'),
-      ),
-    ];
+  ResponsiveBottomNavItem _buildStaffBottomNavItem(
+      StaffDestination dest, dynamic lang) {
+    switch (dest) {
+      case StaffDestination.dashboard:
+        return ResponsiveBottomNavItem(
+          icon: Icons.dashboard_rounded,
+          label: lang.tr('dashboard'),
+        );
+      case StaffDestination.households:
+        return ResponsiveBottomNavItem(
+          icon: Icons.home_work_rounded,
+          label: lang.tr('households'),
+        );
+      case StaffDestination.receipts:
+        return ResponsiveBottomNavItem(
+          icon: Icons.receipt_long_rounded,
+          label: lang.tr('receipts'),
+        );
+      case StaffDestination.handover:
+        return ResponsiveBottomNavItem(
+          icon: Icons.currency_exchange_rounded,
+          label: lang.tr('handover'),
+        );
+      case StaffDestination.expenses:
+        return ResponsiveBottomNavItem(
+          icon: Icons.receipt_rounded,
+          label: lang.tr('expenses'),
+        );
+      case StaffDestination.complaints:
+        return ResponsiveBottomNavItem(
+          icon: Icons.support_agent_rounded,
+          label: lang.tr('complaints'),
+        );
+      case StaffDestination.reports:
+        return ResponsiveBottomNavItem(
+          icon: Icons.bar_chart_rounded,
+          label: lang.tr('reportsShort'),
+        );
+      case StaffDestination.campaigns:
+        return ResponsiveBottomNavItem(
+          icon: Icons.festival_rounded,
+          label: lang.tr('campaigns'),
+        );
+      case StaffDestination.settings:
+        return ResponsiveBottomNavItem(
+          icon: Icons.settings_rounded,
+          label: lang.tr('settings'),
+        );
+    }
   }
 
   List<ResponsiveBottomNavItem> _buildCitizenBottomNav(dynamic lang) {

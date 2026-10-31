@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
@@ -17,9 +18,9 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
   final _nameController = TextEditingController();
   final _mobileController = TextEditingController();
   final _areaController = TextEditingController();
-  final _membersController = TextEditingController(text: '4');
+  final _membersController = TextEditingController();
 
-  int _memberCount = 4;
+  int _memberCount = 0;
 
   @override
   void dispose() {
@@ -40,11 +41,12 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
+        constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
           child: Form(
             key: _formKey,
             child: SingleChildScrollView(
@@ -53,15 +55,19 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Register Household (Option A)',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                      const Expanded(
+                        child: Text(
+                          'Register Household',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -90,13 +96,30 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                   TextFormField(
                     controller: _mobileController,
                     keyboardType: TextInputType.phone,
+                    maxLength: 10,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
                     decoration: const InputDecoration(
+                      counterText: '',
                       label: MandatoryLabel('Mobile Number'),
+                      hintText: 'Enter 10-digit mobile number',
                       prefixIcon: Icon(Icons.phone_rounded),
                     ),
-                    validator: (v) => (v == null || v.length < 10)
-                        ? 'Enter valid 10-digit mobile'
-                        : null,
+                    validator: (v) {
+                      final val = (v ?? '').trim();
+                      if (val.isEmpty) {
+                        return 'Please enter 10-digit mobile number';
+                      }
+                      if (val.length != 10) {
+                        return 'Mobile number must be exactly 10 digits';
+                      }
+                      if (!RegExp(r'^[6-9]\d{9}$').hasMatch(val)) {
+                        return 'Must be valid mobile number (starting with 6, 7, 8, or 9)';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 18),
 
@@ -119,18 +142,20 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       label: MandatoryLabel('Family Member Count'),
+                      hintText: 'Enter member count',
                       prefixIcon: Icon(Icons.group_rounded),
                     ),
                     onChanged: (val) {
-                      final parsed = int.tryParse(val) ?? 0;
+                      final parsed = int.tryParse(val.trim()) ?? 0;
                       setState(() {
                         _memberCount = parsed > 0 ? parsed : 0;
                       });
                     },
                     validator: (v) {
-                      final val = int.tryParse(v ?? '');
-                      if (val == null || val <= 0)
-                        return 'Must be positive whole number (BR-02)';
+                      final val = int.tryParse(v?.trim() ?? '');
+                      if (val == null || val <= 0) {
+                        return 'Enter valid count (e.g. 1, 2, 4...)';
+                      }
                       return null;
                     },
                   ),
@@ -138,39 +163,51 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
 
                   // Reactive Calculation Highlight Card (SRS 5.3)
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: isDark
                           ? const Color(0xFF1E293B)
                           : const Color(0xFFFFF7ED),
                       borderRadius: BorderRadius.circular(14),
-                      border:
-                          Border.all(color: AppColors.primary.withOpacity(0.4)),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.4)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
-                          children: [
+                        Row(
+                          children: const [
                             Icon(Icons.calculate_rounded,
                                 color: AppColors.primary, size: 18),
                             SizedBox(width: 8),
-                            Text(
-                              'Auto Expected Vargani Calculation (SRS 5.3)',
-                              style: TextStyle(
+                            Expanded(
+                              child: Text(
+                                'Auto Expected Vargani Calculation',
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
-                                  color: AppColors.primary),
+                                  color: AppColors.primary,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        const SizedBox(height: 10),
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          runAlignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
                           children: [
                             Text(
-                              '$_memberCount members × ₹${rate.toStringAsFixed(0)} / person',
-                              style: const TextStyle(fontSize: 13),
+                              _memberCount > 0
+                                  ? '$_memberCount members × ₹${rate.toStringAsFixed(0)} / person'
+                                  : '0 members × ₹${rate.toStringAsFixed(0)} / person',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             Text(
                               '= ₹${expectedTotal.toStringAsFixed(0)}',
@@ -182,10 +219,10 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         const Text(
                           '* Rate snapshot will be permanently preserved for this household.',
-                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                          style: TextStyle(fontSize: 10.5, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -223,7 +260,15 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                             );
                           }
                         },
-                        child: const Text('Save Household'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('Save'),
                       ),
                     ],
                   ),

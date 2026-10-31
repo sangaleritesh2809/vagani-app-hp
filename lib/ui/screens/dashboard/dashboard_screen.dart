@@ -105,7 +105,8 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Quick Actions Bar (For staff roles)
-            if (auth.currentRole != UserRole.citizen) ...[
+            if (auth.currentRole != UserRole.citizen &&
+                _hasQuickActionPermissions(auth)) ...[
               Text(
                 'Quick Actions',
                 style: TextStyle(
@@ -457,73 +458,93 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  bool _hasQuickActionPermissions(AuthProvider auth) {
+    return auth.hasPermission('households.create') ||
+        auth.hasPermission('collections.create') ||
+        auth.hasPermission('handovers.view') ||
+        auth.hasPermission('handovers.create') ||
+        auth.hasPermission('expenses.create') ||
+        auth.hasPermission('expenses.view');
+  }
+
   Widget _buildQuickActionsRow(
     BuildContext context,
     AuthProvider auth,
     VarganiDataProvider data,
     bool isDark,
   ) {
+    final actions = <Widget>[];
+
+    if (auth.hasPermission('households.create')) {
+      actions.add(_buildActionBtn(
+        context,
+        icon: Icons.person_add_alt_1_rounded,
+        label: 'Add House',
+        color: AppColors.primary,
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (_) => const HouseholdFormDialog(),
+          );
+        },
+      ));
+    }
+
+    if (auth.hasPermission('collections.create')) {
+      actions.add(_buildActionBtn(
+        context,
+        icon: Icons.receipt_long_rounded,
+        label: 'Collect',
+        color: AppColors.statusPaid,
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (_) => const NewCollectionDialog(),
+          );
+        },
+      ));
+    }
+
+    if (auth.hasPermission('handovers.view') ||
+        auth.hasPermission('handovers.create')) {
+      actions.add(_buildActionBtn(
+        context,
+        icon: Icons.currency_exchange_rounded,
+        label: 'Handover',
+        color: AppColors.secondaryLight,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CashHandoverScreen()),
+          );
+        },
+      ));
+    }
+
+    if (auth.hasPermission('expenses.create') ||
+        auth.hasPermission('expenses.view')) {
+      actions.add(_buildActionBtn(
+        context,
+        icon: Icons.receipt_rounded,
+        label: 'Expense',
+        color: Colors.purple,
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (_) => const AddExpenseDialog(),
+          );
+        },
+      ));
+    }
+
+    if (actions.isEmpty) return const SizedBox.shrink();
+
     return Row(
       children: [
-        Expanded(
-          child: _buildActionBtn(
-            context,
-            icon: Icons.person_add_alt_1_rounded,
-            label: 'Add House',
-            color: AppColors.primary,
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => const HouseholdFormDialog(),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildActionBtn(
-            context,
-            icon: Icons.receipt_long_rounded,
-            label: 'Collect',
-            color: AppColors.statusPaid,
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => const NewCollectionDialog(),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildActionBtn(
-            context,
-            icon: Icons.currency_exchange_rounded,
-            label: 'Handover',
-            color: AppColors.secondaryLight,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CashHandoverScreen()),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildActionBtn(
-            context,
-            icon: Icons.receipt_rounded,
-            label: 'Expense',
-            color: Colors.purple,
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => const AddExpenseDialog(),
-              );
-            },
-          ),
-        ),
+        for (int i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(child: actions[i]),
+        ],
       ],
     );
   }
