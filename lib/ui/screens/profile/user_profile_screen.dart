@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -105,7 +105,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     final auth = context.read<AuthProvider>();
     final ok = await auth.updateUserProfile(
-      name: _nameCtrl.text.trim(),
+      name: _nameCtrl.text.trim().isNotEmpty
+          ? _nameCtrl.text.trim()
+          : auth.currentUser.name,
       phone: last10,
       email: _emailCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
@@ -274,61 +276,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 6),
                                   Text(
-                                    user.phone,
-                                    style: TextStyle(
+                                    user.role.nameString,
+                                    style: const TextStyle(
                                       fontSize: 14,
-                                      color: isDark
-                                          ? Colors.grey.shade400
-                                          : Colors.grey.shade600,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 6,
-                                    alignment: WrapAlignment.center,
-                                    children: [
-                                      Chip(
-                                        avatar: const Icon(
-                                          Icons.verified_user_rounded,
-                                          size: 16,
-                                          color: Colors.white,
-                                        ),
-                                        label: Text(
-                                          user.role.nameString.toUpperCase(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                        backgroundColor: AppColors.primary,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 4),
-                                      ),
-                                      Chip(
-                                        avatar: const Icon(
-                                          Icons.check_circle_rounded,
-                                          size: 16,
-                                          color: Colors.green,
-                                        ),
-                                        label: Text(
-                                          user.isActive
-                                              ? 'Active Account'
-                                              : 'Inactive',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                        backgroundColor:
-                                            Colors.green.withValues(alpha: 0.12),
-                                        side: BorderSide(
-                                            color: Colors.green.shade300),
-                                      ),
-                                    ],
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
@@ -423,33 +379,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ],
                                   ),
                                   const Divider(height: 24),
-
-                                  // Full Name
-                                  MandatoryLabel('Full Name',
-                                      isRequired: _isEditing),
-                                  const SizedBox(height: 6),
-                                  TextFormField(
-                                    controller: _nameCtrl,
-                                    readOnly: !_isEditing,
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter your full name',
-                                      prefixIcon: const Icon(
-                                          Icons.person_rounded,
-                                          size: 20),
-                                      filled: !_isEditing,
-                                      fillColor: !_isEditing
-                                          ? (isDark
-                                              ? Colors.grey.shade900
-                                              : const Color(0xFFF8FAFC))
-                                          : null,
-                                    ),
-                                    validator: (v) =>
-                                        (v == null || v.trim().isEmpty)
-                                            ? 'Full name is required'
-                                            : null,
-                                  ),
-
-                                  const SizedBox(height: 14),
 
                                   // Mobile Number (Editable when _isEditing)
                                   MandatoryLabel('Mobile Number',
