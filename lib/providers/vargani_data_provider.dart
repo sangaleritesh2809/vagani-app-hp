@@ -194,6 +194,10 @@ class VarganiDataProvider extends ChangeNotifier {
     return ['All', ...areas];
   }
 
+  String get householdSearchQuery => _householdSearchQuery;
+  String get selectedAreaFilter => _selectedAreaFilter;
+  PaymentStatus? get selectedStatusFilter => _selectedStatusFilter;
+
   void setHouseholdSearch(String query) {
     _householdSearchQuery = query;
     notifyListeners();

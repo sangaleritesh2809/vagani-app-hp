@@ -40,11 +40,68 @@ class HouseholdListScreen extends StatelessWidget {
               children: [
                 TextField(
                   onChanged: (val) => data.setHouseholdSearch(val),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search by family head, area, or phone...',
-                    prefixIcon: Icon(Icons.search_rounded),
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PopupMenuButton<String>(
+                          icon: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: data.selectedAreaFilter != 'All'
+                                  ? AppColors.primary.withValues(alpha: 0.15)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.filter_alt_rounded,
+                              size: 20,
+                              color: data.selectedAreaFilter != 'All'
+                                  ? AppColors.primary
+                                  : Colors.grey,
+                            ),
+                          ),
+                          tooltip: 'Filter by Area',
+                          onSelected: (area) => data.setAreaFilter(area),
+                          itemBuilder: (context) => data.availableAreas.map((area) {
+                            final isSel = data.selectedAreaFilter == area;
+                            return PopupMenuItem<String>(
+                              value: area,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    area == 'All'
+                                        ? Icons.all_inclusive_rounded
+                                        : Icons.location_on_outlined,
+                                    size: 16,
+                                    color: isSel ? AppColors.primary : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      area == 'All' ? 'All Areas' : area,
+                                      style: TextStyle(
+                                        fontWeight: isSel
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: isSel ? AppColors.primary : null,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSel)
+                                    const Icon(Icons.check_rounded,
+                                        size: 16, color: AppColors.primary),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                     contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -57,14 +114,15 @@ class HouseholdListScreen extends StatelessWidget {
                       _buildFilterChip(
                         context,
                         label: 'All',
-                        isSelected: true, // or match logic
+                        isSelected: data.selectedStatusFilter == null,
                         onTap: () => data.setStatusFilter(null),
                       ),
                       const SizedBox(width: 8),
                       _buildFilterChip(
                         context,
                         label: 'Pending',
-                        isSelected: false,
+                        isSelected:
+                            data.selectedStatusFilter == PaymentStatus.pending,
                         color: AppColors.statusPending,
                         onTap: () =>
                             data.setStatusFilter(PaymentStatus.pending),
@@ -73,7 +131,8 @@ class HouseholdListScreen extends StatelessWidget {
                       _buildFilterChip(
                         context,
                         label: 'Partially Paid',
-                        isSelected: false,
+                        isSelected: data.selectedStatusFilter ==
+                            PaymentStatus.partiallyPaid,
                         color: AppColors.statusPartiallyPaid,
                         onTap: () =>
                             data.setStatusFilter(PaymentStatus.partiallyPaid),
@@ -82,7 +141,8 @@ class HouseholdListScreen extends StatelessWidget {
                       _buildFilterChip(
                         context,
                         label: 'Paid',
-                        isSelected: false,
+                        isSelected:
+                            data.selectedStatusFilter == PaymentStatus.paid,
                         color: AppColors.statusPaid,
                         onTap: () => data.setStatusFilter(PaymentStatus.paid),
                       ),
@@ -144,23 +204,36 @@ class HouseholdListScreen extends StatelessWidget {
     Color? color,
     required VoidCallback onTap,
   }) {
+    final chipColor = color ?? AppColors.primary;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: (color ?? AppColors.primary).withOpacity(0.12),
+          color: isSelected ? chipColor : chipColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border:
-              Border.all(color: (color ?? AppColors.primary).withOpacity(0.3)),
+          border: Border.all(
+            color: isSelected ? chipColor : chipColor.withValues(alpha: 0.35),
+            width: isSelected ? 1.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: chipColor.withValues(alpha: 0.28),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: color ?? AppColors.primary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.white : chipColor,
           ),
         ),
       ),

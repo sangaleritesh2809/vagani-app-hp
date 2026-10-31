@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -50,16 +53,35 @@ class FinancialReportsScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    if (data.households.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No household data available to export.'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
                     final csvData = data.generateHouseholdsCsv();
-                    Clipboard.setData(ClipboardData(text: csvData));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Household & Collection CSV data copied to clipboard! (SRS 11)'),
-                        backgroundColor: AppColors.statusPaid,
-                      ),
+                    final bytes = Uint8List.fromList(utf8.encode(csvData));
+                    final campaignName = data.currentCampaign.name.replaceAll(' ', '_');
+                    final fileName = 'vargani_${campaignName}_report.csv';
+
+                    await Printing.sharePdf(
+                      bytes: bytes,
+                      filename: fileName,
                     );
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('CSV file "$fileName" ready for download/share!'),
+                          backgroundColor: AppColors.statusPaid,
+                        ),
+                      );
+                    }
                   },
                   icon: const Icon(Icons.download_rounded, size: 16),
                   label: const Text('Export CSV'),
