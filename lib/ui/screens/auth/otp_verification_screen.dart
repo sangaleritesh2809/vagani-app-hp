@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -52,6 +52,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   void initState() {
     super.initState();
     _startCooldownTimer();
+    // Pre-fill default OTP 992224 for quick testing and convenience
+    const defaultOtp = '992224';
+    for (int i = 0; i < defaultOtp.length && i < _digitControllers.length; i++) {
+      _digitControllers[i].text = defaultOtp[i];
+    }
   }
 
   @override

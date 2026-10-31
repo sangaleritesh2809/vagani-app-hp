@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../core/models/organization_model.dart';
 import '../core/models/campaign_model.dart';

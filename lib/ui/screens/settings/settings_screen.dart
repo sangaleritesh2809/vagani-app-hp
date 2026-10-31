@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
@@ -133,13 +133,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Organization Status Card matching user reference design
-          OrganizationStatusCard(
-            margin: EdgeInsets.zero,
-            organization: auth.selectedOrganization ?? data.organization,
-            organizationCount: auth.availableOrganizations.length,
-          ),
-          const SizedBox(height: 16),
+
 
           // Administration & PBAC Management (Rules 1, 2, 3, 4, 5)
           if (!auth.isCitizen) ...[
@@ -359,22 +353,7 @@ class SettingsScreen extends StatelessWidget {
                     onTap: () =>
                         _showLanguageSelectionSheet(context, langTheme),
                   ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.pin_rounded,
-                        color: AppColors.secondary),
-                    title: Text(langTheme.tr('marathiNumerals')),
-                    subtitle: Text(
-                      langTheme.useMarathiNumerals
-                          ? langTheme.tr('marathiNumeralsSubtitle')
-                          : langTheme.tr('englishNumeralsSubtitle'),
-                    ),
-                    trailing: Switch(
-                      value: langTheme.useMarathiNumerals,
-                      activeColor: AppColors.primary,
-                      onChanged: (val) => langTheme.setUseMarathiNumerals(val),
-                    ),
-                  ),
+
                   const Divider(height: 1),
                   ListTile(
                     leading: Icon(

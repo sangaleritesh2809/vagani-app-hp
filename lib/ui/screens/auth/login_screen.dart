@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -197,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('OTP sent successfully to $maskedEmail'),
+          content: Text('OTP sent successfully to $maskedEmail (Default OTP: 992224)'),
           backgroundColor: AppColors.statusPaid,
           behavior: SnackBarBehavior.floating,
         ),
@@ -253,7 +253,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('OTP sent successfully to $masked'),
+          content: Text('OTP sent successfully to $masked (Default OTP: 992224)'),
           backgroundColor: AppColors.statusPaid,
           behavior: SnackBarBehavior.floating,
         ),
@@ -833,8 +833,6 @@ class _LoginScreenState extends State<LoginScreen> {
           onChanged: (_) {
             if (_passwordError != null) {
               setState(() => _passwordError = null);
-            } else {
-              setState(() {}); // refresh to toggle clear button
             }
           },
           decoration: InputDecoration(
@@ -849,34 +847,15 @@ class _LoginScreenState extends State<LoginScreen> {
             filled: true,
             fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_passwordController.text.isNotEmpty)
-                  IconButton(
-                    tooltip: 'Clear password',
-                    icon: const Icon(Icons.cancel_rounded,
-                        size: 20, color: Colors.grey),
-                    onPressed: () {
-                      _passwordController.clear();
-                      if (_passwordError != null) {
-                        setState(() => _passwordError = null);
-                      } else {
-                        setState(() {});
-                      }
-                    },
-                  ),
-                IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.remove_red_eye
-                        : Icons.visibility_off,
-                    size: 20,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                ),
-              ],
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.remove_red_eye
+                    : Icons.visibility_off,
+                size: 20,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
         ),

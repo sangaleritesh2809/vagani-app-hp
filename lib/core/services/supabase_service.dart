@@ -665,17 +665,28 @@ class SupabaseService {
 
       final list = (res as List).map((row) {
         final map = Map<String, dynamic>.from(row as Map);
-        List<String> perms = [];
+        final Set<String> perms = {};
+        // 1. Direct array in roles.permissions column
+        if (map['permissions'] is List) {
+          for (final p in (map['permissions'] as List)) {
+            if (p != null && p.toString().trim().isNotEmpty) {
+              perms.add(p.toString().trim());
+            }
+          }
+        }
+        // 2. From role_permissions join
         if (map['role_permissions'] is List) {
           for (final rp in (map['role_permissions'] as List)) {
             if (rp is Map && rp['permissions'] is Map) {
               final key =
                   (rp['permissions'] as Map)['permission_key']?.toString();
-              if (key != null) perms.add(key);
+              if (key != null && key.trim().isNotEmpty) {
+                perms.add(key.trim());
+              }
             }
           }
         }
-        map['permissions'] = perms;
+        map['permissions'] = perms.toList();
         return RoleModel.fromJson(map);
       }).toList();
       return list.isNotEmpty
@@ -712,22 +723,24 @@ class SupabaseService {
     if (c == null) return true;
     try {
       final json = role.toJson();
-      json.remove('permissions');
       json.remove('user_count');
       if (!RegExp(
               r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
           .hasMatch(role.id)) {
         json.remove('id');
       }
-      final inserted = await c.from('roles').insert(json).select().single();
+
+      // Upsert into roles table with full permissions array
+      final inserted = await c.from('roles').upsert(
+        json,
+        onConflict: 'code',
+      ).select().single();
       final newRoleId = inserted['id']?.toString() ?? role.id;
 
-      if (role.permissions.isNotEmpty) {
-        await updateRolePermissions(newRoleId, role.permissions);
-      }
+      await updateRolePermissions(newRoleId, role.permissions);
 
       await insertAuditLog(
-        action: 'CREATE_ROLE',
+        action: 'SAVE_ROLE',
         resourceType: 'Role',
         resourceId: newRoleId,
         organizationId: role.organizationId,
@@ -741,8 +754,8 @@ class SupabaseService {
       );
       return true;
     } catch (e) {
-      debugPrint('Supabase insertRole error: $e');
-      return true;
+      debugPrint('Supabase insertRole error: $e. Falling back to updateRole.');
+      return updateRole(role, actorId: actorId);
     }
   }
 
@@ -751,22 +764,39 @@ class SupabaseService {
     final c = client;
     if (c == null) return true;
     try {
-      await c.from('roles').update({
+      final updateData = {
         'name': role.name,
         'description': role.description,
         'scope_type': role.scopeType,
         'is_active': role.isActive,
         'organization_id': role.organizationId,
         'group_id': role.groupId,
+        'permissions': role.permissions,
         'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', role.id);
+      };
 
-      await updateRolePermissions(role.id, role.permissions);
+      String? targetId = role.id;
+      if (RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(role.id)) {
+        await c.from('roles').update(updateData).eq('id', role.id);
+      } else {
+        final existing = await c
+            .from('roles')
+            .update(updateData)
+            .or('code.eq.${role.code},role_key.eq.${role.code}')
+            .select('id');
+        if ((existing as List).isNotEmpty) {
+          targetId = existing.first['id']?.toString() ?? role.id;
+        }
+      }
+
+      if (targetId != null && RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(targetId)) {
+        await updateRolePermissions(targetId, role.permissions);
+      }
 
       await insertAuditLog(
         action: 'UPDATE_ROLE',
         resourceType: 'Role',
-        resourceId: role.id,
+        resourceId: targetId ?? role.id,
         organizationId: role.organizationId,
         metadata: {
           'name': role.name,
@@ -778,7 +808,7 @@ class SupabaseService {
       return true;
     } catch (e) {
       debugPrint('Supabase updateRole error: $e');
-      return true;
+      return false;
     }
   }
 
@@ -814,18 +844,49 @@ class SupabaseService {
       // 1. Delete existing
       await c.from('role_permissions').delete().eq('role_id', roleId);
 
-      // 2. Resolve permission IDs
+      if (permissionKeys.isEmpty) return true;
+
+      // 2. Resolve permission IDs using inFilter
       final perms = await c
           .from('permissions')
           .select('id, permission_key')
-          .filter('permission_key', 'in', permissionKeys);
+          .inFilter('permission_key', permissionKeys);
+      final existingKeys = <String>{};
       final List<Map<String, dynamic>> records = [];
       for (final p in (perms as List)) {
-        records.add({
-          'role_id': roleId,
-          'permission_id': p['id'],
-        });
+        final k = p['permission_key']?.toString();
+        if (k != null) {
+          existingKeys.add(k);
+          records.add({
+            'role_id': roleId,
+            'permission_id': p['id'],
+          });
+        }
       }
+
+      // If any permission key is not yet registered in permissions catalog, add it dynamically
+      final missingKeys = permissionKeys
+          .where((k) => !existingKeys.contains(k) && k != '*')
+          .toList();
+      for (final mk in missingKeys) {
+        final parts = mk.split('.');
+        final mod = parts.isNotEmpty ? parts[0] : 'general';
+        final act = parts.length > 1 ? parts[1] : 'view';
+        try {
+          final ins = await c.from('permissions').insert({
+            'permission_key': mk,
+            'code': mk,
+            'module': mod,
+            'action': act,
+            'description': '$act action for $mod',
+          }).select('id, permission_key').single();
+          records.add({
+            'role_id': roleId,
+            'permission_id': ins['id'],
+          });
+        } catch (_) {}
+      }
+
       if (records.isNotEmpty) {
         await c.from('role_permissions').insert(records);
       }

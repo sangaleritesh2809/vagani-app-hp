@@ -233,11 +233,12 @@ class _ModulePermissionMatrixWidgetState
                       .map((a) => m.permissionKey(a))
                       .toSet();
                   final moduleSelectedCount = allModulePerms
-                      .where((p) => widget.selectedPermissions.contains(p))
+                      .where((p) => _isPermChecked(widget.selectedPermissions, p))
                       .length;
                   final isModuleFullySelected =
-                      moduleSelectedCount == allModulePerms.length &&
-                          allModulePerms.isNotEmpty;
+                      widget.selectedPermissions.contains('*') ||
+                      (moduleSelectedCount == allModulePerms.length &&
+                          allModulePerms.isNotEmpty);
 
                   return DataRow(
                     cells: [
@@ -314,8 +315,7 @@ class _ModulePermissionMatrixWidgetState
 
                         final permKey = m.permissionKey(action);
                         final isChecked =
-                            widget.selectedPermissions.contains(permKey) ||
-                                widget.selectedPermissions.contains('*');
+                            _isPermChecked(widget.selectedPermissions, permKey);
 
                         return DataCell(
                           Center(
@@ -330,11 +330,9 @@ class _ModulePermissionMatrixWidgetState
                                       final updated = Set<String>.from(
                                           widget.selectedPermissions);
                                       if (val == true) {
-                                        updated.add(permKey);
+                                        _addPermWithAliases(updated, permKey);
                                       } else {
-                                        updated.remove(permKey);
-                                        updated.remove(
-                                            '*'); // remove wildcard if manually unchecking
+                                        _removePermWithAliases(updated, permKey);
                                       }
                                       widget.onPermissionsChanged(updated);
                                     },
@@ -367,12 +365,75 @@ class _ModulePermissionMatrixWidgetState
     for (final action in module.applicableActions) {
       final key = module.permissionKey(action);
       if (selectAll) {
-        updated.add(key);
+        _addPermWithAliases(updated, key);
       } else {
-        updated.remove(key);
-        updated.remove('*');
+        _removePermWithAliases(updated, key);
       }
     }
     widget.onPermissionsChanged(updated);
+  }
+
+  bool _isPermChecked(Set<String> perms, String key) {
+    if (perms.contains('*') || perms.contains(key)) return true;
+    final singular = key
+        .replaceAll('collections.', 'collection.')
+        .replaceAll('expenses.', 'expense.')
+        .replaceAll('receipts.', 'receipt.')
+        .replaceAll('complaints.', 'complaint.')
+        .replaceAll('campaigns.', 'campaign.')
+        .replaceAll('organizations.', 'organization.')
+        .replaceAll('groups.', 'group.')
+        .replaceAll('users.', 'user.')
+        .replaceAll('roles.', 'role.');
+    if (perms.contains(singular)) return true;
+    final plural = key
+        .replaceAll('collection.', 'collections.')
+        .replaceAll('expense.', 'expenses.')
+        .replaceAll('receipt.', 'receipts.')
+        .replaceAll('complaint.', 'complaints.')
+        .replaceAll('campaign.', 'campaigns.')
+        .replaceAll('organization.', 'organizations.')
+        .replaceAll('group.', 'groups.')
+        .replaceAll('user.', 'users.')
+        .replaceAll('role.', 'roles.');
+    if (perms.contains(plural)) return true;
+    return false;
+  }
+
+  void _addPermWithAliases(Set<String> target, String key) {
+    target.add(key);
+    final s = key
+        .replaceAll('collections.', 'collection.')
+        .replaceAll('expenses.', 'expense.')
+        .replaceAll('receipts.', 'receipt.')
+        .replaceAll('complaints.', 'complaint.')
+        .replaceAll('campaigns.', 'campaign.');
+    final p = key
+        .replaceAll('collection.', 'collections.')
+        .replaceAll('expense.', 'expenses.')
+        .replaceAll('receipt.', 'receipts.')
+        .replaceAll('complaint.', 'complaints.')
+        .replaceAll('campaign.', 'campaigns.');
+    target.add(s);
+    target.add(p);
+  }
+
+  void _removePermWithAliases(Set<String> target, String key) {
+    target.remove('*');
+    target.remove(key);
+    final s = key
+        .replaceAll('collections.', 'collection.')
+        .replaceAll('expenses.', 'expense.')
+        .replaceAll('receipts.', 'receipt.')
+        .replaceAll('complaints.', 'complaint.')
+        .replaceAll('campaigns.', 'campaign.');
+    final p = key
+        .replaceAll('collection.', 'collections.')
+        .replaceAll('expense.', 'expenses.')
+        .replaceAll('receipt.', 'receipts.')
+        .replaceAll('complaint.', 'complaints.')
+        .replaceAll('campaign.', 'campaigns.');
+    target.remove(s);
+    target.remove(p);
   }
 }

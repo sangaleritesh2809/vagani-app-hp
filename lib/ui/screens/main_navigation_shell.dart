@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/user_model.dart';
@@ -240,158 +240,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             ),
           ],
         ),
-        actions: [
-          // Active Group Selector / Manual Selection (Dashboard -> User manually selects a Group when required)
-          if (!isCitizen) ...[
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const GroupSelectionScreen()),
-                );
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.groups_rounded,
-                        size: 15, color: AppColors.primary),
-                    const SizedBox(width: 5),
-                    Text(
-                      auth.selectedGroup != null
-                          ? auth.selectedGroup!.code
-                          : 'Select Group',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary),
-                    ),
-                    const Icon(Icons.arrow_drop_down_rounded,
-                        size: 16, color: AppColors.primary),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-          ],
-          // Language Switcher in AppBar (Marathi / English / Hindi)
-          PopupMenuButton<String>(
-            tooltip: lang.tr('language'),
-            offset: const Offset(0, 45),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            icon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.35)),
-                borderRadius: BorderRadius.circular(8),
-                color: AppColors.primary.withValues(alpha: 0.08),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.translate_rounded,
-                      size: 14, color: AppColors.primary),
-                  const SizedBox(width: 4),
-                  Text(
-                    langTheme.languageCode == 'mr'
-                        ? 'MR'
-                        : (langTheme.languageCode == 'hi' ? 'HI' : 'EN'),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const Icon(Icons.arrow_drop_down_rounded,
-                      size: 16, color: AppColors.primary),
-                ],
-              ),
-            ),
-            onSelected: (String code) => langTheme.setLanguage(code),
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem(
-                value: 'en',
-                child: Row(
-                  children: [
-                    const Text('🌐 English'),
-                    if (langTheme.languageCode == 'en') ...[
-                      const Spacer(),
-                      const Icon(Icons.check_rounded,
-                          color: AppColors.primary, size: 18),
-                    ],
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'mr',
-                child: Row(
-                  children: [
-                    const Text('🚩 Marathi'),
-                    if (langTheme.languageCode == 'mr') ...[
-                      const Spacer(),
-                      const Icon(Icons.check_rounded,
-                          color: AppColors.primary, size: 18),
-                    ],
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'hi',
-                child: Row(
-                  children: [
-                    const Text('🇮🇳 Hindi'),
-                    if (langTheme.languageCode == 'hi') ...[
-                      const Spacer(),
-                      const Icon(Icons.check_rounded,
-                          color: AppColors.primary, size: 18),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
 
-          // Quick Transparency Portal shortcut for staff
-          if (!isCitizen)
-            TextButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      appBar: AppBar(
-                          title:
-                              const Text('Public Transparency Portal Preview')),
-                      body: const PublicTransparencyView(),
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.visibility_rounded,
-                  size: 16, color: AppColors.primary),
-              label: const Text('Public View',
-                  style: TextStyle(color: AppColors.primary, fontSize: 12)),
-            ),
-          const SizedBox(width: 8),
-        ],
       ),
       drawer: _buildDrawer(context, auth, data, langTheme, isDark),
       body: Column(
         children: [
-          const RoleSwitchHeader(),
           if (data.hasError)
             Container(
               width: double.infinity,
@@ -616,59 +469,92 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       child: Column(
         children: [
           // Drawer Header with User Profile info
-          UserAccountsDrawerHeader(
+          Container(
+            padding: EdgeInsets.fromLTRB(
+                16, MediaQuery.of(context).padding.top + 16, 16, 16),
             decoration: const BoxDecoration(
               gradient: AppColors.primaryGradient,
             ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                user.name.isNotEmpty
-                    ? user.name.substring(0, 1).toUpperCase()
-                    : 'U',
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            otherAccountsPictures: [
-              CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Image.asset(
-                    'assets/images/app_logo_small.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ],
-            accountName: Text(
-              user.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            accountEmail: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (user.phone.isNotEmpty)
-                  Text(
-                    user.phone,
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    user.name.isNotEmpty
+                        ? user.name.substring(0, 1).toUpperCase()
+                        : 'U',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
-                if (user.email.isNotEmpty)
-                  Text(
-                    user.email,
-                    style: const TextStyle(fontSize: 11, color: Colors.white70),
-                    overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        user.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          auth.currentRole.nameString,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: Image.asset(
+                      'assets/images/app_logo_small.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

