@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/household_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import '../../widgets/mandatory_label.dart';
 
 class HouseholdFormDialog extends StatefulWidget {
-  const HouseholdFormDialog({super.key});
+  final HouseholdModel? householdToEdit;
+
+  const HouseholdFormDialog({super.key, this.householdToEdit});
 
   @override
   State<HouseholdFormDialog> createState() => _HouseholdFormDialogState();
@@ -15,12 +18,26 @@ class HouseholdFormDialog extends StatefulWidget {
 
 class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _mobileController = TextEditingController();
-  final _areaController = TextEditingController();
-  final _membersController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _mobileController;
+  late final TextEditingController _areaController;
+  late final TextEditingController _membersController;
 
-  int _memberCount = 0;
+  late int _memberCount;
+
+  bool get _isEdit => widget.householdToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final h = widget.householdToEdit;
+    _nameController = TextEditingController(text: h?.headOfFamilyName ?? '');
+    _mobileController = TextEditingController(text: h?.mobileNumber ?? '');
+    _areaController = TextEditingController(text: h?.villageArea ?? '');
+    _membersController = TextEditingController(
+        text: h != null ? h.familyMemberCount.toString() : '');
+    _memberCount = h?.familyMemberCount ?? 0;
+  }
 
   @override
   void dispose() {
@@ -36,7 +53,9 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
     final campaign = data.currentCampaign;
-    final rate = campaign.perPersonRate;
+    final rate = _isEdit
+        ? widget.householdToEdit!.perPersonRateSnapshot
+        : campaign.perPersonRate;
     final expectedTotal = _memberCount * rate;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -56,10 +75,10 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Register Household',
-                          style: TextStyle(
+                          _isEdit ? 'Edit Household' : 'Register Household',
+                          style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -80,19 +99,23 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                   const SizedBox(height: 16),
 
                   // Head of Family Name
+                  const MandatoryLabel('Head of Family Name'),
+                  const SizedBox(height: 6),
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
-                      label: MandatoryLabel('Head of Family Name'),
+                      hintText: 'Enter head of family name',
                       prefixIcon: Icon(Icons.person_rounded),
                     ),
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? 'Please enter head of family name'
                         : null,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
                   // Mobile Number
+                  const MandatoryLabel('Mobile Number'),
+                  const SizedBox(height: 6),
                   TextFormField(
                     controller: _mobileController,
                     keyboardType: TextInputType.phone,
@@ -103,7 +126,6 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                     ],
                     decoration: const InputDecoration(
                       counterText: '',
-                      label: MandatoryLabel('Mobile Number'),
                       hintText: 'Enter 10-digit mobile number',
                       prefixIcon: Icon(Icons.phone_rounded),
                     ),
@@ -121,28 +143,31 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
                   // Village / Area / Ward
+                  const MandatoryLabel('Village / Ward / Area'),
+                  const SizedBox(height: 6),
                   TextFormField(
                     controller: _areaController,
                     decoration: const InputDecoration(
-                      label: MandatoryLabel('Village / Ward / Area'),
+                      hintText: 'Enter village, ward or area',
                       prefixIcon: Icon(Icons.location_on_rounded),
                     ),
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? 'Enter area or lane'
                         : null,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
                   // Family Member Count (Reactive auto-calculation SRS 5.3)
+                  const MandatoryLabel('Family Member Count'),
+                  const SizedBox(height: 6),
                   TextFormField(
                     controller: _membersController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      label: MandatoryLabel('Family Member Count'),
-                      hintText: 'Enter member count',
+                      hintText: 'Enter total family members',
                       prefixIcon: Icon(Icons.group_rounded),
                     ),
                     onChanged: (val) {
@@ -242,22 +267,46 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                       ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            data.registerHousehold(
-                              headOfFamilyName: _nameController.text.trim(),
-                              mobileNumber: _mobileController.text.trim(),
-                              villageArea: _areaController.text.trim(),
-                              familyMemberCount: _memberCount,
-                              currentUser: auth.currentUser,
-                            );
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Registered ${_nameController.text.trim()}! Expected: ₹${expectedTotal.toStringAsFixed(0)}',
+                            if (_isEdit) {
+                              final ok = data.updateHousehold(
+                                id: widget.householdToEdit!.id,
+                                headOfFamilyName: _nameController.text.trim(),
+                                mobileNumber: _mobileController.text.trim(),
+                                villageArea: _areaController.text.trim(),
+                                familyMemberCount: _memberCount,
+                                currentUser: auth.currentUser,
+                              );
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    ok
+                                        ? 'Updated ${_nameController.text.trim()}! Expected: ₹${expectedTotal.toStringAsFixed(0)}'
+                                        : 'Failed to update: only pending households can be edited.',
+                                  ),
+                                  backgroundColor: ok
+                                      ? AppColors.statusPaid
+                                      : Colors.redAccent,
                                 ),
-                                backgroundColor: AppColors.statusPaid,
-                              ),
-                            );
+                              );
+                            } else {
+                              data.registerHousehold(
+                                headOfFamilyName: _nameController.text.trim(),
+                                mobileNumber: _mobileController.text.trim(),
+                                villageArea: _areaController.text.trim(),
+                                familyMemberCount: _memberCount,
+                                currentUser: auth.currentUser,
+                              );
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Registered ${_nameController.text.trim()}! Expected: ₹${expectedTotal.toStringAsFixed(0)}',
+                                  ),
+                                  backgroundColor: AppColors.statusPaid,
+                                ),
+                              );
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(

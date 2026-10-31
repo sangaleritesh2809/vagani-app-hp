@@ -5,6 +5,7 @@ import '../../../core/models/payment_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/empty_state_widget.dart';
 import 'receipt_detail_dialog.dart';
 import 'new_collection_dialog.dart';
 
@@ -61,7 +62,23 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           ),
           Expanded(
             child: receipts.isEmpty
-                ? const Center(child: Text('No receipts found'))
+                ? EmptyStateWidget(
+                    title: 'No receipts found',
+                    subtitle:
+                        'No receipts have been issued matching this search. Use the New Receipt button to record collections.',
+                    imageAsset: 'assets/images/not_found.png',
+                    actionText: (auth.isCitizen || auth.isPublicUser || !auth.canCollectVargani)
+                        ? null
+                        : 'New Receipt',
+                    onAction: (auth.isCitizen || auth.isPublicUser || !auth.canCollectVargani)
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => const NewCollectionDialog(),
+                            );
+                          },
+                  )
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: receipts.length,

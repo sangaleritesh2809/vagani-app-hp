@@ -6,6 +6,7 @@ import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
+import '../../widgets/empty_state_widget.dart';
 import 'add_expense_dialog.dart';
 
 class ExpenseListScreen extends StatelessWidget {
@@ -92,8 +93,23 @@ class ExpenseListScreen extends StatelessWidget {
           // Expense Items List
           Expanded(
             child: data.expenses.isEmpty
-                ? const Center(
-                    child: Text('No expenses recorded for this campaign'))
+                ? EmptyStateWidget(
+                    title: 'No expenses recorded',
+                    subtitle:
+                        'No expenditure has been logged for this campaign yet.',
+                    imageAsset: 'assets/images/not_found.png',
+                    actionText: auth.currentRole != UserRole.citizen
+                        ? 'Add Expense'
+                        : null,
+                    onAction: auth.currentRole != UserRole.citizen
+                        ? () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => const AddExpenseDialog(),
+                            );
+                          }
+                        : null,
+                  )
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: data.expenses.length,

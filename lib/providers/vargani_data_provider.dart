@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../core/models/organization_model.dart';
 import '../core/models/campaign_model.dart';
@@ -392,6 +392,62 @@ class VarganiDataProvider extends ChangeNotifier {
         }
       }
     }).ignore();
+  }
+
+  // Update Household (Only allowed when status is pending / amountReceived == 0)
+  bool updateHousehold({
+    required String id,
+    required String headOfFamilyName,
+    required String mobileNumber,
+    required String villageArea,
+    required int familyMemberCount,
+    required UserModel currentUser,
+  }) {
+    final idx = _households.indexWhere((h) => h.id == id);
+    if (idx == -1) return false;
+
+    final existing = _households[idx];
+    if (existing.paymentStatus != PaymentStatus.pending || existing.amountReceived > 0) {
+      return false; // Only pending households can be edited
+    }
+
+    final updated = existing.copyWith(
+      headOfFamilyName: headOfFamilyName,
+      mobileNumber: mobileNumber,
+      villageArea: villageArea,
+      familyMemberCount: familyMemberCount,
+    );
+
+    _households[idx] = updated;
+
+    _auditLogs.insert(
+      0,
+      AuditLogModel(
+        id: 'aud_${_uuid.v4().substring(0, 8)}',
+        organizationId: _organization.id,
+        entityType: 'Household',
+        entityId: updated.id,
+        action: 'UPDATE_HOUSEHOLD',
+        performedById: currentUser.id,
+        performedByName: currentUser.name,
+        timestamp: DateTime.now(),
+        details:
+            'Updated ${updated.headOfFamilyName} ($familyMemberCount members @ Rs. ${updated.perPersonRateSnapshot})',
+      ),
+    );
+
+    notifyListeners();
+
+    // Call Supabase update asynchronously
+    SupabaseService.updateHousehold(updated.id, {
+      'head_of_family_name': headOfFamilyName,
+      'mobile_number': mobileNumber,
+      'village_area': villageArea,
+      'family_member_count': familyMemberCount,
+      'expected_total_vargani': familyMemberCount * updated.perPersonRateSnapshot,
+    }).catchError((_) => false);
+
+    return true;
   }
 
   // 2. Record Payment & Issue Receipt (SRS 6 & 7)

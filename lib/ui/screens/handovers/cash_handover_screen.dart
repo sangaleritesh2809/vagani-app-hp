@@ -8,6 +8,7 @@ import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import '../../widgets/mandatory_label.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/empty_state_widget.dart';
 
 class CashHandoverScreen extends StatefulWidget {
   const CashHandoverScreen({super.key});
@@ -108,8 +109,12 @@ class _CashHandoverScreenState extends State<CashHandoverScreen>
               children: [
                 // Pending Tab
                 pendingHandovers.isEmpty
-                    ? const Center(
-                        child: Text('No pending handovers to confirm'))
+                    ? const EmptyStateWidget(
+                        title: 'No pending handovers',
+                        subtitle:
+                            'All cash collections have been reconciled and confirmed.',
+                        imageAsset: 'assets/images/not_found.png',
+                      )
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: pendingHandovers.length,
@@ -128,7 +133,11 @@ class _CashHandoverScreenState extends State<CashHandoverScreen>
 
                 // History Tab
                 confirmedHandovers.isEmpty
-                    ? const Center(child: Text('No past handover history'))
+                    ? const EmptyStateWidget(
+                        title: 'No handover history',
+                        subtitle: 'No past completed cash handovers found.',
+                        imageAsset: 'assets/images/not_found.png',
+                      )
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: confirmedHandovers.length,

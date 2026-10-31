@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/complaint_model.dart';
@@ -6,6 +6,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import '../../widgets/mandatory_label.dart';
+import '../../widgets/empty_state_widget.dart';
 import 'new_complaint_dialog.dart';
 
 class ComplaintListScreen extends StatelessWidget {
@@ -27,25 +28,16 @@ class ComplaintListScreen extends StatelessWidget {
 
     return Scaffold(
       body: complaints.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.check_circle_outline_rounded,
-                      size: 48, color: Colors.grey),
-                  const SizedBox(height: 12),
-                  const Text('No active complaints or inquiries found'),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      showDialog(
-                          context: context,
-                          builder: (_) => const NewComplaintDialog());
-                    },
-                    child: const Text('File an Inquiry'),
-                  ),
-                ],
-              ),
+          ? EmptyStateWidget(
+              title: 'No complaints or inquiries',
+              subtitle: 'No issues have been reported for this campaign.',
+              imageAsset: 'assets/images/not_found.png',
+              actionText: 'File an Inquiry',
+              onAction: () {
+                showDialog(
+                    context: context,
+                    builder: (_) => const NewComplaintDialog());
+              },
             )
           : ListView.separated(
               padding: const EdgeInsets.all(16),

@@ -7,6 +7,7 @@ import '../../../core/models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
 import '../../widgets/status_badge.dart';
+import '../../widgets/empty_state_widget.dart';
 import 'household_form_dialog.dart';
 import '../collections/new_collection_dialog.dart';
 
@@ -95,8 +96,18 @@ class HouseholdListScreen extends StatelessWidget {
           // Household List
           Expanded(
             child: data.households.isEmpty
-                ? const Center(
-                    child: Text('No households found matching criteria'),
+                ? EmptyStateWidget(
+                    title: 'No households found',
+                    subtitle:
+                        'No households match your current search or filter. Try a different query or add a new family.',
+                    imageAsset: 'assets/images/not_found.png',
+                    actionText: 'Register Household',
+                    onAction: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => const HouseholdFormDialog(),
+                      );
+                    },
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -192,10 +203,43 @@ class HouseholdListScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  household.headOfFamilyName,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        household.headOfFamilyName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (household.paymentStatus == PaymentStatus.pending &&
+                        auth.currentRole != UserRole.citizen) ...[
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => HouseholdFormDialog(
+                                householdToEdit: household),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               StatusBadge.fromPaymentStatus(household.paymentStatus),
@@ -282,20 +326,54 @@ class HouseholdListScreen extends StatelessWidget {
                 ],
               ),
               if (auth.currentRole != UserRole.citizen)
-                ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) =>
-                          NewCollectionDialog(preselectedHousehold: household),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  ),
-                  child: const Text('Collect', style: TextStyle(fontSize: 12)),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (household.paymentStatus == PaymentStatus.pending) ...[
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_outlined, size: 13),
+                        label: const Text('Edit',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => HouseholdFormDialog(
+                                householdToEdit: household),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    ElevatedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) =>
+                              NewCollectionDialog(preselectedHousehold: household),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Collect', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
                 ),
             ],
           ),
