@@ -35,7 +35,7 @@ class FinancialReportsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Financial Audit & Reports (SRS 11)',
+                        'Financial Audit & Reports',
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
@@ -75,7 +75,7 @@ class FinancialReportsScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: StatCard(
-                    title: 'Total Expected (Dues)',
+                    title: 'Total Expected',
                     value: currencyFormat.format(data.totalExpectedVargani),
                     subtitle: 'From ${data.households.length} families',
                     icon: Icons.pie_chart_rounded,
@@ -135,7 +135,7 @@ class FinancialReportsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Payment Mode Distribution (SRS 11)',
+                    'Payment Mode Distribution',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   const SizedBox(height: 16),
@@ -241,13 +241,11 @@ class FinancialReportsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Collector-wise Collection Summary (SRS 11)',
+                    'Collector-wise Collection Summary',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   const SizedBox(height: 12),
-                  _buildCollectorRow('Rohan Gaikwad', 3, 800.0, currencyFormat),
-                  const Divider(height: 16),
-                  _buildCollectorRow('Pooja Sawant', 2, 1100.0, currencyFormat),
+                  ..._buildDynamicCollectorRows(data.receipts, currencyFormat),
                 ],
               ),
             ),
@@ -256,7 +254,7 @@ class FinancialReportsScreen extends StatelessWidget {
 
             // System Audit Log Stream (SRS 12 FR-15)
             Text(
-              'Audit Trail (SRS 12 FR-15)',
+              'Activity & Audit Trail',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -300,11 +298,11 @@ class FinancialReportsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(log.details,
+                            Text(_formatAuditLogTitle(log),
                                 style: const TextStyle(
                                     fontSize: 12, fontWeight: FontWeight.w600)),
                             Text(
-                              'Action: ${log.action} • By ${log.performedByName} • ${langTheme.formatDate(log.timestamp)}',
+                              '${log.action.replaceAll("_", " ")} • By ${log.performedByName.isNotEmpty ? log.performedByName : "System"} • ${langTheme.formatDate(log.timestamp)}',
                               style: const TextStyle(
                                   fontSize: 10, color: Colors.grey),
                             ),
@@ -369,5 +367,79 @@ class FinancialReportsScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  List<Widget> _buildDynamicCollectorRows(
+      List<dynamic> receipts, NumberFormat currencyFormat) {
+    final Map<String, Map<String, dynamic>> collectorStats = {};
+    for (final r in receipts) {
+      if (r.isCancelled == true) continue;
+      final name = (r.collectedByName != null && r.collectedByName.toString().trim().isNotEmpty)
+          ? r.collectedByName.toString().trim()
+          : 'Collector';
+      if (!collectorStats.containsKey(name)) {
+        collectorStats[name] = {'count': 0, 'amount': 0.0};
+      }
+      collectorStats[name]!['count'] = (collectorStats[name]!['count'] as int) + 1;
+      collectorStats[name]!['amount'] =
+          (collectorStats[name]!['amount'] as double) + ((r.amountReceived as num?)?.toDouble() ?? 0.0);
+    }
+
+    if (collectorStats.isEmpty) {
+      return [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'No collections recorded yet.',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ),
+      ];
+    }
+
+    final List<Widget> widgets = [];
+    final entries = collectorStats.entries.toList();
+    for (int i = 0; i < entries.length; i++) {
+      if (i > 0) widgets.add(const Divider(height: 16));
+      widgets.add(_buildCollectorRow(
+        entries[i].key,
+        entries[i].value['count'] as int,
+        entries[i].value['amount'] as double,
+        currencyFormat,
+      ));
+    }
+    return widgets;
+  }
+
+  String _formatAuditLogTitle(dynamic log) {
+    final d = log.details.toString().trim();
+    if (d.startsWith('{') && d.endsWith('}')) {
+      final clean = d.substring(1, d.length - 1);
+      final parts = clean.split(',');
+      String name = '';
+      String role = '';
+      for (final p in parts) {
+        final kv = p.split(':');
+        if (kv.length >= 2) {
+          final k = kv[0].trim().toLowerCase();
+          final v = kv.sublist(1).join(':').trim();
+          if (k == 'name') name = v;
+          if (k == 'role') role = v;
+        }
+      }
+      if (log.action.toString().contains('ROLE')) {
+        return name.isNotEmpty ? 'Role updated: ' + name : 'Role details updated';
+      }
+      if (log.action.toString().contains('USER')) {
+        final actionWord =
+            log.action.toString().contains('CREATE') ? 'New user created' : 'User updated';
+        if (name.isNotEmpty && role.isNotEmpty) {
+          return actionWord + ': ' + name + ' (' + role + ')';
+        } else if (name.isNotEmpty) {
+          return actionWord + ': ' + name;
+        }
+      }
+    }
+    return d.isNotEmpty ? d : log.action.toString().replaceAll('_', ' ');
   }
 }

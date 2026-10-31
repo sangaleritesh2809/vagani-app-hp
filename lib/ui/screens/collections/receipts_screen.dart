@@ -62,22 +62,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           ),
           Expanded(
             child: receipts.isEmpty
-                ? EmptyStateWidget(
+                ? const EmptyStateWidget(
                     title: 'No receipts found',
                     subtitle:
                         'No receipts have been issued matching this search. Use the New Receipt button to record collections.',
                     imageAsset: 'assets/images/not_found.png',
-                    actionText: (auth.isCitizen || auth.isPublicUser || !auth.canCollectVargani)
-                        ? null
-                        : 'New Receipt',
-                    onAction: (auth.isCitizen || auth.isPublicUser || !auth.canCollectVargani)
-                        ? null
-                        : () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => const NewCollectionDialog(),
-                            );
-                          },
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),

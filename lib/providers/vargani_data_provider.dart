@@ -451,6 +451,45 @@ class VarganiDataProvider extends ChangeNotifier {
     return true;
   }
 
+  // Delete Household (Allowed when amountReceived == 0)
+  Future<bool> deleteHousehold({
+    required String id,
+    required UserModel currentUser,
+  }) async {
+    final idx = _households.indexWhere((h) => h.id == id);
+    if (idx == -1) return false;
+
+    final existing = _households[idx];
+    if (existing.amountReceived > 0) {
+      return false; // Financial compliance: cannot delete household with received collections
+    }
+
+    _households.removeAt(idx);
+
+    _auditLogs.insert(
+      0,
+      AuditLogModel(
+        id: 'aud_${_uuid.v4().substring(0, 8)}',
+        organizationId: _organization.id,
+        entityType: 'Household',
+        entityId: existing.id,
+        action: 'DELETE_HOUSEHOLD',
+        performedById: currentUser.id,
+        performedByName: currentUser.name,
+        timestamp: DateTime.now(),
+        details: 'Deleted household "${existing.headOfFamilyName}" (${existing.villageArea})',
+      ),
+    );
+
+    notifyListeners();
+
+    try {
+      await SupabaseService.deleteHousehold(existing.id);
+    } catch (_) {}
+
+    return true;
+  }
+
   // 2. Record Payment & Issue Receipt (SRS 6 & 7)
   ReceiptModel recordPayment({
     required String householdId,

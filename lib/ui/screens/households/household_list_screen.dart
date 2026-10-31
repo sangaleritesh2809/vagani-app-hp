@@ -196,43 +196,11 @@ class HouseholdListScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        household.headOfFamilyName,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (household.paymentStatus == PaymentStatus.pending &&
-                        auth.currentRole != UserRole.citizen) ...[
-                      const SizedBox(width: 6),
-                      InkWell(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => HouseholdFormDialog(
-                                householdToEdit: household),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.edit_rounded,
-                            size: 14,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                child: Text(
+                  household.headOfFamilyName,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               StatusBadge.fromPaymentStatus(household.paymentStatus),
@@ -268,110 +236,267 @@ class HouseholdListScreen extends StatelessWidget {
 
           // Numbers Breakdown Grid (SRS 5.3 & Appendix A)
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Expected Total',
-                      style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  Text(
-                    currencyFormat.format(household.expectedTotalVargani),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  Text(
-                    '${household.familyMemberCount} × ₹${household.perPersonRateSnapshot.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Received',
-                      style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  Text(
-                    currencyFormat.format(household.amountReceived),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: AppColors.statusPaid,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Remaining',
-                      style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  Text(
-                    currencyFormat.format(household.remainingAmount),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: household.remainingAmount > 0
-                          ? AppColors.statusPending
-                          : AppColors.statusPaid,
-                    ),
-                  ),
-                ],
-              ),
-              if (auth.currentRole != UserRole.citizen)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (household.paymentStatus == PaymentStatus.pending) ...[
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.edit_outlined, size: 13),
-                        label: const Text('Edit',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => HouseholdFormDialog(
-                                householdToEdit: household),
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    ElevatedButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) =>
-                              NewCollectionDialog(preselectedHousehold: household),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('Collect', style: TextStyle(fontSize: 12)),
+                    const Text('Expected Total',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(height: 2),
+                    Text(
+                      currencyFormat.format(household.expectedTotalVargani),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      '${household.familyMemberCount} × ₹${household.perPersonRateSnapshot.toStringAsFixed(0)}',
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
                     ),
                   ],
                 ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Received',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(height: 2),
+                    Text(
+                      currencyFormat.format(household.amountReceived),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.statusPaid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Remaining',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(height: 2),
+                    Text(
+                      currencyFormat.format(household.remainingAmount),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: household.remainingAmount > 0
+                            ? AppColors.statusPending
+                            : AppColors.statusPaid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
+          ),
+          if (auth.currentRole != UserRole.citizen) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (household.paymentStatus == PaymentStatus.pending) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.edit_outlined, size: 14),
+                      label: const Text(
+                        'Edit',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => HouseholdFormDialog(
+                              householdToEdit: household),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _confirmDeleteHousehold(context, household),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: Colors.redAccent.withValues(alpha: 0.3)),
+                      ),
+                      child: const Tooltip(
+                        message: 'Delete Household',
+                        child: Icon(Icons.delete_outline_rounded,
+                            size: 18, color: Colors.redAccent),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.payments_outlined, size: 15),
+                    label: const Text(
+                      'Collect',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) =>
+                            NewCollectionDialog(preselectedHousehold: household),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 1,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteHousehold(
+      BuildContext context, HouseholdModel household) async {
+    final auth = context.read<AuthProvider>();
+    final data = context.read<VarganiDataProvider>();
+
+    if (household.amountReceived > 0) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.warning_amber_rounded,
+                    color: Colors.orange, size: 22),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Cannot Delete',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Cannot delete "${household.headOfFamilyName}" because collections of ₹${household.amountReceived.toStringAsFixed(0)} have already been recorded.\n\nTo preserve accounting compliance, please cancel or refund receipts first.',
+            style: const TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_forever_rounded,
+                  color: Colors.redAccent, size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Delete Household?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${household.headOfFamilyName}" (${household.villageArea})? This action cannot be undone.',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.delete_rounded, size: 16),
+            onPressed: () => Navigator.pop(ctx, true),
+            label: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (confirm == true && context.mounted) {
+      final success = await data.deleteHousehold(
+        id: household.id,
+        currentUser: auth.currentUser!,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Household "${household.headOfFamilyName}" deleted successfully.'
+                  : 'Failed to delete household.',
+            ),
+            backgroundColor: success ? Colors.redAccent : Colors.orange,
+          ),
+        );
+      }
+    }
   }
 }
