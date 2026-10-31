@@ -549,273 +549,476 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   ) {
     final user = auth.currentUser;
     final isMarathi = langTheme.isMarathi;
+    final drawerWidth = (MediaQuery.of(context).size.width * 0.82).clamp(280.0, 320.0);
 
-    return Drawer(
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-      child: Column(
-        children: [
-          // Drawer Header with User Profile info
-          Container(
-            padding: EdgeInsets.fromLTRB(
-                16, MediaQuery.of(context).padding.top + 16, 16, 16),
-            decoration: const BoxDecoration(
-              gradient: AppColors.primaryGradient,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white,
-                  child: Text(
-                    user.name.isNotEmpty
-                        ? user.name.substring(0, 1).toUpperCase()
-                        : 'U',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
+    return SizedBox(
+      width: drawerWidth,
+      child: Drawer(
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            // 1. Modern Curved Gradient Drawer Header
+            Container(
+              padding: EdgeInsets.fromLTRB(
+                  16, MediaQuery.of(context).padding.top + 16, 16, 18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF5722), Color(0xFFFF7043), Color(0xFFFF9800)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        user.name,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepOrange.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 26,
+                      backgroundColor: Colors.white,
+                      child: Text(
+                        user.name.isNotEmpty
+                            ? user.name.substring(0, 1).toUpperCase()
+                            : 'U',
                         style: const TextStyle(
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.white,
+                          color: AppColors.primary,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        auth.currentRole.nameString,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.92),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: Image.asset(
-                      'assets/images/app_logo_small.png',
-                      fit: BoxFit.contain,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          user.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.22),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            auth.currentRole.nameString,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: Image.asset(
+                        'assets/images/app_logo_small.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // Drawer Menu Items
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              children: [
-                // 1. My Profile
-                ListTile(
-                  leading: const Icon(Icons.person_rounded,
-                      color: AppColors.primary),
-                  title: Text(
-                    isMarathi ? 'माझी प्रोफाईल' : 'User Profile',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+            // 2. Organization & Group Info Card
+            Container(
+              margin: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.darkCardBg
+                    : AppColors.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.darkBorder
+                      : AppColors.primary.withValues(alpha: 0.16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.temple_hindu_rounded,
+                        color: AppColors.primary, size: 18),
                   ),
-                  subtitle: Text(
-                    isMarathi
-                        ? 'नाव, मोबाईल व माहिती अपडेट करा'
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data.organization.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          auth.selectedGroup?.name ??
+                              (auth.isCitizen
+                                  ? 'Citizen Transparency'
+                                  : 'Main Jurisdiction'),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 3. Navigation Items & Settings
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, top: 8, bottom: 4),
+                    child: Text(
+                      isMarathi ? 'खाते व मंडळ' : 'ACCOUNT & MANDAL',
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+
+                  // User Profile
+                  _buildDrawerItem(
+                    icon: Icons.person_rounded,
+                    iconColor: Colors.blue,
+                    title: isMarathi ? 'माझी प्रोफाईल' : 'User Profile',
+                    subtitle: isMarathi
+                        ? 'नाव, मोबाईल व माहिती'
                         : 'View & update personal details',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const UserProfileScreen()),
-                    );
-                  },
-                ),
-
-                // 2. Find Groups / Mandals
-                ListTile(
-                  leading: const Icon(Icons.travel_explore_rounded,
-                      color: AppColors.primary),
-                  title: Text(
-                    isMarathi ? 'मंडळ / ग्रुप शोधा' : 'Find Groups & Mandals',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    isMarathi
-                        ? 'नोंदणीकृत मंडळे व मोहिमा शोधा'
-                        : 'Search registered groups & mandals',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const GroupSearchScreen()),
-                    );
-                  },
-                ),
-
-                const Divider(),
-
-                // 3. Organization & Group Details Info Tile
-                ListTile(
-                  leading: const Icon(Icons.business_rounded,
-                      color: Colors.blueGrey),
-                  title: Text(
-                    data.organization.name,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    auth.selectedGroup != null
-                        ? auth.selectedGroup!.name
-                        : (auth.isCitizen
-                            ? 'Citizen Transparency Portal'
-                            : 'Main Jurisdiction'),
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ),
-
-                // 4. Super Admin Console (Only for super admins)
-                if (auth.isSuperAdmin) ...[
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.admin_panel_settings_rounded,
-                        color: Colors.purple),
-                    title: const Text(
-                      'Super Admin Console',
-                      style: TextStyle(
-                          color: Colors.purple, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'Global organizations, roles & settings',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                    trailing: const Icon(Icons.chevron_right_rounded, size: 20),
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const SuperAdminScreen()),
+                            builder: (_) => const UserProfileScreen()),
                       );
                     },
                   ),
-                ],
 
-                const Divider(),
-
-                // 5. Language Selector Tile
-                ListTile(
-                  leading: const Icon(Icons.translate_rounded,
-                      color: AppColors.primary),
-                  title: Text(isMarathi ? 'भाषा बदला' : 'Language'),
-                  trailing: DropdownButton<String>(
-                    value: langTheme.languageCode,
-                    underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(value: 'en', child: Text('English')),
-                      DropdownMenuItem(value: 'mr', child: Text('मराठी')),
-                      DropdownMenuItem(value: 'hi', child: Text('हिंदी')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) langTheme.setLanguage(val);
+                  // Find Groups / Mandals
+                  _buildDrawerItem(
+                    icon: Icons.travel_explore_rounded,
+                    iconColor: Colors.teal,
+                    title: isMarathi ? 'मंडळ / ग्रुप शोधा' : 'Find Groups & Mandals',
+                    subtitle: isMarathi
+                        ? 'नोंदणीकृत मंडळे व मोहिमा'
+                        : 'Search registered groups & mandals',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const GroupSearchScreen()),
+                      );
                     },
                   ),
-                ),
 
-                // 6. Theme Toggle Tile
-                SwitchListTile(
-                  secondary: Icon(
-                    langTheme.isDarkMode
-                        ? Icons.dark_mode_rounded
-                        : Icons.light_mode_rounded,
-                    color: Colors.amber,
+                  // Super Admin Console (if super admin)
+                  if (auth.isSuperAdmin)
+                    _buildDrawerItem(
+                      icon: Icons.admin_panel_settings_rounded,
+                      iconColor: Colors.purple,
+                      title: 'Super Admin Console',
+                      subtitle: 'Global organizations & roles',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SuperAdminScreen()),
+                        );
+                      },
+                    ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Divider(height: 12),
                   ),
-                  title: Text(isMarathi ? 'डार्क मोड' : 'Dark Mode'),
-                  value: langTheme.isDarkMode,
-                  onChanged: (_) => langTheme.toggleTheme(),
-                ),
-              ],
-            ),
-          ),
 
-          // Vargani Pro Branding Footer
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset('assets/images/app_logo_small.png', width: 18, height: 18),
-                const SizedBox(width: 8),
-                const Text(
-                  'Vargani Pro • वर्गणी',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, top: 4, bottom: 4),
+                    child: Text(
+                      isMarathi ? 'ॲप सेटिंग्ज' : 'PREFERENCES',
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
 
-          // Sign Out Tile at Bottom of Drawer
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                ),
+                  // Language Tile
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                      dense: true,
+                      leading: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.translate_rounded,
+                            size: 18, color: Colors.orange),
+                      ),
+                      title: Text(
+                        isMarathi ? 'भाषा' : 'Language',
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkCardBg
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : Colors.grey.shade300),
+                        ),
+                        child: DropdownButton<String>(
+                          value: langTheme.languageCode,
+                          underline: const SizedBox(),
+                          isDense: true,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'en', child: Text('English')),
+                            DropdownMenuItem(value: 'mr', child: Text('मराठी')),
+                            DropdownMenuItem(value: 'hi', child: Text('हिंदी')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) langTheme.setLanguage(val);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Dark Mode Tile
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                      dense: true,
+                      leading: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          langTheme.isDarkMode
+                              ? Icons.dark_mode_rounded
+                              : Icons.light_mode_rounded,
+                          size: 18,
+                          color: Colors.amber.shade700,
+                        ),
+                      ),
+                      title: Text(
+                        isMarathi ? 'डार्क मोड' : 'Dark Mode',
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      trailing: Switch.adaptive(
+                        value: langTheme.isDarkMode,
+                        activeColor: AppColors.primary,
+                        onChanged: (_) => langTheme.toggleTheme(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: ListTile(
-              leading:
-                  const Icon(Icons.logout_rounded, color: Colors.redAccent),
-              title: Text(
-                isMarathi ? 'लॉगआउट करा' : 'Sign Out',
-                style: const TextStyle(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.bold,
-                ),
+
+            // 4. Vargani Pro Branding Footer
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset('assets/images/app_logo_small.png',
+                      width: 15, height: 15),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Vargani Pro • वर्गणी v1.0',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey),
+                  ),
+                ],
               ),
-              onTap: () {
-                Navigator.pop(context);
-                auth.logout();
-                AppNavigator.navigateToLogin();
-              },
             ),
+
+            // 5. Modern Red Sign Out Button
+            Container(
+              margin: const EdgeInsets.fromLTRB(14, 2, 14, 14),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: Colors.redAccent.withValues(alpha: 0.2)),
+              ),
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                dense: true,
+                leading: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.logout_rounded,
+                      color: Colors.redAccent, size: 16),
+                ),
+                title: Text(
+                  isMarathi ? 'लॉगआउट करा' : 'Sign Out',
+                  style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                    color: Colors.redAccent, size: 12),
+                onTap: () {
+                  Navigator.pop(context);
+                  auth.logout();
+                  AppNavigator.navigateToLogin();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+        dense: true,
+        leading: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ],
+          child: Icon(icon, size: 18, color: iconColor),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 10.5, color: Colors.grey),
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
+        onTap: onTap,
       ),
     );
   }

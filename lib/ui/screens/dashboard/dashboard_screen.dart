@@ -298,7 +298,7 @@ class DashboardScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Your Cash in Hand (SRS 6.3)',
+                  'Your Cash in Hand',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -616,7 +616,7 @@ class DashboardScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Collection Modes (SRS 6 & 11)',
+                'Collection Modes',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -704,7 +704,7 @@ class DashboardScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Recent Collections (SRS 6)',
+              'Recent Collections',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
