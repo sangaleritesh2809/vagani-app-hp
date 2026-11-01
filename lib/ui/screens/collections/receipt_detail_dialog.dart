@@ -6,7 +6,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/receipt_model.dart';
 import '../../../core/models/payment_model.dart';
 import '../../../core/services/pdf_invoice_service.dart';
-import '../../../core/services/html_receipt_service.dart';
 import '../../../providers/app_settings_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
@@ -331,7 +330,7 @@ class ReceiptDetailDialog extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 10)),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
@@ -357,27 +356,6 @@ class ReceiptDetailDialog extends StatelessWidget {
                         icon: const Icon(Icons.share_rounded, size: 16),
                         label: const Text('WhatsApp',
                             style: TextStyle(fontSize: 12)),
-                        style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 10)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          _showHtmlCodeDialog(
-                            context,
-                            currentReceipt,
-                            data.organization,
-                            settings,
-                            langTheme,
-                          );
-                        },
-                        icon: const Icon(Icons.code_rounded,
-                            size: 16, color: Colors.deepPurple),
-                        label: const Text('HTML Code',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.deepPurple)),
                         style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10)),
                       ),
@@ -420,97 +398,6 @@ class ReceiptDetailDialog extends StatelessWidget {
           Text(value,
               style:
                   const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  void _showHtmlCodeDialog(
-    BuildContext context,
-    ReceiptModel receipt,
-    dynamic org,
-    AppSettingsProvider settings,
-    LanguageThemeProvider langTheme,
-  ) {
-    final htmlCode = HtmlReceiptService.generateHtml(
-      receipt: receipt,
-      org: org,
-      header: settings.receiptHeader,
-      footer: settings.receiptFooter,
-      showStamp: settings.showStamp,
-      stampTitle: settings.receiptStampText,
-      customTemplate:
-          settings.useCustomHtml ? settings.customHtmlTemplate : null,
-    );
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.html_rounded, color: Colors.deepPurple),
-                SizedBox(width: 8),
-                Text('HTML Receipt Code', style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, size: 20),
-              onPressed: () => Navigator.pop(ctx),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 500,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'You can copy this complete standalone HTML code to print or use on any website, thermal printer, or mailer.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                height: 240,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade800),
-                ),
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    htmlCode,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      color: Color(0xFF38BDF8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: htmlCode));
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('HTML Receipt code copied to clipboard!'),
-                  backgroundColor: AppColors.statusPaid,
-                ),
-              );
-            },
-            icon: const Icon(Icons.copy_rounded, size: 16),
-            label: const Text('Copy HTML Code'),
-          ),
         ],
       ),
     );

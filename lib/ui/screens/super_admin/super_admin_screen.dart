@@ -3104,13 +3104,13 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
         text:
 
-            existing != null ? existing.perPersonRate.toStringAsFixed(0) : '');
+            existing != null && existing.perPersonRate > 0 ? existing.perPersonRate.toStringAsFixed(0) : '');
 
     final suggestedCtrl = TextEditingController(
 
         text: existing != null
 
-            ? existing.suggestedAmount.toStringAsFixed(0)
+            ? (existing.suggestedAmount > 0 ? existing.suggestedAmount.toStringAsFixed(0) : '')
 
             : '');
 
@@ -3342,7 +3342,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                                   decoration: InputDecoration(
 
-                                    hintText: '200',
+                                    hintText: '',
 
                                     contentPadding: const EdgeInsets.symmetric(
 
@@ -3384,7 +3384,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                                   decoration: InputDecoration(
 
-                                    hintText: '500',
+                                    hintText: '',
 
                                     contentPadding: const EdgeInsets.symmetric(
 
@@ -3488,13 +3488,13 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> {
 
                             'per_person_rate':
 
-                                double.tryParse(rateCtrl.text.trim()) ?? 100.0,
+                                double.tryParse(rateCtrl.text.trim()) ?? 0.0,
 
                             'suggested_amount':
 
                                 double.tryParse(suggestedCtrl.text.trim()) ??
 
-                                    100.0,
+                                    0.0,
 
                             'allow_partial': true,
 

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -35,6 +35,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   void initState() {
     super.initState();
+    final auth = context.read<AuthProvider>();
+    if (auth.selectedOrganization != null) {
+      _selectedOrgFilter = auth.selectedOrganization!.id;
+    }
     _loadData();
   }
 
@@ -82,8 +86,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   // Filtered Users
   List<UserModel> get _filteredUsers {
+    final auth = context.read<AuthProvider>();
     final query = _searchController.text.trim().toLowerCase();
+    final activeOrgId = auth.selectedOrganization?.id ?? auth.currentUser.organizationId;
+
     return _users.where((user) {
+      // 0. Super Admin visibility: NEVER show Super Admin to other roles
+      if (!auth.isSuperAdmin && (user.isSuperAdmin || user.role == UserRole.superAdmin)) {
+        return false;
+      }
+
+      // 0.1 Organization isolation: Non-superAdmins only see users from their active organization
+      if (!auth.isSuperAdmin) {
+        if (user.organizationId != activeOrgId) {
+          return false;
+        }
+      }
+
       // 1. Text Search
       if (query.isNotEmpty) {
         final matchesName = user.name.toLowerCase().contains(query);
@@ -235,26 +254,31 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       actorId: auth.currentUser.id,
     );
 
+    // Immediately update AuthProvider local storage so session & login blocks are active
+    await auth.updateUserStatus(user.id, newStatus);
+
+    // Update in-memory list immediately so UI changes without waiting
+    final idx = _users.indexWhere((u) => u.id == user.id);
+    if (idx != -1) {
+      setState(() {
+        _users[idx] = _users[idx].copyWith(
+          isActive: newStatus,
+          accountStatus: newStatus ? 'active' : 'inactive',
+        );
+      });
+    }
+
     if (!mounted) return;
 
-    if (res['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              res['data']?['message'] ?? 'Account status updated successfully.'),
-          backgroundColor:
-              newStatus ? AppColors.statusPaid : Colors.orangeAccent,
-        ),
-      );
-      _loadData();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res['message'] ?? 'Failed to update account status.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            newStatus ? 'Account activated successfully.' : 'Account deactivated (Inactive) successfully.'),
+        backgroundColor:
+            newStatus ? AppColors.statusPaid : Colors.orangeAccent,
+      ),
+    );
+    _loadData();
   }
 
   // ===========================================================================
@@ -442,9 +466,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     // Organization Selection
     String selectedOrg = existing?.organizationId ??
-        (auth.currentUser.isSuperAdmin
-            ? (_organizations.isNotEmpty ? _organizations.first.id : 'org_001')
-            : auth.currentUser.organizationId);
+        (auth.selectedOrganization?.id ??
+            (auth.currentUser.isSuperAdmin
+                ? (_organizations.isNotEmpty ? _organizations.first.id : 'org_001')
+                : auth.currentUser.organizationId));
 
     // Group Selection
     List<GroupModel> orgGroups =
@@ -460,7 +485,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     // Filter out superAdmin for unauthorized admins
     final assignableRoles = _roles.where((r) {
       if (!auth.currentUser.isSuperAdmin &&
-          (r.isSuperAdmin || r.code == 'superAdmin')) {
+          (r.isSuperAdmin || r.code == 'superAdmin' || r.roleKey == 'superAdmin')) {
         return false;
       }
       return true;
@@ -1001,22 +1026,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             actorId: auth.currentUser.id,
                           );
 
-                          if (res['success'] == true) {
-                            final updatedUser = existing.copyWith(
-                              name: nameCtrl.text.trim(),
-                              phone: last10,
-                              email: memberEmail,
-                              organizationId: selectedOrg,
-                              groupIds: [assignedGroupId],
-                              selectedGroupId: assignedGroupId,
-                              role: UserModel.parseRole(selectedRoleCode!),
-                              isActive: isActiveBool,
-                              accountStatus: selectedStatus,
-                              address: addressCtrl.text.trim(),
-                              notes: notesCtrl.text.trim(),
-                            );
-                            await auth.updateAdminModifiedUser(updatedUser);
-                          }
+                          final updatedUser = existing.copyWith(
+                            name: nameCtrl.text.trim(),
+                            phone: last10,
+                            email: memberEmail,
+                            organizationId: selectedOrg,
+                            groupIds: [assignedGroupId],
+                            selectedGroupId: assignedGroupId,
+                            role: UserModel.parseRole(selectedRoleCode!),
+                            isActive: isActiveBool,
+                            accountStatus: selectedStatus,
+                            address: addressCtrl.text.trim(),
+                            notes: notesCtrl.text.trim(),
+                          );
+                          await auth.updateAdminModifiedUser(updatedUser);
+                          await auth.updateUserStatus(updatedUser.id, isActiveBool);
                         } else {
                           final newPassword = passwordCtrl.text.trim().isNotEmpty
                               ? passwordCtrl.text.trim()
@@ -1036,51 +1060,42 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             actorId: auth.currentUser.id,
                           );
 
-                          if (res['success'] == true) {
-                            final createdUser = (res['data'] is UserModel)
-                                ? res['data'] as UserModel
-                                : UserModel(
-                                    id: const Uuid().v4(),
-                                    name: nameCtrl.text.trim(),
-                                    phone: last10,
-                                    email: memberEmail,
-                                    organizationId: selectedOrg,
-                                    role: UserModel.parseRole(selectedRoleCode!),
-                                    isActive: isActiveBool,
-                                    accountStatus: selectedStatus,
-                                    groupIds: [assignedGroupId],
-                                    selectedGroupId: assignedGroupId,
-                                  );
+                          final createdUser = (res['data'] is UserModel)
+                              ? res['data'] as UserModel
+                              : UserModel(
+                                  id: const Uuid().v4(),
+                                  name: nameCtrl.text.trim(),
+                                  phone: last10,
+                                  email: memberEmail,
+                                  organizationId: selectedOrg,
+                                  role: UserModel.parseRole(selectedRoleCode!),
+                                  isActive: isActiveBool,
+                                  accountStatus: selectedStatus,
+                                  groupIds: [assignedGroupId],
+                                  selectedGroupId: assignedGroupId,
+                                );
 
-                            await auth.registerAdminCreatedUser(
-                              user: createdUser,
-                              password: newPassword,
-                            );
-                          }
+                          await auth.registerAdminCreatedUser(
+                            user: createdUser,
+                            password: newPassword,
+                          );
+                          await auth.updateUserStatus(createdUser.id, isActiveBool);
                         }
 
                         if (!mounted) return;
 
-                        if (res['success'] == true) {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                isEdit
-                                    ? 'Member updated successfully!'
-                                    : 'Member added to group successfully! (Can log in with Email OTP or Password)',
-                              ),
-                              backgroundColor: AppColors.statusPaid,
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isEdit
+                                  ? 'Member updated successfully!'
+                                  : 'Member added to group successfully!',
                             ),
-                          );
-                          _loadData();
-                        } else {
-                          setDialogState(() {
-                            isSaving = false;
-                            dialogError =
-                                res['message'] ?? 'An error occurred during processing.';
-                          });
-                        }
+                            backgroundColor: AppColors.statusPaid,
+                          ),
+                        );
+                        _loadData();
                       },
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary),
@@ -1200,8 +1215,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 const DropdownMenuItem(
                                     value: 'all',
                                     child: Text('All Roles')),
-                                ..._roles.map((r) => DropdownMenuItem(
-                                    value: r.roleKey, child: Text(r.name))),
+                                ..._roles
+                                    .where((r) =>
+                                        auth.isSuperAdmin ||
+                                        (!r.isSuperAdmin &&
+                                            r.code != 'superAdmin' &&
+                                            r.roleKey != 'superAdmin'))
+                                    .map((r) => DropdownMenuItem(
+                                        value: r.roleKey, child: Text(r.name))),
                               ],
                               onChanged: (val) {
                                 if (val != null)
@@ -1209,7 +1230,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               },
                             ),
 
-                            if (_organizations.length > 1) ...[
+                            if (_organizations.length > 1 && auth.isSuperAdmin) ...[
                               const SizedBox(width: 8),
                               DropdownButton<String>(
                                 value: _selectedOrgFilter,

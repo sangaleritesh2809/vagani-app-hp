@@ -342,57 +342,61 @@ class _CashHandoverScreenState extends State<CashHandoverScreen>
         text: userCashBalance > 0 ? userCashBalance.toStringAsFixed(0) : '');
     final remarksController = TextEditingController();
 
-    // Safely collect eligible handover receivers without throwing Bad state: No element
+    // Safely collect eligible handover receivers strictly scoped to active organization
     final seenIds = <String>{auth.currentUser.id};
     final eligibleReceivers = <UserModel>[];
+    final activeOrgId =
+        auth.selectedOrganization?.id ?? auth.currentUser.organizationId;
+    final isSuper = auth.isSuperAdmin;
 
-    // 1. Treasurers, Org Admins, Group Admins, Super Admins from availableUsers
+    // 1. All active members of the current active organization with staff roles
     for (final u in auth.availableUsers) {
-      if (!seenIds.contains(u.id) &&
-          (u.role == UserRole.treasurer ||
-              u.role == UserRole.orgAdmin ||
-              u.role == UserRole.groupAdmin ||
-              u.role == UserRole.superAdmin)) {
+      if (seenIds.contains(u.id)) continue;
+      if (!u.isActive) continue;
+
+      // Super Admin is never shown to other roles
+      if (!isSuper && (u.isSuperAdmin || u.role == UserRole.superAdmin)) {
+        continue;
+      }
+
+      // Must belong to this active organization
+      if (u.organizationId.isNotEmpty && u.organizationId != activeOrgId) {
+        continue;
+      }
+
+      // Any staff/committee member: Treasurer, Org Admin, Group Admin, etc.
+      if (u.role == UserRole.treasurer ||
+          u.role == UserRole.orgAdmin ||
+          u.role == UserRole.groupAdmin ||
+          (isSuper && u.role == UserRole.superAdmin) ||
+          (u.role != UserRole.citizen && u.role != UserRole.publicUser)) {
         seenIds.add(u.id);
         eligibleReceivers.add(u);
       }
     }
 
-    // 2. Any non-citizen user from availableUsers
-    if (eligibleReceivers.isEmpty) {
-      for (final u in auth.availableUsers) {
-        if (!seenIds.contains(u.id) &&
-            u.role != UserRole.citizen &&
-            u.role != UserRole.publicUser) {
-          seenIds.add(u.id);
-          eligibleReceivers.add(u);
-        }
-      }
-    }
-
-    // 3. Mock treasurers / admins
-    if (eligibleReceivers.isEmpty) {
-      for (final u in MockDataService.users) {
-        if (!seenIds.contains(u.id) &&
-            (u.role == UserRole.treasurer ||
-                u.role == UserRole.orgAdmin ||
-                u.role == UserRole.superAdmin)) {
-          seenIds.add(u.id);
-          eligibleReceivers.add(u);
-        }
-      }
-    }
-
-    // 4. Default fallback treasurer so list is guaranteed never empty
+    // 2. Default fallback organization committee receivers if no other staff added yet
     if (eligibleReceivers.isEmpty) {
       eligibleReceivers.add(
-        const UserModel(
-          id: 'usr_default_treasurer',
+        UserModel(
+          id: 'usr_default_treasurer_$activeOrgId',
           name: 'Mandal Treasurer (खजिनदार)',
-          phone: '9850077889',
+          phone: '',
           email: 'treasurer@mandal.org',
-          organizationId: 'org_001',
+          organizationId: activeOrgId,
           role: UserRole.treasurer,
+          accountStatus: 'active',
+          isActive: true,
+        ),
+      );
+      eligibleReceivers.add(
+        UserModel(
+          id: 'usr_default_admin_$activeOrgId',
+          name: 'Mandal President / Admin (अध्यक्ष)',
+          phone: '',
+          email: 'admin@mandal.org',
+          organizationId: activeOrgId,
+          role: UserRole.orgAdmin,
           accountStatus: 'active',
           isActive: true,
         ),

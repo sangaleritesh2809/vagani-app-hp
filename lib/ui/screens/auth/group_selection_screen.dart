@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
@@ -77,6 +77,7 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
       UserModel? matchedUser;
       // Prefer exact match, then startsWith
       for (final u in allUsers) {
+        if (!auth.isSuperAdmin && (u.isSuperAdmin || u.role == UserRole.superAdmin)) continue;
         final cleanU = AuthProvider.cleanPhone(u.phone);
         if (cleanU == digits) {
           matchedUser = u;
@@ -85,6 +86,7 @@ class _GroupSelectionScreenState extends State<GroupSelectionScreen> {
       }
       if (matchedUser == null) {
         for (final u in allUsers) {
+          if (!auth.isSuperAdmin && (u.isSuperAdmin || u.role == UserRole.superAdmin)) continue;
           final cleanU = AuthProvider.cleanPhone(u.phone);
           if (cleanU.startsWith(digits)) {
             matchedUser = u;

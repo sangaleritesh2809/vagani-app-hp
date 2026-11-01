@@ -28,6 +28,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   late LoginTab _activeTab;
+  final TextEditingController _passwordIdentifierController =
+      TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -59,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _passwordFocusNode.dispose();
+    _passwordIdentifierController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -284,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _passwordError = null;
     });
 
-    final rawInput = _phoneController.text.trim();
+    final rawInput = _passwordIdentifierController.text.trim();
     final cleanPhone = AuthProvider.cleanPhone(rawInput);
     final isEmail = rawInput.contains('@');
     final password = _passwordController.text.trim();
@@ -489,9 +492,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => RegisterScreen(
-                                initialPhone: _phoneController.text.trim(),
-                              ),
+                              builder: (_) => const RegisterScreen(),
                             ),
                           );
                         },
@@ -508,48 +509,56 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                   // Citizen / Public Secure Login Notice Card
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.verified_user_outlined,
-                            size: 20, color: AppColors.primary),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isMarathi
-                                    ? 'नागरिक / पब्लिक लॉगिन'
-                                    : 'Citizen / Public Account Access',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12.5,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                isMarathi
-                                    ? 'नागरिकांना पारदर्शकता व पावत्या पाहण्यासाठी मोबाईल नंबरने लॉगिन करणे आवश्यक आहे.'
-                                    : 'Citizens must sign in with their registered mobile number or Sign Up to view receipts and track collections.',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark ? Colors.white70 : Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      final auth = context.read<AuthProvider>();
+                      auth.continueAsGuest();
+                      AppNavigator.navigateToHome(auth);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.visibility_outlined,
+                              size: 20, color: AppColors.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isMarathi
+                                      ? 'नागरिक / पब्लिक लॉगिन'
+                                      : 'Citizen / Public Account Access',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isMarathi
+                                      ? 'नागरिकांना पारदर्शकता व पावत्या पाहण्यासाठी मोबाईल नंबरने लॉगिन करणे आवश्यक आहे.'
+                                      : 'Citizens must sign in with their registered mobile number or Sign Up to view receipts and track collections.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? Colors.white70 : Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -575,6 +584,10 @@ class _LoginScreenState extends State<LoginScreen> {
         onTap: () {
           setState(() {
             _activeTab = tab;
+            _passwordIdentifierController.clear();
+            _phoneController.clear();
+            _emailController.clear();
+            _passwordController.clear();
             _phoneError = null;
             _passwordError = null;
             _emailError = null;
@@ -788,13 +801,13 @@ class _LoginScreenState extends State<LoginScreen> {
           onKeyEvent: (node, event) => _handleBackspacedKey(
             node,
             event,
-            _phoneController,
+            _passwordIdentifierController,
             () {
               if (_phoneError != null) setState(() => _phoneError = null);
             },
           ),
           child: TextField(
-            controller: _phoneController,
+            controller: _passwordIdentifierController,
             keyboardType: TextInputType.emailAddress,
             onChanged: (_) {
               if (_phoneError != null) setState(() => _phoneError = null);

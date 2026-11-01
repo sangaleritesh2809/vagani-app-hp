@@ -73,6 +73,12 @@ class _RoleManagementScreenState extends State<RoleManagementScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final filteredRoles = _roles.where((r) {
+      // 0. Super Admin role must ONLY be visible if the current logged-in user is Super Admin
+      if (!auth.isSuperAdmin &&
+          (r.isSuperAdmin || r.code == 'superAdmin' || r.roleKey == 'superAdmin')) {
+        return false;
+      }
+
       // Search filter
       final matchesSearch = _searchFilter.isEmpty ||
           r.name.toLowerCase().contains(_searchFilter.toLowerCase()) ||
@@ -175,7 +181,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen>
                           runSpacing: 6,
                           children: [
                             _buildInfoChip(Icons.shield_outlined,
-                                '${_roles.length} Total Roles'),
+                                '${filteredRoles.length} Total Roles'),
                             _buildInfoChip(Icons.widgets_outlined,
                                 '${RbacModuleRegistry.allModules.length} Modules'),
                             _buildInfoChip(Icons.key_outlined,
@@ -1040,6 +1046,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen>
   // USER ROLE ASSIGNMENTS MODAL & DIALOG
   // ---------------------------------------------------------------------------
   void _showAssignmentsModal({String? roleFilter}) {
+    final auth = context.read<AuthProvider>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1048,6 +1055,13 @@ class _RoleManagementScreenState extends State<RoleManagementScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           final list = _assignments.where((a) {
+            // Never show Super Admin assignments to other roles
+            if (!auth.isSuperAdmin &&
+                (a.roleKey == 'superAdmin' ||
+                 a.roleId == 'role_super_admin' ||
+                 a.roleName.toLowerCase().contains('super admin'))) {
+              return false;
+            }
             if (roleFilter != null && roleFilter.isNotEmpty) {
               return a.roleKey == roleFilter || a.roleId == roleFilter;
             }
@@ -1151,8 +1165,25 @@ class _RoleManagementScreenState extends State<RoleManagementScreen>
 
   void _showAssignRoleDialog() {
     final auth = context.read<AuthProvider>();
-    String? selectedUserId = _users.isNotEmpty ? _users.first.id : null;
-    String? selectedRoleId = _roles.isNotEmpty ? _roles.first.id : null;
+    final activeOrgId = auth.selectedOrganization?.id ?? auth.currentUser.organizationId;
+    final assignableUsers = _users.where((u) {
+      if (!auth.isSuperAdmin && (u.isSuperAdmin || u.role == UserRole.superAdmin)) {
+        return false;
+      }
+      if (!auth.isSuperAdmin && activeOrgId != null && u.organizationId != null && u.organizationId != activeOrgId) {
+        return false;
+      }
+      return true;
+    }).toList();
+    final assignableRoles = _roles.where((r) {
+      if (!auth.isSuperAdmin && (r.isSuperAdmin || r.code == 'superAdmin' || r.roleKey == 'superAdmin')) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    String? selectedUserId = assignableUsers.isNotEmpty ? assignableUsers.first.id : null;
+    String? selectedRoleId = assignableRoles.isNotEmpty ? assignableRoles.first.id : null;
     String? selectedGroupId = _groups.isNotEmpty ? _groups.first.id : null;
 
     showDialog(
@@ -1177,7 +1208,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen>
                   DropdownButtonFormField<String>(
                     value: selectedUserId,
                     decoration: const InputDecoration(labelText: 'Select User'),
-                    items: _users
+                    items: assignableUsers
                         .map((u) => DropdownMenuItem(
                             value: u.id, child: Text('${u.name} (${u.phone})')))
                         .toList(),
@@ -1187,7 +1218,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen>
                   DropdownButtonFormField<String>(
                     value: selectedRoleId,
                     decoration: const InputDecoration(labelText: 'Select Role'),
-                    items: _roles
+                    items: assignableRoles
                         .map((r) => DropdownMenuItem(
                             value: r.id, child: Text('${r.name} (${r.code})')))
                         .toList(),
