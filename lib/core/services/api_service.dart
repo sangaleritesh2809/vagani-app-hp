@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../models/organization_model.dart';
@@ -16,7 +16,6 @@ import '../models/role_model.dart';
 import '../models/user_role_assignment_model.dart';
 import 'supabase_service.dart';
 import 'mock_data_service.dart';
-import 'package:flutter/foundation.dart';
 import '../constants/app_config.dart';
 import '../utils/hash_util.dart';
 
@@ -195,7 +194,9 @@ class ApiService {
     required String mobileNumber,
     required String villageArea,
     required int familyMemberCount,
+    double perPersonRateSnapshot = 100.0,
     String? organizationId,
+    String? groupId,
   }) async {
     final c = SupabaseService.client;
     if (c != null) {
@@ -204,11 +205,12 @@ class ApiService {
           'campaign_id': campaignId,
           'organization_id':
               organizationId ?? '3609220e-4897-49c9-a2b0-a7e0eb4fc159',
+          if (groupId != null && groupId.isNotEmpty) 'group_id': groupId,
           'head_of_family_name': headOfFamilyName,
           'mobile_number': mobileNumber,
           'village_area': villageArea,
           'family_member_count': familyMemberCount,
-          'per_person_rate_snapshot': 100.0,
+          'per_person_rate_snapshot': perPersonRateSnapshot,
           'amount_received': 0.0,
         };
         final res =

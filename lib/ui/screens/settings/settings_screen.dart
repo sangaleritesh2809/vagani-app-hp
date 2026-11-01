@@ -36,6 +36,7 @@ class SettingsScreen extends StatelessWidget {
     final isOrgAdmin = auth.isOrgAdmin;
     final isGroupAdmin = auth.isGroupAdmin;
     final isCitizen = auth.isCitizen || auth.isPublicUser;
+    final isMr = langTheme.isMarathi;
 
     return Scaffold(
       appBar: AppBar(
@@ -131,7 +132,9 @@ class SettingsScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                user.isActive ? 'Active' : 'Inactive',
+                                user.isActive
+                                    ? (isMr ? 'सक्रिय' : 'Active')
+                                    : (isMr ? 'निष्क्रिय' : 'Inactive'),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -157,29 +160,18 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // ── 2. ACCOUNT & SECURITY (All Users) ─────────────────────────────
-          _buildSectionHeader('Account & Security'),
+          // ── 2. ACCOUNT & SECURITY (All Users - Duplicate Profile Settings Removed) ─
+          _buildSectionHeader(isMr ? 'खाते आणि सुरक्षा' : 'Account & Security'),
           _buildCardContainer(
             isDark: isDark,
             children: [
               _buildSettingTile(
-                icon: Icons.person_outline_rounded,
-                iconColor: AppColors.primary,
-                title: 'Profile Settings',
-                subtitle: 'Update full name, phone number, email and address',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const UserProfileScreen()),
-                  );
-                },
-              ),
-              const Divider(height: 1),
-              _buildSettingTile(
                 icon: Icons.shield_outlined,
                 iconColor: Colors.indigo,
-                title: 'Security & Privacy',
-                subtitle: 'Password change, biometric unlock & active sessions',
+                title: isMr ? 'सुरक्षा आणि गोपनीयता' : 'Security & Privacy',
+                subtitle: isMr
+                    ? 'पासवर्ड बदला, बायोमेट्रिक अनलॉक आणि सक्रिय सत्रे'
+                    : 'Password change, biometric unlock & active sessions',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -193,7 +185,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ── 3. PREFERENCES & LOCALIZATION (All Users) ─────────────────────
-          _buildSectionHeader('App Preferences & Display'),
+          _buildSectionHeader(isMr ? 'अ‍ॅप प्राधान्ये आणि डिस्प्ले' : 'App Preferences & Display'),
           _buildCardContainer(
             isDark: isDark,
             children: [
@@ -214,10 +206,12 @@ class SettingsScreen extends StatelessWidget {
                         ? Icons.light_mode_rounded
                         : Icons.settings_brightness_rounded),
                 iconColor: Colors.amber,
-                title: langTheme.tr('themeMode'),
+                title: isMr ? 'रंगसंगती (Theme)' : langTheme.tr('themeMode'),
                 subtitle: langTheme.isSystemMode
-                    ? 'System Default'
-                    : (langTheme.isDarkMode ? 'Dark Mode' : 'Light Mode'),
+                    ? (isMr ? 'सिस्टम डिफॉल्ट' : 'System Default')
+                    : (langTheme.isDarkMode
+                        ? (isMr ? 'डार्क मोड' : 'Dark Mode')
+                        : (isMr ? 'लाइट मोड' : 'Light Mode')),
                 onTap: () => _showThemeSelectionDialog(context, langTheme),
               ),
               const Divider(height: 1),
@@ -234,13 +228,15 @@ class SettingsScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           color: Colors.orange)),
                 ),
-                title: const Text(
-                  'Marathi / Devanagari Digits',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                title: Text(
+                  isMr ? 'मराठी / देवनागरी अंक' : 'Marathi / Devanagari Digits',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
-                subtitle: const Text(
-                  'Format amounts and numbers as १, २, ३...',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                subtitle: Text(
+                  isMr
+                      ? 'संख्या आणि रक्कम १, २, ३... स्वरूपात दाखवा'
+                      : 'Format amounts and numbers as १, २, ३...',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 value: langTheme.useMarathiNumerals,
                 activeColor: AppColors.primary,
@@ -251,16 +247,17 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ── 4. NOTIFICATIONS (All Users) ──────────────────────────────────
-          _buildSectionHeader('Notifications & Communication'),
+          _buildSectionHeader(isMr ? 'सूचना आणि संप्रेषण' : 'Notifications & Communication'),
           _buildCardContainer(
             isDark: isDark,
             children: [
               _buildSettingTile(
                 icon: Icons.notifications_none_rounded,
                 iconColor: Colors.purple,
-                title: 'Notification Settings',
-                subtitle:
-                    'WhatsApp receipt slips, SMS alerts & collection reminders',
+                title: isMr ? 'सूचना सेटिंग्ज' : 'Notification Settings',
+                subtitle: isMr
+                    ? 'व्हॉट्सअ‍ॅप पावती, एसएमएस अलर्ट आणि स्मरणपत्रे'
+                    : 'WhatsApp receipt slips, SMS alerts & collection reminders',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -275,7 +272,7 @@ class SettingsScreen extends StatelessWidget {
 
           // ── 5. FINANCIAL & OPERATIONS (Staff Only) ────────────────────────
           if (!isCitizen) ...[
-            _buildSectionHeader('Financial & Operations Configuration'),
+            _buildSectionHeader(isMr ? 'आर्थिक आणि कामकाज सेटिंग्ज' : 'Financial & Operations Configuration'),
             _buildCardContainer(
               isDark: isDark,
               children: [
@@ -283,9 +280,10 @@ class SettingsScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.receipt_long_rounded,
                     iconColor: AppColors.secondary,
-                    title: 'Receipt Settings',
-                    subtitle:
-                        'Customize receipt numbering, slogan, header & official stamp',
+                    title: isMr ? 'पावती सेटिंग्ज' : 'Receipt Settings',
+                    subtitle: isMr
+                        ? 'पावती क्रमांक, घोषवाक्य, अधिकृत शिक्का आणि HTML कोड'
+                        : 'Customize receipt numbering, slogan, official stamp & HTML code',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -300,9 +298,10 @@ class SettingsScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.price_change_rounded,
                     iconColor: AppColors.statusPaid,
-                    title: 'Campaign & Vargani Rate (SRS 5.1)',
-                    subtitle:
-                        'Current: ₹${data.currentCampaign.perPersonRate.toStringAsFixed(0)} / person',
+                    title: isMr ? 'मोहीम आणि वर्गणी दर (SRS 5.1)' : 'Campaign & Vargani Rate (SRS 5.1)',
+                    subtitle: isMr
+                        ? 'सध्याचा दर: ₹${data.currentCampaign.perPersonRate.toStringAsFixed(0)} / व्यक्ती'
+                        : 'Current: ₹${data.currentCampaign.perPersonRate.toStringAsFixed(0)} / person',
                     onTap: () {
                       showDialog(
                         context: context,
@@ -322,7 +321,7 @@ class SettingsScreen extends StatelessWidget {
                   auth.canManageRoles ||
                   auth.canViewUsers ||
                   auth.authorizedGroups.length > 1)) ...[
-            _buildSectionHeader('Administration & Governance (RBAC)'),
+            _buildSectionHeader(isMr ? 'प्रशासन आणि व्यवस्थापन (RBAC)' : 'Administration & Governance (RBAC)'),
             _buildCardContainer(
               isDark: isDark,
               children: [
@@ -331,9 +330,10 @@ class SettingsScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.apartment_rounded,
                     iconColor: Colors.deepPurple,
-                    title: 'Organization Management',
-                    subtitle:
-                        'Super Admin: Manage mandals, trusts, bank QR & divisions',
+                    title: isMr ? 'संस्था / मंडळ व्यवस्थापन' : 'Organization Management',
+                    subtitle: isMr
+                        ? 'मंडळे, ट्रस्ट, बँक क्यूआर आणि शाखा व्यवस्थापन'
+                        : 'Super Admin: Manage mandals, trusts, bank QR & divisions',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -350,9 +350,10 @@ class SettingsScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.hub_rounded,
                     iconColor: Colors.teal,
-                    title: 'Switch Active Group',
-                    subtitle:
-                        'Current: ${auth.selectedGroup?.name ?? "Central Division"}',
+                    title: isMr ? 'सक्रिय गट बदला' : 'Switch Active Group',
+                    subtitle: isMr
+                        ? 'सध्याचा गट: ${auth.selectedGroup?.name ?? "Central Division"}'
+                        : 'Current: ${auth.selectedGroup?.name ?? "Central Division"}',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -369,8 +370,10 @@ class SettingsScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.manage_accounts_rounded,
                     iconColor: AppColors.primary,
-                    title: 'User Management',
-                    subtitle: 'Manage user profiles, active status & role assignments',
+                    title: isMr ? 'वापरकर्ता व्यवस्थापन' : 'User Management',
+                    subtitle: isMr
+                        ? 'वापरकर्ता प्रोफाइल, सक्रिय स्थिती आणि भूमिका व्यवस्थापन'
+                        : 'Manage user profiles, active status & role assignments',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -387,9 +390,10 @@ class SettingsScreen extends StatelessWidget {
                   _buildSettingTile(
                     icon: Icons.admin_panel_settings_rounded,
                     iconColor: Colors.indigo,
-                    title: 'Roles & Granular Permissions',
-                    subtitle:
-                        'Configure custom roles and dynamic 22-module PBAC rules',
+                    title: isMr ? 'भूमिका आणि परवानग्या' : 'Roles & Granular Permissions',
+                    subtitle: isMr
+                        ? 'सानुकूल भूमिका आणि 22-मॉड्यूल परवानग्या कॉन्फिगर करा'
+                        : 'Configure custom roles and dynamic 22-module PBAC rules',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -406,16 +410,17 @@ class SettingsScreen extends StatelessWidget {
 
           // ── 7. DATA, SYNC & STORAGE (Staff Only) ──────────────────────────
           if (!isCitizen) ...[
-            _buildSectionHeader('Data & Storage'),
+            _buildSectionHeader(isMr ? 'डेटा आणि स्टोरेज' : 'Data & Storage'),
             _buildCardContainer(
               isDark: isDark,
               children: [
                 _buildSettingTile(
                   icon: Icons.cloud_sync_rounded,
                   iconColor: Colors.blue,
-                  title: 'Data & Backup',
-                  subtitle:
-                      'Supabase sync status, ledger stats & data snapshot export',
+                  title: isMr ? 'डेटा आणि बॅकअप' : 'Data & Backup',
+                  subtitle: isMr
+                      ? 'सुपाबेस सिंक स्थिती, लेजर आकडेवारी आणि बॅकअप'
+                      : 'Supabase sync status, ledger stats & data snapshot export',
                   onTap: () {
                     Navigator.push(
                       context,
@@ -430,15 +435,17 @@ class SettingsScreen extends StatelessWidget {
           ],
 
           // ── 8. SUPPORT & ABOUT (All Users) ────────────────────────────────
-          _buildSectionHeader('Support & Information'),
+          _buildSectionHeader(isMr ? 'मदत आणि माहिती' : 'Support & Information'),
           _buildCardContainer(
             isDark: isDark,
             children: [
               _buildSettingTile(
                 icon: Icons.help_outline_rounded,
                 iconColor: Colors.teal,
-                title: 'Help & Support',
-                subtitle: 'Mandal committee helpline, inquiries & grievance portal',
+                title: isMr ? 'मदत आणि तक्रार निवारण' : 'Help & Support',
+                subtitle: isMr
+                    ? 'मंडळ समिती हेल्पलाइन, चौकशी आणि तक्रार निवारण'
+                    : 'Mandal committee helpline, inquiries & grievance portal',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -451,8 +458,10 @@ class SettingsScreen extends StatelessWidget {
               _buildSettingTile(
                 icon: Icons.info_outline_rounded,
                 iconColor: AppColors.primary,
-                title: 'About Vargani App',
-                subtitle: 'Version 1.0.0 • Terms, Privacy & SRS Compliance',
+                title: isMr ? 'वर्गणी अ‍ॅपबद्दल' : 'About Vargani App',
+                subtitle: isMr
+                    ? 'आवृत्ती १.०.१ • अटी, गोपनीयता आणि नियम'
+                    : 'Version 1.0.1 • Terms, Privacy & SRS Compliance',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -466,7 +475,7 @@ class SettingsScreen extends StatelessWidget {
 
           // ── 9. SUPER ADMIN RBAC TESTING SIMULATOR ─────────────────────────
           if (isSuperAdmin) ...[
-            _buildSectionHeader('Demo Testing: Role Simulator (Super Admin Only)'),
+            _buildSectionHeader(isMr ? 'चाचणी: भूमिका सिम्युलेटर (फक्त सुपर अ‍ॅडमिन)' : 'Demo Testing: Role Simulator (Super Admin Only)'),
             _buildCardContainer(
               isDark: isDark,
               children: auth.availableUsers.map((u) {
@@ -487,7 +496,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   subtitle: Text(
-                    '${u.role.nameString} • ${u.phone} • ${u.isActive ? "Active" : "Inactive"}',
+                    '${u.role.nameString} • ${u.phone} • ${u.isActive ? (isMr ? "सक्रिय" : "Active") : (isMr ? "निष्क्रिय" : "Inactive")}',
                     style: const TextStyle(fontSize: 12),
                   ),
                   onTap: () => auth.switchUser(u),
@@ -518,23 +527,25 @@ class SettingsScreen extends StatelessWidget {
                 child: const Icon(Icons.logout_rounded,
                     color: Colors.redAccent, size: 22),
               ),
-              title: const Text(
-                'Log Out',
-                style: TextStyle(
+              title: Text(
+                isMr ? 'लॉगआउट करा' : 'Log Out',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.redAccent,
                 ),
               ),
-              subtitle: const Text(
-                'Safely disconnect and return to login',
-                style: TextStyle(fontSize: 12),
+              subtitle: Text(
+                isMr
+                    ? 'या डिव्हाइसवरून सुरक्षितपणे बाहेर पडा'
+                    : 'Safely disconnect and return to login',
+                style: const TextStyle(fontSize: 12),
               ),
               trailing: const Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
                 color: Colors.redAccent,
               ),
-              onTap: () => _confirmLogout(context, auth),
+              onTap: () => _confirmLogout(context, auth, isMr),
             ),
           ),
           const SizedBox(height: 32),
@@ -606,15 +617,16 @@ class SettingsScreen extends StatelessWidget {
 
   void _showThemeSelectionDialog(
       BuildContext context, LanguageThemeProvider langTheme) {
+    final isMr = langTheme.isMarathi;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Select Theme Mode'),
+        title: Text(isMr ? 'रंगसंगती निवडा (Theme)' : 'Select Theme Mode'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<ThemeMode>(
-              title: const Text('Light Mode'),
+              title: Text(isMr ? 'लाइट मोड (Light)' : 'Light Mode'),
               secondary: const Icon(Icons.light_mode_rounded, color: Colors.amber),
               value: ThemeMode.light,
               groupValue: langTheme.themeMode,
@@ -625,7 +637,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             RadioListTile<ThemeMode>(
-              title: const Text('Dark Mode'),
+              title: Text(isMr ? 'डार्क मोड (Dark)' : 'Dark Mode'),
               secondary: const Icon(Icons.dark_mode_rounded, color: Colors.indigo),
               value: ThemeMode.dark,
               groupValue: langTheme.themeMode,
@@ -636,7 +648,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             RadioListTile<ThemeMode>(
-              title: const Text('System Default'),
+              title: Text(isMr ? 'सिस्टम डिफॉल्ट (System)' : 'System Default'),
               secondary: const Icon(Icons.settings_brightness_rounded,
                   color: Colors.teal),
               value: ThemeMode.system,
@@ -694,7 +706,7 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Text('🚩', style: TextStyle(fontSize: 24)),
                   title: const Text('मराठी (Marathi)',
                       style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('प्रादेशिक भाषा'),
+                  subtitle: const Text('प्रादेशिक भाषा (संपूर्ण अ‍ॅप)'),
                   trailing: langTheme.languageCode == 'mr'
                       ? const Icon(Icons.check_circle_rounded,
                           color: AppColors.primary)
@@ -726,18 +738,20 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _confirmLogout(BuildContext context, AuthProvider auth) {
+  void _confirmLogout(BuildContext context, AuthProvider auth, bool isMr) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Logout'),
-        content: const Text(
-          'Are you sure you want to log out from this device? Your offline data will remain securely saved.',
+        title: Text(isMr ? 'लॉगआउटची पुष्टी करा' : 'Confirm Logout'),
+        content: Text(
+          isMr
+              ? 'तुम्हाला या डिव्हाइसवरून नक्की लॉगआउट करायचे आहे का? तुमचा ऑफलाइन डेटा सुरक्षित राहील.'
+              : 'Are you sure you want to log out from this device? Your offline data will remain securely saved.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(isMr ? 'रद्द करा' : 'Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -749,7 +763,7 @@ class SettingsScreen extends StatelessWidget {
                 (route) => false,
               );
             },
-            child: const Text('Log Out'),
+            child: Text(isMr ? 'लॉगआउट' : 'Log Out'),
           ),
         ],
       ),

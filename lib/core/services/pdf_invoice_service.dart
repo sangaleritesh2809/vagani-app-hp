@@ -245,6 +245,32 @@ class PdfInvoiceService {
                         ),
                       ],
                     ),
+                    pw.TableRow(
+                      decoration:
+                          const pw.BoxDecoration(color: PdfColors.blue50),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text('Collected By (जमा घेणारा)',
+                              style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 9,
+                                  color: PdfColors.blue900)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Text(
+                            receipt.collectedByName.isNotEmpty
+                                ? receipt.collectedByName
+                                : 'Authorized Agent',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 9,
+                                color: PdfColors.blue900),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 pw.SizedBox(height: 12),
@@ -289,7 +315,7 @@ class PdfInvoiceService {
                 ],
                 pw.Spacer(),
 
-                // Signatures & QR Note
+                // Signatures, Mandal Seal Stamp & QR Note
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -298,7 +324,8 @@ class PdfInvoiceService {
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         pw.Text('Collected By: ${receipt.collectedByName}',
-                            style: const pw.TextStyle(fontSize: 8)),
+                            style: pw.TextStyle(
+                                fontSize: 8, fontWeight: pw.FontWeight.bold)),
                         pw.Text('Received By: ${receipt.receivedByName}',
                             style: const pw.TextStyle(fontSize: 8)),
                         pw.SizedBox(height: 4),
@@ -308,6 +335,42 @@ class PdfInvoiceService {
                                 fontSize: 7, color: PdfColors.grey600)),
                       ],
                     ),
+
+                    // Official Mandal Stamp ("शिका")
+                    pw.Container(
+                      width: 65,
+                      height: 65,
+                      padding: const pw.EdgeInsets.all(3),
+                      decoration: pw.BoxDecoration(
+                        shape: pw.BoxShape.circle,
+                        border: pw.Border.all(color: PdfColors.red800, width: 1.5),
+                      ),
+                      child: pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                        children: [
+                          pw.Text('★ ★ ★',
+                              style: const pw.TextStyle(
+                                  fontSize: 5, color: PdfColors.red800)),
+                          pw.Text('OFFICIAL SEAL',
+                              style: pw.TextStyle(
+                                  fontSize: 6,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.red800)),
+                          pw.Text('अधिकृत शिक्का',
+                              style: pw.TextStyle(
+                                  fontSize: 6,
+                                  fontWeight: pw.FontWeight.bold,
+                                  color: PdfColors.red800)),
+                          pw.Text('VERIFIED',
+                              style: const pw.TextStyle(
+                                  fontSize: 5, color: PdfColors.red800)),
+                          pw.Text('★ ★ ★',
+                              style: const pw.TextStyle(
+                                  fontSize: 5, color: PdfColors.red800)),
+                        ],
+                      ),
+                    ),
+
                     pw.Column(
                       children: [
                         pw.Container(

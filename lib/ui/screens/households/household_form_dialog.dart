@@ -53,9 +53,10 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
     final campaign = data.currentCampaign;
+    final groupRate = data.activeGroup?.perPersonRate;
     final rate = _isEdit
         ? widget.householdToEdit!.perPersonRateSnapshot
-        : campaign.perPersonRate;
+        : (groupRate != null && groupRate > 0 ? groupRate : campaign.perPersonRate);
     final expectedTotal = _memberCount * rate;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -296,6 +297,7 @@ class _HouseholdFormDialogState extends State<HouseholdFormDialog> {
                                 villageArea: _areaController.text.trim(),
                                 familyMemberCount: _memberCount,
                                 currentUser: auth.currentUser,
+                                perPersonRateSnapshot: rate,
                               );
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(

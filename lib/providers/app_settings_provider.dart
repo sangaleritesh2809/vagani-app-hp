@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/services/supabase_service.dart';
 import '../core/models/user_model.dart';
+import '../core/services/html_receipt_service.dart';
 
 class AppSettingsProvider extends ChangeNotifier {
   // Preference Storage Keys
@@ -19,6 +19,9 @@ class AppSettingsProvider extends ChangeNotifier {
   static const String _prefReceiptHeader = 'vargani_pref_receipt_header';
   static const String _prefReceiptFooter = 'vargani_pref_receipt_footer';
   static const String _prefShowStamp = 'vargani_pref_show_stamp';
+  static const String _prefReceiptStampText = 'vargani_pref_receipt_stamp_text';
+  static const String _prefCustomHtml = 'vargani_pref_receipt_custom_html';
+  static const String _prefUseCustomHtml = 'vargani_pref_use_custom_html';
   static const String _prefAutoShareWhatsapp = 'vargani_pref_auto_share_whatsapp';
 
   static const String _prefLastSyncTime = 'vargani_pref_last_sync_time';
@@ -39,6 +42,9 @@ class AppSettingsProvider extends ChangeNotifier {
   String _receiptHeader = 'श्री गणेश प्रसन्न';
   String _receiptFooter = 'वर्गणी दिल्याबद्दल धन्यवाद! ही अधिकृत पावती आहे.';
   bool _showStamp = true;
+  String _receiptStampText = 'अधिकृत शिक्का';
+  String _customHtmlTemplate = HtmlReceiptService.defaultTemplate;
+  bool _useCustomHtml = false;
   bool _autoShareWhatsapp = true;
 
   // 4. Backup & Sync State
@@ -60,6 +66,9 @@ class AppSettingsProvider extends ChangeNotifier {
   String get receiptHeader => _receiptHeader;
   String get receiptFooter => _receiptFooter;
   bool get showStamp => _showStamp;
+  String get receiptStampText => _receiptStampText;
+  String get customHtmlTemplate => _customHtmlTemplate;
+  bool get useCustomHtml => _useCustomHtml;
   bool get autoShareWhatsapp => _autoShareWhatsapp;
 
   DateTime? get lastSyncTime => _lastSyncTime;
@@ -89,6 +98,9 @@ class AppSettingsProvider extends ChangeNotifier {
       _receiptFooter = prefs.getString(_prefReceiptFooter) ??
           'वर्गणी दिल्याबद्दल धन्यवाद! ही अधिकृत पावती आहे.';
       _showStamp = prefs.getBool(_prefShowStamp) ?? true;
+      _receiptStampText = prefs.getString(_prefReceiptStampText) ?? 'अधिकृत शिक्का';
+      _customHtmlTemplate = prefs.getString(_prefCustomHtml) ?? HtmlReceiptService.defaultTemplate;
+      _useCustomHtml = prefs.getBool(_prefUseCustomHtml) ?? false;
       _autoShareWhatsapp = prefs.getBool(_prefAutoShareWhatsapp) ?? true;
 
       final lastSyncStr = prefs.getString(_prefLastSyncTime);
@@ -161,6 +173,9 @@ class AppSettingsProvider extends ChangeNotifier {
     required String header,
     required String footer,
     required bool showStamp,
+    String? stampText,
+    String? customHtml,
+    bool? useCustomHtml,
     required bool autoShareWhatsapp,
     UserModel? currentUser,
   }) async {
@@ -168,6 +183,9 @@ class AppSettingsProvider extends ChangeNotifier {
     _receiptHeader = header.trim();
     _receiptFooter = footer.trim();
     _showStamp = showStamp;
+    if (stampText != null) _receiptStampText = stampText.trim();
+    if (customHtml != null) _customHtmlTemplate = customHtml;
+    if (useCustomHtml != null) _useCustomHtml = useCustomHtml;
     _autoShareWhatsapp = autoShareWhatsapp;
     notifyListeners();
 
@@ -177,6 +195,9 @@ class AppSettingsProvider extends ChangeNotifier {
       await prefs.setString(_prefReceiptHeader, _receiptHeader);
       await prefs.setString(_prefReceiptFooter, _receiptFooter);
       await prefs.setBool(_prefShowStamp, showStamp);
+      await prefs.setString(_prefReceiptStampText, _receiptStampText);
+      await prefs.setString(_prefCustomHtml, _customHtmlTemplate);
+      await prefs.setBool(_prefUseCustomHtml, _useCustomHtml);
       await prefs.setBool(_prefAutoShareWhatsapp, autoShareWhatsapp);
 
       _syncToSupabase(currentUser);
@@ -245,4 +266,3 @@ class AppSettingsProvider extends ChangeNotifier {
     }).eq('id', currentUser.id).catchError((_) => null);
   }
 }
-

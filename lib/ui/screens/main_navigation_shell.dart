@@ -829,18 +829,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     ),
                   ),
 
-                  // Switch Group
-                  _buildDrawerItem(
-                    icon: Icons.groups_rounded,
-                    iconColor: Colors.deepOrange,
-                    title: isMarathi ? 'ग्रुप / मंडळ बदला' : 'Switch Group',
-                    subtitle: auth.selectedGroup?.name ??
-                        (isMarathi ? 'ग्रुप निवडा' : 'Select Group'),
-                    onTap: () {
-                      _showGroupSelectionModal(
-                          context, auth, data, langTheme, isDark);
-                    },
-                  ),
 
                   // User Profile
                   _buildDrawerItem(

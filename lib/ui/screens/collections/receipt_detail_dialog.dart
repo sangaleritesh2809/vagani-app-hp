@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -6,6 +6,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/receipt_model.dart';
 import '../../../core/models/payment_model.dart';
 import '../../../core/services/pdf_invoice_service.dart';
+import '../../../core/services/html_receipt_service.dart';
+import '../../../providers/app_settings_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/language_theme_provider.dart';
 import '../../../providers/vargani_data_provider.dart';
@@ -21,6 +23,7 @@ class ReceiptDetailDialog extends StatelessWidget {
     final data = context.watch<VarganiDataProvider>();
     final auth = context.watch<AuthProvider>();
     final langTheme = context.watch<LanguageThemeProvider>();
+    final settings = context.watch<AppSettingsProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Current version in state
@@ -32,7 +35,7 @@ class ReceiptDetailDialog extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
+        constraints: const BoxConstraints(maxWidth: 520),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
@@ -76,12 +79,25 @@ class ReceiptDetailDialog extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
+                      // Header greeting
+                      Text(
+                        settings.receiptHeader.isNotEmpty
+                            ? settings.receiptHeader
+                            : '॥ श्री गणेश प्रसन्न ॥',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFB45309),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
                       // Mandal Name & Reg
                       Text(
                         data.organization.name,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15),
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Text(
                         'Reg: ${data.organization.registrationNumber} • ${data.organization.village}',
@@ -120,17 +136,59 @@ class ReceiptDetailDialog extends StatelessWidget {
                           '${langTheme.formatNumber(currentReceipt.familyMemberCount)} × ${langTheme.formatCurrency(currentReceipt.perPersonRate)}'),
                       _buildReceiptRow(langTheme.tr('paymentMode'),
                           currentReceipt.paymentType.displayName),
-                      if (currentReceipt.referenceId != null)
+                      if (currentReceipt.referenceId != null &&
+                          currentReceipt.referenceId!.isNotEmpty)
                         _buildReceiptRow(langTheme.tr('referenceId'),
                             currentReceipt.referenceId!),
                       _buildReceiptRow(langTheme.tr('paymentDate'),
                           langTheme.formatDate(currentReceipt.issuedAt)),
-                      _buildReceiptRow(langTheme.tr('collectedBy'),
-                          currentReceipt.collectedByName),
-                      _buildReceiptRow(langTheme.tr('receivedBy'),
-                          currentReceipt.receivedByName),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 6),
+
+                      // Prominently highlight who collected the money (जमा घेणाऱ्याचे नाव)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.blue.withOpacity(0.25)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.person_pin_circle_rounded,
+                                    size: 16, color: Colors.blue),
+                                const SizedBox(width: 6),
+                                Text(
+                                  langTheme.isMarathi
+                                      ? 'वर्गणी जमा घेणारा:'
+                                      : 'Collected By:',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              currentReceipt.collectedByName.isNotEmpty
+                                  ? currentReceipt.collectedByName
+                                  : (langTheme.isMarathi
+                                      ? 'अधिकृत प्रतिनिधी'
+                                      : 'Authorized Agent'),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
 
                       // Big Amount Highlight
                       Container(
@@ -163,32 +221,98 @@ class ReceiptDetailDialog extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
-                      // QR Verification Code
-                      Center(
-                        child: Column(
-                          children: [
-                            QrImageView(
-                              data:
-                                  'VRG-VERIFY:${currentReceipt.receiptNo}|${currentReceipt.amountReceived}|${currentReceipt.householdHeadName}',
-                              version: QrVersions.auto,
-                              size: 90.0,
+                      // Stamp & QR Verification Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // QR Verification Code
+                          Column(
+                            children: [
+                              QrImageView(
+                                data:
+                                    'VRG-VERIFY:${currentReceipt.receiptNo}|${currentReceipt.amountReceived}|${currentReceipt.householdHeadName}',
+                                version: QrVersions.auto,
+                                size: 80.0,
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Scan to verify',
+                                style:
+                                    TextStyle(fontSize: 9, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+
+                          // Official Stamp / Seal ("शिका")
+                          if (settings.showStamp)
+                            Container(
+                              width: 90,
+                              height: 90,
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.red.shade700,
+                                    width: 2,
+                                    style: BorderStyle.solid),
+                                color: Colors.red.withOpacity(0.04),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('★ ★ ★',
+                                      style: TextStyle(
+                                          fontSize: 7, color: Colors.red)),
+                                  Text(
+                                    settings.receiptStampText.isNotEmpty
+                                        ? settings.receiptStampText
+                                        : 'अधिकृत शिक्का',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red.shade800,
+                                        height: 1.1),
+                                  ),
+                                  Text(
+                                    data.organization.name,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: 7,
+                                        color: Colors.red.shade700),
+                                  ),
+                                  const Text('VERIFIED',
+                                      style: TextStyle(
+                                          fontSize: 7,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red)),
+                                  const Text('★ ★ ★',
+                                      style: TextStyle(
+                                          fontSize: 7, color: Colors.red)),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Scan to verify genuine digital receipt',
-                              style:
-                                  TextStyle(fontSize: 10, color: Colors.grey),
-                            ),
-                          ],
-                        ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+                      Text(
+                        settings.receiptFooter.isNotEmpty
+                            ? settings.receiptFooter
+                            : 'वर्गणी दिल्याबद्दल धन्यवाद! ही अधिकृत पावती आहे.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // Share & PDF Actions (SRS 7)
+                // Share, PDF & HTML Actions (SRS 7)
                 Row(
                   children: [
                     Expanded(
@@ -199,24 +323,28 @@ class ReceiptDetailDialog extends StatelessWidget {
                             org: data.organization,
                           );
                         },
-                        icon: const Icon(Icons.print_rounded, size: 18),
-                        label: const Text('Print / PDF'),
+                        icon: const Icon(Icons.print_rounded, size: 16),
+                        label: const Text('Print / PDF',
+                            style: TextStyle(fontSize: 12)),
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary),
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 10)),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
                           final text =
-                              '🧾 *Vargani Receipt - ${data.organization.name}*\n'
-                              'Receipt No: ${currentReceipt.receiptNo}\n'
-                              'Head: ${currentReceipt.householdHeadName}\n'
-                              'Amount: ₹${currentReceipt.amountReceived.toStringAsFixed(0)}\n'
-                              'Date: ${langTheme.formatDate(currentReceipt.issuedAt)}\n'
-                              'Campaign: ${currentReceipt.campaignName}\n'
-                              'Thank you for your generous contribution!';
+                              '🧾 *${data.organization.name} - वर्गणी पावती*\n'
+                              'पावती क्र: ${currentReceipt.receiptNo}\n'
+                              'वर्गणीदार: ${currentReceipt.householdHeadName}\n'
+                              'रक्कम: ₹${currentReceipt.amountReceived.toStringAsFixed(0)}\n'
+                              'तारीख: ${langTheme.formatDate(currentReceipt.issuedAt)}\n'
+                              'मोहीम: ${currentReceipt.campaignName}\n'
+                              'वर्गणी जमा घेणारा (Collected By): ${currentReceipt.collectedByName}\n'
+                              'अधिकृत शिक्का: Verified / प्रमाणित\n'
+                              'वर्गणी दिल्याबद्दल धन्यवाद!';
                           Clipboard.setData(ClipboardData(text: text));
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -226,8 +354,32 @@ class ReceiptDetailDialog extends StatelessWidget {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.share_rounded, size: 18),
-                        label: const Text('WhatsApp'),
+                        icon: const Icon(Icons.share_rounded, size: 16),
+                        label: const Text('WhatsApp',
+                            style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 10)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          _showHtmlCodeDialog(
+                            context,
+                            currentReceipt,
+                            data.organization,
+                            settings,
+                            langTheme,
+                          );
+                        },
+                        icon: const Icon(Icons.code_rounded,
+                            size: 16, color: Colors.deepPurple),
+                        label: const Text('HTML Code',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.deepPurple)),
+                        style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 10)),
                       ),
                     ),
                   ],
@@ -268,6 +420,97 @@ class ReceiptDetailDialog extends StatelessWidget {
           Text(value,
               style:
                   const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  void _showHtmlCodeDialog(
+    BuildContext context,
+    ReceiptModel receipt,
+    dynamic org,
+    AppSettingsProvider settings,
+    LanguageThemeProvider langTheme,
+  ) {
+    final htmlCode = HtmlReceiptService.generateHtml(
+      receipt: receipt,
+      org: org,
+      header: settings.receiptHeader,
+      footer: settings.receiptFooter,
+      showStamp: settings.showStamp,
+      stampTitle: settings.receiptStampText,
+      customTemplate:
+          settings.useCustomHtml ? settings.customHtmlTemplate : null,
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.html_rounded, color: Colors.deepPurple),
+                SizedBox(width: 8),
+                Text('HTML Receipt Code', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 20),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'You can copy this complete standalone HTML code to print or use on any website, thermal printer, or mailer.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 240,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade800),
+                ),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    htmlCode,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: Color(0xFF38BDF8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: htmlCode));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('HTML Receipt code copied to clipboard!'),
+                  backgroundColor: AppColors.statusPaid,
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy_rounded, size: 16),
+            label: const Text('Copy HTML Code'),
+          ),
         ],
       ),
     );

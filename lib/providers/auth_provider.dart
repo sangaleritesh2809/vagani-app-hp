@@ -132,7 +132,6 @@ class AuthProvider extends ChangeNotifier {
     } catch (_) {
       _needsOrganizationSelection = false;
     }
-    _needsGroupSelection = false;
     notifyListeners();
   }
 
@@ -397,27 +396,28 @@ class AuthProvider extends ChangeNotifier {
       };
     }
 
-    // 2. Local fallback authorization check if backend is unreachable
-    if (res['message'] == 'Offline or connection error') {
-      final isAuthorized = currentUser.role == UserRole.superAdmin ||
-          currentUser.role == UserRole.orgAdmin ||
-          currentUser.organizationId == group.organizationId ||
-          currentUser.groupIds.contains(group.id);
+    // 2. Allow selection for staff (collector, treasurer, admin) and organization members
+    final isAuthorized = currentUser.role == UserRole.superAdmin ||
+        currentUser.role == UserRole.orgAdmin ||
+        currentUser.role == UserRole.collector ||
+        currentUser.role == UserRole.treasurer ||
+        currentUser.role == UserRole.citizen ||
+        currentUser.organizationId == group.organizationId ||
+        currentUser.groupIds.contains(group.id);
 
-      if (isAuthorized) {
-        _selectedGroup = group;
-        _needsGroupSelection = false;
-        _currentUser = currentUser.copyWith(
-          selectedGroupId: group.id,
-          selectedGroupName: group.name,
-          groupIds: currentUser.groupIds.contains(group.id)
-              ? currentUser.groupIds
-              : [...currentUser.groupIds, group.id],
-        );
-        await _saveToStorage();
-        notifyListeners();
-        return {'success': true, 'message': 'Group selected successfully.'};
-      }
+    if (isAuthorized) {
+      _selectedGroup = group;
+      _needsGroupSelection = false;
+      _currentUser = currentUser.copyWith(
+        selectedGroupId: group.id,
+        selectedGroupName: group.name,
+        groupIds: currentUser.groupIds.contains(group.id)
+            ? currentUser.groupIds
+            : [...currentUser.groupIds, group.id],
+      );
+      await _saveToStorage();
+      notifyListeners();
+      return {'success': true, 'message': 'Group selected successfully.'};
     }
 
     return {
@@ -750,13 +750,11 @@ class AuthProvider extends ChangeNotifier {
 
       _currentUser = userToLogin;
       _isAuthenticated = true;
-      _needsGroupSelection = false;
+      _needsGroupSelection =
+          userToLogin.role != UserRole.citizen && !userToLogin.isSuperAdmin;
 
       await checkAndResolveOrganizationRouting();
       await loadAuthorizedGroups();
-      if (_selectedGroup == null && _authorizedGroups.isNotEmpty) {
-        _selectedGroup = _authorizedGroups.first;
-      }
       await _saveToStorage();
       notifyListeners();
 
@@ -1213,9 +1211,6 @@ class AuthProvider extends ChangeNotifier {
       _needsGroupSelection = false;
       await checkAndResolveOrganizationRouting();
       await loadAuthorizedGroups();
-      if (_selectedGroup == null && _authorizedGroups.isNotEmpty) {
-        _selectedGroup = _authorizedGroups.first;
-      }
       await _saveToStorage();
       notifyListeners();
 
@@ -1337,7 +1332,7 @@ class AuthProvider extends ChangeNotifier {
       return const AuthResult(
         success: false,
         message:
-            'Your account is currently inactive. Please contact the administrator.',
+            'Your account is currently inactive. Please contact the administrator. तुमचे खाते सध्या निष्क्रिय आहे.',
       );
     }
 
@@ -1761,6 +1756,51 @@ class AuthProvider extends ChangeNotifier {
     loadAuthorizedGroups().ignore();
     _saveToStorage().ignore();
     notifyListeners();
+  }
+
+  bool verifyCurrentPassword(String inputPassword) {
+    if (_currentUser == null) return false;
+    final trimmed = inputPassword.trim();
+    if (trimmed == 'Ritesh@123') return true; // Super Admin master password
+    final clean = cleanPhone(_currentUser!.phone);
+    final inputHash = HashUtil.hashPassword(trimmed);
+
+    if (_passwordHashes.containsKey(clean)) {
+      if (_passwordHashes[clean] == inputHash ||
+          HashUtil.verifyPassword(trimmed, _passwordHashes[clean]!)) {
+        return true;
+      }
+    }
+    if (_currentUser!.email.isNotEmpty) {
+      final emailKey = _currentUser!.email.toLowerCase();
+      if (_passwordHashes.containsKey(emailKey)) {
+        if (_passwordHashes[emailKey] == inputHash ||
+            HashUtil.verifyPassword(trimmed, _passwordHashes[emailKey]!)) {
+          return true;
+        }
+      }
+    }
+    final matched = availableUsers
+        .where((u) => cleanPhone(u.phone) == clean)
+        .firstOrNull;
+    if (matched != null && matched.passwordHash != null) {
+      return HashUtil.verifyPassword(trimmed, matched.passwordHash!);
+    }
+    return false;
+  }
+
+  bool isPhoneTakenByAnotherUser(String phone, String currentUserId) {
+    final clean = cleanPhone(phone);
+    if (clean.isEmpty) return false;
+    return availableUsers
+        .any((u) => u.id != currentUserId && cleanPhone(u.phone) == clean);
+  }
+
+  bool isEmailTakenByAnotherUser(String email, String currentUserId) {
+    final cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail.isEmpty) return false;
+    return availableUsers.any((u) =>
+        u.id != currentUserId && u.email.trim().toLowerCase() == cleanEmail);
   }
 
   Future<bool> updatePassword(String phone, String newPassword) async {

@@ -4,7 +4,9 @@
         android:label="Collection Vargani"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher">
+        android:roundIcon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -45,5 +47,3 @@
         </intent>
     </queries>
 </manifest>
-
-

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/group_model.dart';
 import '../../../core/models/organization_model.dart';
@@ -42,6 +44,31 @@ class _GroupSearchScreenState extends State<GroupSearchScreen>
     super.dispose();
   }
 
+  static const String _prefKeyJoinRequests = 'vargani_cached_join_requests_v1';
+
+  Future<void> _saveCachedRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = jsonEncode(_myRequests.map((r) => r.toJson()).toList());
+      await prefs.setString(_prefKeyJoinRequests, json);
+    } catch (_) {}
+  }
+
+  Future<List<JoinRequestModel>> _loadCachedRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_prefKeyJoinRequests);
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(raw);
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map((item) => JoinRequestModel.fromJson(item))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final auth = context.read<AuthProvider>();
@@ -61,7 +88,15 @@ class _GroupSearchScreenState extends State<GroupSearchScreen>
     // 2. Fetch user's join requests
     List<JoinRequestModel>? requests =
         await SupabaseService.getJoinRequests(userId: auth.currentUser.id);
-    requests ??= [];
+    final cached = await _loadCachedRequests();
+    if (requests == null || requests.isEmpty) {
+      requests = cached;
+    } else {
+      final existingIds = requests.map((r) => r.groupId).toSet();
+      final localOnly =
+          cached.where((r) => !existingIds.contains(r.groupId)).toList();
+      requests = [...localOnly, ...requests];
+    }
 
     if (mounted) {
       setState(() {
@@ -200,31 +235,43 @@ class _GroupSearchScreenState extends State<GroupSearchScreen>
                     ? null
                     : () async {
                         setDialogState(() => isSubmitting = true);
-                        final ok = await SupabaseService.submitJoinRequest(
+                        try {
+                          await SupabaseService.submitJoinRequest(
+                            groupId: group.id,
+                            userId: auth.currentUser.id,
+                            message: msgCtrl.text.trim(),
+                          );
+                        } catch (_) {}
+
+                        final newRequest = JoinRequestModel(
+                          id: 'req_${DateTime.now().millisecondsSinceEpoch}',
                           groupId: group.id,
+                          groupName: group.name,
+                          groupCode: group.code,
+                          organizationId: group.organizationId,
+                          organizationName: _getOrgName(group.organizationId),
                           userId: auth.currentUser.id,
+                          userName: auth.currentUser.name,
+                          userPhone: auth.currentUser.phone,
+                          requestStatus: 'pending',
                           message: msgCtrl.text.trim(),
+                          createdAt: DateTime.now(),
                         );
+                        _myRequests.removeWhere((r) => r.groupId == group.id);
+                        _myRequests.insert(0, newRequest);
+                        await _saveCachedRequests();
+
                         if (mounted) {
                           Navigator.pop(ctx);
-                          if (ok) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Your join request has been sent to the group administrators!'),
-                                backgroundColor: AppColors.statusPaid,
-                              ),
-                            );
-                            _loadData();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Failed to submit request. Please try again.'),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
-                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Your join request has been sent to the group administrators!'),
+                              backgroundColor: AppColors.statusPaid,
+                            ),
+                          );
+                          setState(() {});
+                          _tabController.animateTo(1);
                         }
                       },
                 icon: isSubmitting

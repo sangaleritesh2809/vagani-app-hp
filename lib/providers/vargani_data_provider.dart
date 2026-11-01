@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../core/models/organization_model.dart';
 import '../core/models/campaign_model.dart';
@@ -40,10 +42,72 @@ class VarganiDataProvider extends ChangeNotifier {
   String _selectedAreaFilter = 'All';
   PaymentStatus? _selectedStatusFilter;
 
+  static const String _prefKeyHouseholds = 'vargani_cached_households_v3';
+  static const String _prefKeyComplaints = 'vargani_cached_complaints_v3';
+  static const String _prefKeyOrg = 'vargani_cached_org_v3';
+
+  Future<void> _saveCachedData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hhJson = jsonEncode(_households.map((h) => h.toJson()).toList());
+      await prefs.setString(_prefKeyHouseholds, hhJson);
+
+      final compJson = jsonEncode(_complaints.map((c) => c.toJson()).toList());
+      await prefs.setString(_prefKeyComplaints, compJson);
+
+      await prefs.setString(_prefKeyOrg, jsonEncode(_organization.toJson()));
+    } catch (e) {
+      debugPrint('Error saving cached vargani data: $e');
+    }
+  }
+
+  Future<void> _loadCachedData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final orgRaw = prefs.getString(_prefKeyOrg);
+      if (orgRaw != null && orgRaw.isNotEmpty) {
+        final decoded = jsonDecode(orgRaw);
+        if (decoded is Map<String, dynamic>) {
+          _organization = OrganizationModel.fromJson(decoded);
+        }
+      }
+
+      final hhRaw = prefs.getString(_prefKeyHouseholds);
+      if (hhRaw != null && hhRaw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(hhRaw);
+        final loaded = list
+            .whereType<Map<String, dynamic>>()
+            .map((item) => HouseholdModel.fromJson(item))
+            .toList();
+        if (loaded.isNotEmpty) {
+          _households = loaded;
+        }
+      }
+
+      final compRaw = prefs.getString(_prefKeyComplaints);
+      if (compRaw != null && compRaw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(compRaw);
+        final loaded = list
+            .whereType<Map<String, dynamic>>()
+            .map((item) => ComplaintModel.fromJson(item))
+            .toList();
+        if (loaded.isNotEmpty) {
+          _complaints = loaded;
+        }
+      }
+      notifyListeners();
+    _saveCachedData();
+    } catch (e) {
+      debugPrint('Error loading cached vargani data: $e');
+    }
+  }
+
   VarganiDataProvider() {
     _selectedCampaignId = _campaigns.isNotEmpty ? _campaigns.first.id : '';
-    // Load live data from backend immediately
-    initDataFromBackend();
+    // Load local storage first to prevent flashing mock org and restore user records
+    _loadCachedData().then((_) {
+      initDataFromBackend();
+    });
   }
 
   // Getters
@@ -54,6 +118,7 @@ class VarganiDataProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+    _saveCachedData();
   }
 
   OrganizationModel get organization => _organization;
@@ -65,6 +130,7 @@ class VarganiDataProvider extends ChangeNotifier {
   void setActiveGroup(GroupModel? group) {
     _activeGroup = group;
     notifyListeners();
+    _saveCachedData();
     if (_selectedCampaignId.isNotEmpty) {
       refreshCampaignData(_selectedCampaignId);
     }
@@ -90,6 +156,7 @@ class VarganiDataProvider extends ChangeNotifier {
   void selectCampaign(String id) {
     _selectedCampaignId = id;
     notifyListeners();
+    _saveCachedData();
     refreshCampaignData(id);
   }
 
@@ -98,12 +165,14 @@ class VarganiDataProvider extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+    _saveCachedData();
 
     try {
       // 1. Fetch organization
       final org = await ApiService.fetchOrganization();
       if (org != null) {
         _organization = org;
+        _saveCachedData();
       }
 
       // 2. Fetch campaigns
@@ -124,6 +193,7 @@ class VarganiDataProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    _saveCachedData();
     }
   }
 
@@ -141,7 +211,11 @@ class VarganiDataProvider extends ChangeNotifier {
       ]);
 
       if (results[0] != null) {
-        _households = results[0] as List<HouseholdModel>;
+        final backendList = results[0] as List<HouseholdModel>;
+        final existingIds = backendList.map((h) => h.id).toSet();
+        final localOnly =
+            _households.where((h) => !existingIds.contains(h.id)).toList();
+        _households = [...localOnly, ...backendList];
       }
       if (results[1] != null) {
         _payments = results[1] as List<PaymentModel>;
@@ -156,18 +230,25 @@ class VarganiDataProvider extends ChangeNotifier {
         _expenses = results[4] as List<ExpenseModel>;
       }
       if (results[5] != null) {
-        _complaints = results[5] as List<ComplaintModel>;
+        final backendComplaints = results[5] as List<ComplaintModel>;
+        final existingCompIds = backendComplaints.map((c) => c.id).toSet();
+        final localOnlyComp =
+            _complaints.where((c) => !existingCompIds.contains(c.id)).toList();
+        _complaints = [...localOnlyComp, ...backendComplaints];
       }
       if (results[6] != null) {
         _auditLogs = results[6] as List<AuditLogModel>;
       }
+      _saveCachedData();
       _errorMessage = null;
       notifyListeners();
+    _saveCachedData();
     } catch (e) {
       _errorMessage =
           'Unable to connect to server. Please check your internet connection or try again later. (Server Unreachable)';
       debugPrint('Notice: Campaign refresh error ($e)');
       notifyListeners();
+    _saveCachedData();
     }
   }
 
@@ -219,16 +300,19 @@ class VarganiDataProvider extends ChangeNotifier {
   void setHouseholdSearch(String query) {
     _householdSearchQuery = query;
     notifyListeners();
+    _saveCachedData();
   }
 
   void setAreaFilter(String area) {
     _selectedAreaFilter = area;
     notifyListeners();
+    _saveCachedData();
   }
 
   void setStatusFilter(PaymentStatus? status) {
     _selectedStatusFilter = status;
     notifyListeners();
+    _saveCachedData();
   }
 
   // Filtered lists for current campaign
@@ -374,7 +458,10 @@ class VarganiDataProvider extends ChangeNotifier {
     required String villageArea,
     required int familyMemberCount,
     required UserModel currentUser,
+    double? perPersonRateSnapshot,
   }) {
+    final effectiveRate = perPersonRateSnapshot ??
+        (_activeGroup?.perPersonRate ?? currentCampaign.perPersonRate);
     final newHousehold = HouseholdModel(
       id: 'hh_${_uuid.v4().substring(0, 8)}',
       campaignId: _selectedCampaignId,
@@ -384,12 +471,13 @@ class VarganiDataProvider extends ChangeNotifier {
       mobileNumber: mobileNumber,
       villageArea: villageArea,
       familyMemberCount: familyMemberCount,
-      perPersonRateSnapshot: _activeGroup?.perPersonRate ?? currentCampaign.perPersonRate,
+      perPersonRateSnapshot: effectiveRate,
       amountReceived: 0.0,
       createdAt: DateTime.now(),
     );
 
     _households.insert(0, newHousehold);
+    _saveCachedData();
 
     _auditLogs.insert(
       0,
@@ -403,11 +491,12 @@ class VarganiDataProvider extends ChangeNotifier {
         performedByName: currentUser.name,
         timestamp: DateTime.now(),
         details:
-            'Registered ${newHousehold.headOfFamilyName} ($familyMemberCount members @ Rs. ${currentCampaign.perPersonRate})',
+            'Registered ${newHousehold.headOfFamilyName} ($familyMemberCount members @ Rs. $effectiveRate)',
       ),
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.registerHousehold(
@@ -416,12 +505,17 @@ class VarganiDataProvider extends ChangeNotifier {
       mobileNumber: mobileNumber,
       villageArea: villageArea,
       familyMemberCount: familyMemberCount,
+      perPersonRateSnapshot: effectiveRate,
+      organizationId: _organization.id,
+      groupId: newHousehold.groupId,
     ).then((created) {
       if (created != null) {
         final idx = _households.indexWhere((h) => h.id == newHousehold.id);
         if (idx != -1) {
           _households[idx] = created;
+          _saveCachedData();
           notifyListeners();
+    _saveCachedData();
         }
       }
     }).ignore();
@@ -452,6 +546,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     _households[idx] = updated;
+    _saveCachedData();
 
     _auditLogs.insert(
       0,
@@ -470,6 +565,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Supabase update asynchronously
     SupabaseService.updateHousehold(updated.id, {
@@ -497,6 +593,7 @@ class VarganiDataProvider extends ChangeNotifier {
     }
 
     _households.removeAt(idx);
+    _saveCachedData();
 
     _auditLogs.insert(
       0,
@@ -514,6 +611,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     try {
       await SupabaseService.deleteHousehold(existing.id);
@@ -603,6 +701,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.recordPayment(
@@ -620,6 +719,7 @@ class VarganiDataProvider extends ChangeNotifier {
         if (rIdx != -1) {
           _receipts[rIdx] = createdReceipt;
           notifyListeners();
+    _saveCachedData();
         }
       }
     }).ignore();
@@ -673,6 +773,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.cancelReceipt(
@@ -721,6 +822,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.submitHandover(
@@ -735,6 +837,7 @@ class VarganiDataProvider extends ChangeNotifier {
         if (idx != -1) {
           _handovers[idx] = created;
           notifyListeners();
+    _saveCachedData();
         }
       }
     }).ignore();
@@ -774,6 +877,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.processHandover(
@@ -835,6 +939,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.addExpense(
@@ -855,6 +960,7 @@ class VarganiDataProvider extends ChangeNotifier {
         if (idx != -1) {
           _expenses[idx] = created;
           notifyListeners();
+    _saveCachedData();
         }
       }
     }).ignore();
@@ -888,6 +994,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.approveExpense(
@@ -922,6 +1029,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     _complaints.insert(0, complaint);
+    _saveCachedData();
 
     _auditLogs.insert(
       0,
@@ -939,6 +1047,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.submitComplaint(
@@ -953,7 +1062,9 @@ class VarganiDataProvider extends ChangeNotifier {
         final idx = _complaints.indexWhere((c) => c.id == complaint.id);
         if (idx != -1) {
           _complaints[idx] = created;
+          _saveCachedData();
           notifyListeners();
+    _saveCachedData();
         }
       }
     }).ignore();
@@ -994,6 +1105,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.respondComplaint(
@@ -1033,6 +1145,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API to update complaint status
     ApiService.respondComplaint(
@@ -1074,6 +1187,7 @@ class VarganiDataProvider extends ChangeNotifier {
     );
 
     notifyListeners();
+    _saveCachedData();
 
     // Call Backend API
     ApiService.updateCampaignRate(

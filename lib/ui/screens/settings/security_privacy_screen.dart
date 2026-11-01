@@ -434,6 +434,29 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
               ),
               onPressed: () {
                 if (formKey.currentState!.validate()) {
+                  // Verify current password
+                  if (!auth.verifyCurrentPassword(currentPassCtrl.text)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Current password is incorrect! Please enter your valid current password.'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (currentPassCtrl.text.trim() == newPassCtrl.text.trim()) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'New password cannot be the same as current password.'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+
                   // Call auth password update
                   auth.updatePassword(
                     auth.currentUser.phone,

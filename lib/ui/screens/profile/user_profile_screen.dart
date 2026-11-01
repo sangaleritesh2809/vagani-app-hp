@@ -96,7 +96,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<bool> _saveProfileDetails() async {
     if (!_formKey.currentState!.validate()) return false;
-    setState(() => _isSaving = true);
 
     final cleanPhone = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
     final last10 = cleanPhone.length >= 10
@@ -104,6 +103,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         : cleanPhone;
 
     final auth = context.read<AuthProvider>();
+
+    // 1. Validate 10-digit phone
+    if (last10.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid 10-digit mobile number.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return false;
+    }
+
+    // 2. Validate duplicate phone
+    if (auth.isPhoneTakenByAnotherUser(last10, auth.currentUser.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This mobile number is already registered with another account!'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return false;
+    }
+
+    // 3. Validate duplicate email
+    if (_emailCtrl.text.trim().isNotEmpty &&
+        auth.isEmailTakenByAnotherUser(
+            _emailCtrl.text.trim(), auth.currentUser.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This email address is already in use by another account!'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return false;
+    }
+
+    setState(() => _isSaving = true);
     final ok = await auth.updateUserProfile(
       name: _nameCtrl.text.trim().isNotEmpty
           ? _nameCtrl.text.trim()
